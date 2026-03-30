@@ -43,5 +43,15 @@ Chapter order: Basics, Induction, Lists, Poly, Tactics, Logic, IndProp, Maps, Pr
 
 15. **Typeclasses introduced organically in Lists**: Type classes (`HAppend`, `BEq`) are introduced in Lists when the need arises (wanting `++` for our custom `app`). Brief intro: "a type class is an interface, an instance is an implementation." Reference FPIL Chapter 3 for full story. Polymorphic typeclasses deferred to Poly chapter.
 
+16. **omega introduced in Tactics**: omega is introduced in the Tactics chapter (earlier than Rocq's lia in Imp), since many numeric exercises benefit from it.
+
+17. **IndProp split into two files**: IndProp.lean (core concepts + evenness) and IndPropRegexp.lean (regexp case study + pumping lemma).
+
+18. **AltAuto only, no Auto.v**: Drop Auto.v (which depends on Imp). Use AltAuto.v as the sole automation chapter, rewritten for Lean (aesop, simp, omega, decide, macro). Rename to Auto.lean.
+
+19. **Strict sequential order**: Chapters translated in student reading order, not parallelized.
+
+20. **Extraction → Compilation**: Extraction.v becomes Compilation.lean covering Lean's compilation model (Lean → C, `main`, `lake build`, `native_decide`).
+
 **Why:** These decisions balance pedagogical faithfulness to SF with idiomatic Lean style.
 **How to apply:** Consult these decisions when translating each chapter.
