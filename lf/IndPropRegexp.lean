@@ -521,11 +521,19 @@ theorem weak_pumping_star_zero : ∀ {α : Type} (re : RegExp α),
     (∀ m : Nat, s1 ++ napp m s2 ++ s3 =~ .Star re) := by
   -- ADMITTED
   intro α re Hp
-  have Hz := Nat.le_zero.mp Hp
-  have h1 := pumping_constant_ge_1 re
-  simp only [pumpingConstant] at Hz
-  rw [Hz] at h1
-  cases h1
+  simp only [List.length_nil] at Hp
+  -- TODO (DHS): On the face of it it's kind of strange that generalizing like this
+  -- is necessary; in the Rocq version of this we teach students to think about inversion
+  -- like flipping the inference rule; i.e., given the fact that I know H, what can I
+  -- conclude must have been true in order for H to be true. Needing to generalize
+  -- our hypothesis is a bit weird when we think about inversion this way. How to explain?
+  generalize h : 0 = k at Hp
+  cases Hp
+  case step => cases h
+  case refl =>
+    have h2 := pumping_constant_ge_1 re
+    simp only [pumpingConstant] at h
+    rw [← h] at h2; cases h2
   -- /ADMITTED
 
 theorem weak_pumping_star_app : ∀ {α : Type}  (s1 s2 : List α) (re : RegExp α),
