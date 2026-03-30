@@ -383,13 +383,237 @@ theorem napp_star {α : Type} {m : Nat} {s1 s2 : List α} {re : RegExp α}
 -- EX5A? (pumping)
 -- The (weak) pumping lemma. Advanced exercise.
 
+theorem weak_pumping_char : ∀ {α : Type} (x : α),
+  pumpingConstant (.Char x) <= List.length [x] ->
+  ∃ s1 s2 s3 : List α,
+    [x] = s1 ++ s2 ++ s3 ∧ s2 ≠ [ ] ∧
+    (∀ m : Nat, s1 ++ napp m s2 ++ s3 =~ .Char x) := by
+  -- ADMITTED
+  intro α x contra
+  simp [pumpingConstant] at contra
+  -- /ADMITTED
+
+theorem weak_pumping_app : ∀ {α : Type}
+                         (s1 s2 : List α) (re1 re2 : RegExp α),
+  s1 =~ re1 ->
+  s2 =~ re2 ->
+  (pumpingConstant re1 <= List.length s1 ->
+  ∃ s2 s3 s4 : List α,
+    s1 = s2 ++ s3 ++ s4 /\
+    s3 ≠ [ ] /\
+    (∀ m : Nat, s2 ++ napp m s3 ++ s4 =~ re1)) ->
+  (pumpingConstant re2 <= List.length s2 ->
+    ∃ s1 s3 s4 : List α,
+      s2 = s1 ++ s3 ++ s4 /\
+      s3 ≠ [ ] /\
+      (∀ m : Nat, s1 ++ napp m s3 ++ s4 =~ re2)) ->
+  pumpingConstant (.App re1 re2) <= List.length (s1 ++ s2) ->
+  ∃ s0 s3 s4 : List α,
+    s1 ++ s2 = s0 ++ s3 ++ s4 /\
+    s3 ≠ [ ] /\
+    (∀ m : Nat, s0 ++ napp m s3 ++ s4 =~ .App re1 re2) := by
+  intro α s1 s2 re1 re2 Hmatch1 Hmatch2 IH1 IH2 Hlen
+  have H : pumpingConstant re1 <= List.length s1 \/ pumpingConstant re2 <= List.length s2 := by
+  -- ADMITTED
+    rw [app_length] at Hlen
+    apply plus_le_cases
+    apply Hlen
+  -- /ADMITTED
+  cases H
+  . case inl H =>
+    specialize IH1 H
+    let ⟨s12, s13, s14, H1, H2, H3⟩ := IH1
+    rw [H1]
+    exists s12; exists s13; exists (s14 ++ s2)
+    constructor
+    . rw [←List.append_assoc]
+    constructor
+    . assumption
+    . intro m; specialize H3 m
+      rw [←List.append_assoc]
+      apply ExpMatch.MApp
+      assumption
+      assumption
+  . case inr H =>
+    specialize IH2 H
+    let ⟨s21, s22, s23, H1, H2, H3⟩ := IH2
+    rw [H1]
+    exists (s1 ++ s21); exists s22; exists s23
+    constructor
+    . rw [←List.append_assoc, ←List.append_assoc]
+    constructor
+    . assumption
+    . intro m; specialize H3 m
+      rw [List.append_assoc, List.append_assoc]
+      apply ExpMatch.MApp
+      assumption
+      rw [←List.append_assoc]
+      assumption
+
+theorem weak_pumping_union_l :  ∀ {α : Type} (s1 : List α) (re1 re2 : RegExp α),
+  s1 =~ re1 ->
+  (pumpingConstant re1 <= List.length s1 ->
+    ∃ s2 s3 s4 : List α,
+      s1 = s2 ++ s3 ++ s4 /\
+      s3 ≠ [ ] /\
+      (∀ m : Nat, s2 ++ napp m s3 ++ s4 =~ re1)) ->
+  pumpingConstant (.Union re1 re2) <= List.length s1 ->
+  ∃ s0 s2 s3 : List α,
+    s1 = s0 ++ s2 ++ s3 /\
+    s2 ≠ [ ] /\
+    (∀ m : Nat, s0 ++ napp m s2 ++ s3 =~ .Union re1 re2) := by
+  intro α s1 re1 re2 Hmatch IH Hlen
+  have H : pumpingConstant re1 <= List.length s1 := by
+  -- ADMITTED
+    simp only [pumpingConstant] at Hlen
+    apply Nat.le_trans _ Hlen
+    exact Nat.le_add_right _ _
+  -- /ADMITTED
+  -- ADMITTED
+  specialize IH H
+  let ⟨s11, s12, s13, H1, H2, H3⟩ := IH
+  exists s11; exists s12; exists s13
+  constructor
+  . assumption
+  constructor
+  . assumption
+  . intro m; specialize H3 m
+    apply ExpMatch.MUnionL
+    assumption
+  -- /ADMITTED
+
+theorem weak_pumping_union_r : ∀ {α : Type} (s2 : List α) (re1 re2 : RegExp α),
+  s2 =~ re2 ->
+  (pumpingConstant re2 <= List.length s2 ->
+    ∃ s1 s3 s4 : List α,
+      s2 = s1 ++ s3 ++ s4 /\
+      s3 ≠ [ ] /\
+      (∀ m : Nat, s1 ++ napp m s3 ++ s4 =~ re2)) ->
+  pumpingConstant (.Union re1 re2) <= List.length s2 ->
+  ∃ s1 s0 s3 : List α,
+    s2 = s1 ++ s0 ++ s3 /\
+    s0 ≠ [ ] /\
+    (∀ m : Nat, s1 ++ napp m s0 ++ s3 =~ .Union re1 re2) := by
+  -- symmetric to the previous
+  intro α s2 re1 re2 Hmatch IH Hlen
+  have H : pumpingConstant re2 <= List.length s2 := by
+  -- ADMITTED
+    simp only [pumpingConstant] at Hlen
+    apply Nat.le_trans _ Hlen
+    exact Nat.le_add_left _ _
+  -- /ADMITTED
+  -- ADMITTED
+  specialize IH H
+  let ⟨s21, s22, s23, H1, H2, H3⟩ := IH
+  exists s21; exists s22; exists s23
+  constructor
+  . assumption
+  constructor
+  . assumption
+  . intro m; specialize H3 m
+    apply ExpMatch.MUnionR
+    assumption
+  -- /ADMITTED
+
+theorem weak_pumping_star_zero : ∀ {α : Type} (re : RegExp α),
+  pumpingConstant (.Star re) <= @List.length α [] ->
+  ∃ s1 s2 s3 : List α,
+    [ ] = s1 ++ s2 ++ s3 /\
+    s2 ≠ [ ] /\
+    (∀ m : Nat, s1 ++ napp m s2 ++ s3 =~ .Star re) := by
+  -- ADMITTED
+  intro α re Hp
+  simp only [List.length] at Hp
+  have Hz := Nat.le_zero.mp Hp
+  have h1 := pumping_constant_ge_1 re
+  simp only [pumpingConstant] at Hz
+  rw [Hz] at h1
+  cases h1
+  -- /ADMITTED
+
+theorem weak_pumping_star_app : ∀ {α : Type}  (s1 s2 : List α) (re : RegExp α),
+  s1 =~ re ->
+  s2 =~ .Star re ->
+  (pumpingConstant re <= List.length s1 ->
+    ∃ s2 s3 s4 : List α,
+      s1 = s2 ++ s3 ++ s4
+      /\ s3  ≠ [ ] /\
+      (∀ m : Nat, s2 ++ napp m s3 ++ s4 =~ re)) ->
+  (pumpingConstant (.Star re) <= List.length s2 ->
+    ∃ s1 s3 s4 : List α,
+      s2 = s1 ++ s3 ++ s4 /\
+      s3  ≠ [ ] /\
+      (∀ m : Nat, s1 ++ napp m s3 ++ s4 =~ .Star re)) ->
+  pumpingConstant (.Star re) <= List.length (s1 ++ s2) ->
+  ∃ s0 s3 s4 : List α,
+    s1 ++ s2 = s0 ++ s3 ++ s4 /\
+    s3  ≠ [ ] /\
+    (∀ m : Nat, s0 ++ napp m s3 ++ s4 =~ .Star re)  := by
+  intro T s1 s2 re Hmatch1 Hmatch2 IH1 IH2 Hlen
+  rw [app_length] at *
+  have Hs1re1 : (List.length s1 = 0
+                ∨ (List.length s1 ≠ 0 /\ List.length s1 < pumpingConstant re)
+                ∨ pumpingConstant re <= List.length s1) := by
+    cases s1
+    -- ADMITTED
+    . left; rfl
+    -- /ADMITTED
+    -- ADMITTED
+    . case cons h s1' =>
+      right
+      have Hcases : (List.length (h :: s1') < pumpingConstant re
+                    \/ pumpingConstant re <= List.length (h :: s1')) := by
+        apply lt_ge_cases
+      cases Hcases
+      . left; constructor
+        . intro contra
+          contradiction
+        . assumption
+      . right; assumption
+    -- /ADMITTED
+  -- ADMITTED
+  rcases Hs1re1 with Hs1len0 | ⟨s1len, Hs1re1⟩ | Hs1re1
+  . have Hs1nil : s1 = [] := by
+      cases s1; rfl; contradiction
+    subst Hs1nil
+    simp only [List.length_nil, Nat.zero_add] at Hlen
+    apply IH2; apply Hlen
+  . exists []; exists s1; exists s2
+    constructor; rfl
+    constructor
+    . intro contra; subst contra; contradiction
+    . intro m; apply napp_star
+      assumption
+      assumption
+  . specialize IH1 Hs1re1
+    let ⟨s11, s12, s13, H1, H2, H3⟩ := IH1
+    exists s11; exists s12; exists (s13 ++ s2)
+    rw [H1]
+    constructor
+    . rw [List.append_assoc]
+    constructor
+    . assumption
+    . intro m; specialize H3 m
+      rw [←List.append_assoc]
+      apply ExpMatch.MStarApp
+      . assumption
+      . assumption
+  -- /ADMITTED
+
 theorem weak_pumping {α : Type} {re : RegExp α} {s : List α}
-    (_hmatch : s =~ re) (_hlen : pumpingConstant re ≤ s.length) :
+    (hmatch : s =~ re) (hlen : pumpingConstant re ≤ s.length) :
     ∃ s1 s2 s3 : List α,
       s = s1 ++ s2 ++ s3 ∧ s2 ≠ [] ∧
       ∀ m, s1 ++ napp m s2 ++ s3 =~ re := by
   -- ADMITTED
-  sorry
+  induction hmatch
+  . simp [pumpingConstant] at hlen
+  . apply weak_pumping_char; assumption
+  . apply weak_pumping_app <;> assumption
+  . apply weak_pumping_union_l <;> assumption
+  . apply weak_pumping_union_r <;> assumption
+  . apply weak_pumping_star_zero <;> assumption
+  . apply weak_pumping_star_app <;> assumption
   -- /ADMITTED
 
 -- The (strong) pumping lemma.
