@@ -1,0 +1,44 @@
+# Commentary
+
+General notes on translation specifics go here.
+
+## Differences from Rocq
+
+### Aborting
+
+Suggestion from Roger: Use unnamed `example`s closed with `sorry`
+to replace functionality of (named) `Abort`ed lemmas.
+
+### Induction/inversion and generalization
+
+DHS: We teach students to think about inversion like inverting an inference rule
+("I know H, what must have been true for H to be true"),
+but it's not intuitive that that process of inverting the rule should require the hypothesis to be general. 
+Maybe the way we were teaching inversion before was overly specific to Rocq?
+
+Concrete example: Inversion on `n ≤ 0` requires `generalizing e : 0 = m`,
+since one of the constructors of `≤` has a `succ` argument on the RHS,
+which Lean can't unify with `0`.
+
+## Stylistic conventions
+
+### Induction/inversion
+
+JC: We should avoid the `induction h with | ...` and `cases h with | ...` style
+since they don't show the proof goals immediately after induction/inversion,
+whereas `induction h` and `cases h` would let you teach
+"and now you have a new goal to prove for each case" incrementally.
+(There are also performance issues with very large `with`s
+since the whole thing gets processed all at once instead of incrementally,
+but that won't be a problem in this book.)
+
+JC: We should also prefer e.g. `case zero => ...`, `case succ n => ...`
+over the dot list syntax for clarity,
+and only use the latter where the generated tag names aren't meaningful.
+
+## Notable tactics
+
+These might require a little more textual explanation.
+
+* `split`
+* `have` vs. `rcases` vs. `obtain`
