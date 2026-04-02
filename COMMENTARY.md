@@ -42,3 +42,5 @@ These might require a little more textual explanation.
 
 * `split`
 * `have` vs. `rcases` vs. `obtain`
+
+From FPiL: "The grind tactic is very powerful, customizable, and extensible; due to this power and flexibility, its output when it fails to prove a theorem contains a lot of information that can help trained Lean users diagnose the reason for the failure. This can be overwhelming in the beginning, so this chapter uses only decide and simp."
