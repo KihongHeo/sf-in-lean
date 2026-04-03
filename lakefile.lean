@@ -3,7 +3,8 @@ open Lake DSL
 
 package sf where
   leanOptions := #[
-    ⟨`autoImplicit, false⟩
+    ⟨`autoImplicit, false⟩,
+    ⟨`pp.fieldNotation, false⟩
   ]
 
 @[default_target]
