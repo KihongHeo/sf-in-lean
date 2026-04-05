@@ -38,12 +38,12 @@ and only use the latter where the generated tag names aren't meaningful.
 
 ### Comments
 
-| Style | Syntax   |
-| ----- | -------- |
-| Line  | `--`     |
-| Block | `/- -/`  |
-| Doc   | `/-- -/` |
-| Doc   | `/-! -/` |
+| Style                  | Syntax   |
+| ---------------------- | -------- |
+| Line comment           | `--`     |
+| Block comment          | `/- -/`  |
+| Definition doc comment | `/-- -/` |
+| General doc comment    | `/-! -/` |
 
 ## Notable tactics
 
@@ -65,4 +65,17 @@ Essentially, `rw` is kind of like `now rewrite` in Rocq. Good for people who kno
 I'll give a soft proposal that we use `rewrite` rather than `rw`.
 
 Daniel: I am mostly in agreement with Roger's point above, especially for early chapters where we want to be as explicit 
-as possible about what's happening in proofs. However I think after the first few chapters we can probably relax this restriction? 
+as possible about what's happening in proofs. However I think after the first few chapters we can probably relax this restriction?
+
+## Course content
+
+### `Basics.lean`
+
+JC: There should be some instruction on interaction with the IDE, namely:
+* how to read the proof state
+* clicking immediately after a tactic will show you what it changed
+* clicking after each `h` in `rw [h₁, h₂, ...]` will show you what was rewritten
+* hovering over a tactic will provide documentation on how to use it
+* hovering over a definition will give its type
+* hovering over a Unicode character will tell you how to type it
+* Ctrl-clicking on a definition will take you to the definition location
