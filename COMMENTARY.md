@@ -79,3 +79,26 @@ JC: There should be some instruction on interaction with the IDE, namely:
 * hovering over a definition will give its type
 * hovering over a Unicode character will tell you how to type it
 * Ctrl-clicking on a definition will take you to the definition location
+
+### `Lists.lean`
+
+DHS: Weird that this file contains the first `inductive` definition students have seen up to this point, 
+but that definition is also actually a `structure`. Probably need to restructure this. 
+
+DHS: Unsure if it's a good idea to actually use the built-in `List` definition here, since it's polymorphic,
+and we aren't introducing this idea until a later chapter. This also means we don't get the chance 
+to show students how to actually produce an inductive definition if we're relying on the built-in ones. 
+
+DHS: We probably need to actually take time to explain what an `@[simp]` annotation on a lemma
+means before we introduce it, and I don't think this chapter is the right place to do it anyway. 
+This is probably a better fit for `Auto.lean`.
+
+DHS: Claude picked a bad definition for `nonzeroes`:
+```
+  match l with
+  | [] => []
+  | 0 :: t => nonzeros t
+  | h :: t => h :: nonzeros t
+```
+which makes many of the later proofs hard to do without the full automation of `simp`. 
+I changed it, but it's worth pointing this out.
