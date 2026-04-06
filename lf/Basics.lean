@@ -212,24 +212,22 @@ inductive MyBool : Type where
 -- Functions over booleans can be defined in the same way as above:
 -- /FULL
 
-namespace MyBool
-
-def negb (b : MyBool) : MyBool :=
+def notb (b : MyBool) : MyBool :=
   match b with
-  | true => false
-  | false => true
+  | .true => .false
+  | .false => .true
 
 -- TERSE: ***
 
 def andb (b1 : MyBool) (b2 : MyBool) : MyBool :=
   match b1 with
-  | true => b2
-  | false => false
+  | .true => b2
+  | .false => .false
 
 def orb (b1 : MyBool) (b2 : MyBool) : MyBool :=
   match b1 with
-  | true => true
-  | false => b2
+  | .true => .true
+  | .false => b2
 
 -- FULL
 -- (Although we are rolling our own booleans here for the sake
@@ -250,22 +248,29 @@ def orb (b1 : MyBool) (b2 : MyBool) : MyBool :=
 -- TERSE: ***
 
 -- test_orb1
-example : orb true  false = true  := by rfl
+example : orb .true  .false = .true  := by rfl
 -- test_orb2
-example : orb false false = false := by rfl
+example : orb .false .false = .false := by rfl
 -- test_orb3
-example : orb false true  = true  := by rfl
+example : orb .false .true  = .true  := by rfl
 -- test_orb4
-example : orb true  true  = true  := by rfl
+example : orb .true  .true  = .true  := by rfl
 
 -- We can define new symbolic notations for existing definitions.
+-- Because Lean already defines these for the built-in `Bool`,
+-- we restrict ours locally to a section.
 
-prefix:40 "!" => negb
-infixl:35 "&&" => andb
-infixl:30 "||" => orb
+section
+local prefix:40 (priority := high) "!" => notb
+local infixl:35 (priority := high) " && " => andb
+local infixl:30 (priority := high) " || " => orb
 
 -- test_orb5
-example : (false || false || true) = true := by rfl
+example : (.false || .false || .true) = .true := by rfl
+
+-- test_orb6
+example : (! .false) = .true := by rfl
+end
 
 -- TERSE: ***
 -- FULL
@@ -280,18 +285,18 @@ example : (false || false || true) = true := by rfl
 
 def negb' (b : MyBool) : MyBool :=
   match b with
-  | true => false
-  | false => true
+  | .true => .false
+  | .false => .true
 
 def andb' (b1 : MyBool) (b2 : MyBool) : MyBool :=
   match b1 with
-  | true => b2
-  | false => false
+  | .true => b2
+  | .false => .false
 
 def orb' (b1 : MyBool) (b2 : MyBool) : MyBool :=
   match b1 with
-  | true => true
-  | false => b2
+  | .true => .true
+  | .false => b2
 
 -- FULL
 -- Lean's conditional `if` expressions work with any type that has a
@@ -317,18 +322,18 @@ def orb' (b1 : MyBool) (b2 : MyBool) : MyBool :=
 def nandb (b1 : MyBool) (b2 : MyBool) : MyBool
   -- ADMITDEF
   := match b1 with
-  | true => negb b2
-  | false => true
+  | .true => notb b2
+  | .false => .true
   -- /ADMITDEF
 
 -- test_nandb1
-example : nandb true false  = true  := by rfl  -- ADMITTED
+example : nandb .true .false  = .true  := by rfl  -- ADMITTED
 -- test_nandb2
-example : nandb false false = true  := by rfl  -- ADMITTED
+example : nandb .false .false = .true  := by rfl  -- ADMITTED
 -- test_nandb3
-example : nandb false true  = true  := by rfl  -- ADMITTED
+example : nandb .false .true  = .true  := by rfl  -- ADMITTED
 -- test_nandb4
-example : nandb true true   = false := by rfl  -- ADMITTED
+example : nandb .true .true   = .false := by rfl  -- ADMITTED
 -- GRADE_THEOREM 1: nandb_test4
 -- []
 
@@ -344,18 +349,16 @@ def andb3 (b1 : MyBool) (b2 : MyBool) (b3 : MyBool) : MyBool
   -- /ADMITDEF
 
 -- test_andb31
-example : andb3 true true true   = true  := by rfl  -- ADMITTED
+example : andb3 .true .true .true  = .true  := by rfl  -- ADMITTED
 -- test_andb32
-example : andb3 false true true  = false := by rfl  -- ADMITTED
+example : andb3 .false .true .true = .false := by rfl  -- ADMITTED
 -- test_andb33
-example : andb3 true false true  = false := by rfl  -- ADMITTED
+example : andb3 .true .false .true = .false := by rfl  -- ADMITTED
 -- test_andb34
-example : andb3 true true false  = false := by rfl  -- ADMITTED
+example : andb3 .true .true .false = .false := by rfl  -- ADMITTED
 -- GRADE_THEOREM 1: andb3_test4
 -- []
 -- /FULL
-
-end MyBool
 
 -- ######################################################################
 -- ## Types
@@ -463,7 +466,7 @@ def isred (c : Color) : Bool :=
 -- `primary` applied to any `RGB` constructor except `red`."
 
 -- ######################################################################
--- ## Namespaces
+-- ## Namespaces and Sections
 
 -- FULL
 -- Lean provides a _namespace system_ to aid in organizing large
@@ -476,13 +479,48 @@ def isred (c : Color) : Bool :=
 -- TERSE: `namespace` declarations create separate namespaces.
 
 namespace Playground
-  def myFoo : RGB := RGB.blue
+def myFoo : RGB := RGB.blue
 end Playground
 
 def myFoo : Bool := true
 
 #check Playground.myFoo  -- RGB
 #check myFoo             -- Bool
+
+-- FULL
+-- Inside of a namespace, all previous definitions from that namespace are
+-- available, and can be referred to without prefixing.
+-- /FULL
+
+namespace RGB
+def myBlue : RGB := blue
+end RGB
+
+#check RGB.myBlue -- RGB
+
+-- FULL
+-- We can also use `open` to bring the definitions of a namespace into scope.
+-- This makes it convenient to refer to all of those definitions without
+-- a prefix. Original definitions of the same name can then be referred to
+-- by the special prefix `_root_`.
+-- Lean also provides _sections_, which delimit the scope of `open`ing
+-- namespaces and `local` notations within `section ... end`.
+-- We already saw `prefix` and `infix` notations for MyBool;
+-- there are also `postfix` notations.
+-- /FULL
+-- TERSE: `section` declarations delimit the scope of `open` and `local`.
+
+section
+open Playground
+local postfix:40 "′" => Color.primary
+
+#check myFoo        -- RGB
+#check _root_.myFoo -- Bool
+#check RGB.blue′    -- Color
+end
+
+#check myFoo         -- Bool
+-- #check RGB.blue′  -- fails to parse
 
 -- ######################################################################
 -- ## Tuples
@@ -565,9 +603,9 @@ namespace NatPlayground
 
 -- TERSE: For simplicity in proofs, we choose unary representation.
 
-inductive MyNat : Type where
+inductive Nat : Type where
   | zero
-  | succ (n : MyNat)
+  | succ (n : Nat)
 
 -- With this definition, 0 is represented by `zero`, 1 by `succ zero`,
 -- 2 by `succ (succ zero)`, and so on.
@@ -583,7 +621,7 @@ inductive OtherNat : Type where
 -- The _interpretation_ of these marks arises from how we use them to
 -- compute.
 
-def pred (n : MyNat) : MyNat :=
+def pred (n : Nat) : Nat :=
   match n with
   | .zero => .zero
   | .succ n' => n'
@@ -638,7 +676,7 @@ def even (n : Nat) : Bool :=
 -- here is a simpler way:
 
 def odd (n : Nat) : Bool :=
-  !even n
+  not (even n)
 
 -- test_odd1
 example : odd 1 = true  := by rfl
@@ -648,59 +686,55 @@ example : odd 4 = false := by rfl
 -- TERSE: ***
 -- TERSE: A multi-argument recursive function.
 
-namespace NatPlayground2
-
 -- Note: Lean's built-in `Nat.add` recurses on the _second_ argument,
 -- so we follow the same convention here.  This means `n + 0` reduces
 -- by definition, but `0 + n` does not (the reverse of Rocq).
 
-def plus (n : Nat) (m : Nat) : Nat :=
+def add (n : Nat) (m : Nat) : Nat :=
   match m with
   | 0 => n
-  | .succ m' => .succ (plus n m')
+  | .succ m' => .succ (add n m')
 
 -- FULL
 -- Adding three to two gives us five (whew!):
 -- /FULL
 
-#eval plus 3 2
+#eval add 3 2
 -- ===> 5
 
 -- FULL
 -- The steps of simplification that Lean performs here can be
 -- visualized as follows:
 --
---      `plus 3 2`
---   i.e. `plus (succ (succ (succ 0))) (succ (succ 0))`
---    ==> `succ (plus (succ (succ (succ 0))) (succ 0))`
+--      `add 3 2`
+--   i.e. `add (succ (succ (succ 0))) (succ (succ 0))`
+--    ==> `succ (add (succ (succ (succ 0))) (succ 0))`
 --          by the second clause of the `match`
---    ==> `succ (succ (plus (succ (succ (succ 0))) 0))`
+--    ==> `succ (succ (add (succ (succ (succ 0))) 0))`
 --          by the second clause of the `match`
---    ==> `succ (succ (succ (succ (succ 0))))`
+--    ==> `succ (succ (succ (add (succ 0))))`
 --          by the first clause of the `match`
 --   i.e. `5`
 -- /FULL
 
 -- TERSE: ***
 
-def mult (n m : Nat) : Nat :=
+def mul (n m : Nat) : Nat :=
   match m with
   | 0 => 0
-  | .succ m' => plus n (mult n m')
+  | .succ m' => add n (mul n m')
 
 -- test_mult1
-example : mult 3 3 = 9 := by rfl
+example : mul 3 3 = 9 := by rfl
 
 -- TERSE: ***
 -- We can pattern-match two values at the same time:
 
-def minus (n m : Nat) : Nat :=
+def sub (n m : Nat) : Nat :=
   match n, m with
   | 0,        _        => 0
   | .succ _,  0        => n
-  | .succ n', .succ m' => minus n' m'
-
-end NatPlayground2
+  | .succ n', .succ m' => sub n' m'
 
 -- Now that we've seen how natural numbers are built from `Nat.zero`
 -- and `Nat.succ`, we can take advantage of Lean's notation: the
@@ -709,10 +743,10 @@ end NatPlayground2
 -- We'll use this more concise style from now on.
 
 -- FULL
-def exp (base power : Nat) : Nat :=
+def pow (base power : Nat) : Nat :=
   match power with
   | 0 => 1
-  | p + 1 => base * (exp base p)
+  | p + 1 => base * (pow base p)
 
 -- EX1 (factorial)
 -- Recall the standard mathematical factorial function:
@@ -738,6 +772,15 @@ example : factorial 5 = 10 * 12   := by rfl  -- ADMITTED
 -- TERSE: ***
 -- Lean already provides `+`, `-`, `*` for `Nat`, so we don't need to
 -- define our own notation.
+
+namespace Notation
+
+scoped infixl:65 (priority := high) " + " => add
+scoped infixl:65 (priority := high) " - " => sub
+scoped infixl:70 (priority := high) " * " => mul
+scoped infixr:80 (priority := high) " ^ " => pow
+
+end Notation
 
 #check ((0 + 1) + 1 : Nat)
 
@@ -780,11 +823,11 @@ example : leb 4 2 = false := by rfl
 -- We'll be using these (especially `beq`) a lot, so let's give
 -- them infix notations.
 
-infix:50 "=?"  => beq
-infix:50 "<=?" => leb
+infix:65 "=?"  => beq
+infix:65 "<=?" => leb
 
 -- test_leb3'
-example : (4 <=? 2) = false := by rfl
+example : 4 <=? 2 = false := by rfl
 
 -- FULL
 -- We now have two symbols that both look like equality: `=`
@@ -804,14 +847,14 @@ def ltb (n m : Nat) : Bool
   := leb (n + 1) m
   -- /ADMITDEF
 
-infix:50 "<?" => ltb
+infix:65 "<?" => ltb
 
 -- test_ltb1
-example : ltb 2 2 = false := by rfl  -- ADMITTED
+example : 2 <? 2 = false := by rfl  -- ADMITTED
 -- test_ltb2
-example : ltb 2 4 = true  := by rfl  -- ADMITTED
+example : 2 <? 4 = true  := by rfl  -- ADMITTED
 -- test_ltb3
-example : ltb 4 2 = false := by rfl  -- ADMITTED
+example : 4 <? 2 = false := by rfl  -- ADMITTED
 -- GRADE_THEOREM 1: ltb_test3
 -- []
 -- /FULL
@@ -964,7 +1007,7 @@ theorem mult_n_1 : ∀ p : Nat,
 
 -- TERSE: Sometimes simple calculation and rewriting are not enough...
 example : ∀ n : Nat,
-  ((n + 1) =? 0) = false := by
+  (n + 1) =? 0 = false := by
   intro n
   -- `rfl` doesn't work here because `n` is unknown
   sorry
@@ -977,7 +1020,7 @@ example : ∀ n : Nat,
 -- TERSE: We can use `cases` to perform case analysis:
 
 theorem plus_1_neq_0 : ∀ n : Nat,
-  ((n + 1) =? 0) = false := by
+  (n + 1) =? 0 = false := by
   intro n
   cases n
   case zero => rfl
@@ -1000,7 +1043,7 @@ theorem plus_1_neq_0 : ∀ n : Nat,
 -- TERSE: Another example, using booleans:
 
 theorem negb_involutive : ∀ b : Bool,
-  (!!b) = b := by
+  !!b = b := by
   intro b
   cases b
   case true => rfl
@@ -1105,7 +1148,7 @@ theorem orb_false_true : ∀ b : Bool,
 -- TERSE: ***
 -- Again, we use <;> to apply `rfl` to the subgoals generated by `cases n`:
 theorem plus_1_neq_0' : ∀ n : Nat,
-  beq (n + 1) 0 = false := by
+  (n + 1) =? 0 = false := by
   intro n; cases n <;> rfl
 
 theorem andb_commutative'' :
@@ -1115,7 +1158,7 @@ theorem andb_commutative'' :
 -- FULL
 -- EX1 (zero_nbeq_plus_1)
 theorem zero_nbeq_plus_1 : ∀ n : Nat,
-  beq 0 (n + 1) = false := by
+  0 =? (n + 1) = false := by
   -- ADMITTED
   intro n; cases n <;> rfl
   -- /ADMITTED
@@ -1449,25 +1492,25 @@ theorem lowerGrade_lowers :
 -- []
 
 def applyLatePolicy (lateDays : Nat) (g : Grade) : Grade :=
-  if ltb lateDays 9 then g
-  else if ltb lateDays 17 then lowerGrade g
-  else if ltb lateDays 21 then lowerGrade (lowerGrade g)
+  if lateDays <? 9 then g
+  else if lateDays <? 17 then lowerGrade g
+  else if lateDays <? 21 then lowerGrade (lowerGrade g)
   else lowerGrade (lowerGrade (lowerGrade g))
 
 theorem applyLatePolicy_unfold :
   ∀ (lateDays : Nat) (g : Grade),
     applyLatePolicy lateDays g
     =
-    (if ltb lateDays 9 then g
-     else if ltb lateDays 17 then lowerGrade g
-     else if ltb lateDays 21 then lowerGrade (lowerGrade g)
+    (if lateDays <? 9 then g
+     else if lateDays <? 17 then lowerGrade g
+     else if lateDays <? 21 then lowerGrade (lowerGrade g)
      else lowerGrade (lowerGrade (lowerGrade g))) := by
   intro _ _; rfl
 
 -- EX2 (no_penalty_for_mostly_on_time)
 theorem no_penalty_for_mostly_on_time :
   ∀ (lateDays : Nat) (g : Grade),
-    (ltb lateDays 9 = true) →
+    (lateDays <? 9 = true) →
     applyLatePolicy lateDays g = g := by
   -- ADMITTED
   intro lateDays g h
@@ -1480,8 +1523,8 @@ theorem no_penalty_for_mostly_on_time :
 -- EX2 (grade_lowered_once)
 theorem grade_lowered_once :
   ∀ (lateDays : Nat) (g : Grade),
-    (ltb lateDays 9 = false) →
-    (ltb lateDays 17 = true) →
+    (lateDays <? 9 = false) →
+    (lateDays <? 17 = true) →
     applyLatePolicy lateDays g = lowerGrade g := by
   -- ADMITTED
   intro lateDays g h9 h17
