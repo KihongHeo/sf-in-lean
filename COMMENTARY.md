@@ -102,3 +102,16 @@ DHS: Claude picked a bad definition for `nonzeroes`:
 ```
 which makes many of the later proofs hard to do without the full automation of `simp`. 
 I changed it, but it's worth pointing this out.
+
+### `Poly.lean`
+
+DHS: None of the comments at the start of the chapter motivating the polymorphic
+definition of lists make sense with the change to use `List Nat` in the previous chapter.
+
+DHS: Using the built-in definition of `List.reverse` is dramatically more complicated
+than implementing our own reverse function, since it is implemented in terms of an auxiliary
+function. 
+
+DHS: The associativity of `++` in Lean is different than Rocq. In Rocq the definition 
+of `app_assoc` is `l ++ m ++ n = (l ++ m) ++ n`, but in Lean it's 
+`l ++ m ++ n = l ++ (m ++ n)`.

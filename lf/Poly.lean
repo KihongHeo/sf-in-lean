@@ -392,31 +392,36 @@ def list123 : List Nat := [1, 2, 3]
 -- Here are a few simple exercises, just like ones in the `Lists`
 -- chapter, for practice with polymorphism.  Complete the proofs below.
 
+def rev {α:Type} (l:List α) : List α :=
+  match l with
+  | .nil => .nil
+  | .cons h t => rev t ++ (.cons h .nil)
+
 -- app_nil_r
 theorem app_nil_r {α : Type} : ∀ (l : List α),
   l ++ [] = l := by
   -- ADMITTED
-  intro l; induction l with
-  | nil => rfl
-  | cons h t ih => simp [*]
+  intro l; induction l
+  . case nil => rfl
+  . case cons h t ih => dsimp; rw [ih]
 -- /ADMITTED
 
 -- app_assoc
 theorem app_assoc {α : Type} : ∀ (l m n : List α),
-  l ++ m ++ n = (l ++ m) ++ n := by
+  l ++ m ++ n = l ++ (m ++ n) := by
   -- ADMITTED
-  intro l m n; induction l with
-  | nil => rfl
-  | cons h t ih => simp [*]
+  intro l m n; induction l
+  . case nil => rfl
+  . case cons h t ih => dsimp; rw [ih]
 -- /ADMITTED
 
 -- app_length
 theorem app_length {α : Type} : ∀ (l1 l2 : List α),
   (l1 ++ l2).length = l1.length + l2.length := by
   -- ADMITTED
-  intro l1 l2; induction l1 with
-  | nil => simp
-  | cons h t ih => simp_all; omega
+  intro l1 l2; induction l1
+  . case nil => dsimp; rw [add_0_l]
+  . case cons h t ih => dsimp; rw [succ_add, ih]
 -- /ADMITTED
 -- GRADE_THEOREM 0.5: app_nil_r
 -- GRADE_THEOREM 1: app_assoc
@@ -428,20 +433,23 @@ theorem app_length {α : Type} : ∀ (l1 l2 : List α),
 
 -- rev_app_distr
 theorem rev_app_distr {α : Type} : ∀ (l1 l2 : List α),
-  (l1 ++ l2).reverse = l2.reverse ++ l1.reverse := by
+  rev (l1 ++ l2) = rev l2 ++ rev l1 := by
   -- ADMITTED
-  intro l1 l2; induction l1 with
-  | nil => simp
-  | cons h t ih => simp [ih]
+  intro l1 l2; induction l1
+  . case nil => dsimp [rev]; rw [app_nil_r]
+  . case cons h t ih => dsimp [rev]; rw [ih]; rw [app_assoc]
 -- /ADMITTED
 
 -- rev_involutive
 theorem rev_involutive {α : Type} : ∀ (l : List α),
-  l.reverse.reverse = l := by
+  rev (rev l) = l := by
   -- ADMITTED
-  intro l; induction l with
-  | nil => rfl
-  | cons h t ih => simp [ih]
+  intro l; induction l
+  . case nil => rfl
+  . case cons h t ih =>
+      dsimp [rev]
+      rw [rev_app_distr, ih]
+      dsimp [rev]
 -- /ADMITTED
 -- GRADE_THEOREM 1: rev_app_distr
 -- GRADE_THEOREM 1: rev_involutive
@@ -839,19 +847,21 @@ example : map (fun n => [n % 2 == 0, n % 2 != 0]) [2, 1, 2, 5]
 
 theorem map_app {α : Type} {β : Type} : ∀ (f : α → β) (l l' : List α),
   map f (l ++ l') = map f l ++ map f l' := by
-  intro f l l'; induction l with
-  | nil => rfl
-  | cons h t ih => simp [map, ih]
+  intro f l l'
+  induction l
+  . case nil => rfl
+  . case cons h t ih => dsimp [map]; rw [ih]
 
 -- /QUIETSOLUTION
 
 -- map_rev
 theorem map_rev {α : Type} {β : Type} : ∀ (f : α → β) (l : List α),
-  map f l.reverse = (map f l).reverse := by
+  map f (rev l) = rev (map f l) := by
   -- ADMITTED
-  intro f l; induction l with
-  | nil => rfl
-  | cons h t ih => simp [map, map_app, ih]
+  intro f l
+  induction l
+  . case nil => rfl
+  . case cons h t ih => dsimp [map, rev]; rw [map_app, ih]; dsimp [map]
 -- /ADMITTED
 -- GRADE_THEOREM 3: map_rev
 -- []
@@ -1086,9 +1096,11 @@ example : foldLength [4, 7, 0] = 3 := by rfl
 theorem fold_length_correct {α : Type} : ∀ (l : List α),
   foldLength l = l.length := by
   -- ADMITTED
-  intro l; induction l with
-  | nil => rfl
-  | cons h t ih => simp [foldLength, fold] at *; omega
+  intro l; induction l
+  . case nil => rfl
+  . case cons h t ih =>
+      dsimp [foldLength, fold] at *
+      rw [ih]
 -- /ADMITTED
 -- GRADE_THEOREM 2: Exercises.fold_length_correct
 -- []
@@ -1109,9 +1121,11 @@ def foldMap {α : Type} {β : Type} (f : α → β) (l : List α) : List β :=
 -- fold_map_correct
 theorem fold_map_correct {α : Type} {β : Type} : ∀ (f : α → β) (l : List α),
   foldMap f l = map f l := by
-  intro f l; induction l with
-  | nil => rfl
-  | cons h t ih => simp [foldMap, fold, map]; exact ih
+  intro f l; induction l
+  . case nil => rfl
+  . case cons h t ih =>
+      dsimp [foldMap, fold, map] at *
+      rw [ih]
 -- /SOLUTION
 
 -- GRADE_MANUAL 3: fold_map
