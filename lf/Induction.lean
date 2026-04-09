@@ -97,9 +97,7 @@ theorem review2 : ∀ b, (true || b) = true := by
 -- HIDE
 -- review3
 theorem review3 : ∀ b, (b || true) = true := by
-  intro b; cases b with
-  | true => rfl
-  | false => rfl
+  intro b; cases b <;> rfl
 -- /HIDE
 -- /QUIZ
 -- QUIZ
@@ -114,7 +112,7 @@ theorem review3 : ∀ b, (b || true) = true := by
 --
 -- HIDE
 -- review4
-theorem review4 : ∀ n : Nat, n + 0 = n := by
+theorem review4 : ∀ n : _root_.Nat, n + 0 = n := by
   intro n; rfl
 -- /HIDE
 -- /QUIZ
@@ -152,14 +150,13 @@ theorem review4 : ∀ n : Nat, n + 0 = n := by
 -- /FULL
 
 -- add_0_r_easy
-example : ∀ n : Nat, n + 0 = n := by
+example : ∀ n : Nat, add n 0 = n := by
   intro n; rfl
 
 -- But the proof that `0` is also a neutral element on the _left_ ...
 
 -- add_0_l_firsttry
-theorem add_0_l_firsttry : ∀ n : Nat,
-  0 + n = n := by
+example : ∀ n : Nat, add 0 n = n := by
 -- TERSE: ... gets stuck.
 -- FULL:
 -- ... can't be done in the same simple way.  Just applying
@@ -180,13 +177,12 @@ theorem add_0_l_firsttry : ∀ n : Nat,
 -- some `n'` we get stuck in exactly the same way.
 
 -- add_0_l_secondtry
-theorem add_0_l_secondtry : ∀ n : Nat,
-  0 + n = n := by
+example : ∀ n : Nat, add 0 n = n := by
   intro n
-  cases n with
-  | zero => -- n = 0
+  cases n
+  case zero => -- n = 0
     rfl -- so far so good...
-  | succ n' => -- n = n' + 1
+  case succ n' => -- n = n' + 1
     -- 0 + (n' + 1) reduces to (0 + n') + 1 ...but we're stuck on 0 + n'
     sorry
 
@@ -233,17 +229,16 @@ theorem add_0_l_secondtry : ∀ n : Nat,
 -- Since `+` recurses on the second argument, it is natural to do
 -- induction on `n` (the second argument of `0 + n`):
 
-theorem add_0_l : ∀ n : Nat, 0 + n = n := by
+theorem add_0_l : ∀ n : Nat, add 0 n = n := by
   intro n
-  induction n with
-  | zero => -- n = 0
+  induction n
+  case zero => -- n = 0
     rfl
-  | succ n' ih => -- n = n' + 1
+  case succ n' ih => -- n = n' + 1
     -- Goal: 0 + (n' + 1) = n' + 1
     -- By definition of +, `0 + (n' + 1)` reduces to `(0 + n') + 1`.
-    -- We can use `Nat.add_succ` to make this explicit, then rewrite
-    -- with the induction hypothesis.
-    rw [Nat.add_succ, ih]
+    -- Then we can rewrite with the induction hypothesis.
+    dsimp [add]; rw [ih]
 
 -- FULL: Like `cases`, the `induction` tactic takes a `with` clause
 -- that specifies the names of the variables to be introduced in the
@@ -265,17 +260,19 @@ theorem add_0_l : ∀ n : Nat, 0 + n = n := by
 -- TERSE: Let's try this one together:
 
 theorem minus_n_n : ∀ n,
-  n - n = 0 := by
+    sub n n = 0 := by
   -- WORKINCLASS
   intro n
-  induction n with
-  | zero =>
+  induction n
+  case zero =>
     rfl
-  | succ n' ih =>
+  case succ n' ih =>
     -- Goal: (n' + 1) - (n' + 1) = 0
+    -- TODO: `Nat.sub` is defined in terms of `Nat.pred` in the stdlib,
+    --   so the approach of simplification + exact hypothesis won't work.
     -- By definition of Nat.sub, this reduces to n' - n' = 0,
     -- which is exactly our induction hypothesis.
-    simp
+    dsimp [sub]; exact ih
 -- /WORKINCLASS
 
 -- FULL: (The use of the `intro` tactic in these proofs is actually
@@ -293,13 +290,13 @@ theorem minus_n_n : ∀ n,
 -- `0 * n = 0`:
 
 theorem mul_0_l : ∀ n : Nat,
-  0 * n = 0 := by
+    mul 0 n = 0 := by
   -- ADMITTED
   intro n
-  induction n with
-  | zero => rfl
-  | succ n' ih =>
-    rw [Nat.mul_succ, ih]
+  induction n
+  case zero => rfl
+  case succ n' ih =>
+    dsimp [mul]; rw [ih, add]
 -- /ADMITTED
 -- GRADE_THEOREM 0.5: mul_0_l
 
@@ -308,18 +305,17 @@ theorem mul_0_l : ∀ n : Nat,
 -- interesting direction is the reverse:
 
 theorem succ_add : ∀ n m : Nat,
-  (n + 1) + m = (n + m) + 1 := by
+    add (n + 1) m = (add n m) + 1 := by
   -- ADMITTED
   intro n m
-  induction m with
-  | zero => rfl
-  | succ m' ih =>
+  induction m
+  case zero => rfl
+  case succ m' ih =>
     -- Goal: (n + 1) + (m' + 1) = (n + (m' + 1)) + 1
     -- Both sides get a "+1" from the definition of +.
     -- `simp only` is like `simp` but uses ONLY the lemmas you list,
     -- rather than also trying everything in the default set.
-    simp only [Nat.add_succ]
-    rw [ih]
+    dsimp [add]; rw [ih]
 -- /ADMITTED
 -- GRADE_THEOREM 0.5: succ_add
 -- /FULL
@@ -328,32 +324,32 @@ theorem succ_add : ∀ n m : Nat,
 --    need later.  (The proof is left as an exercise.)
 
 theorem add_comm : ∀ n m : Nat,
-  n + m = m + n := by
+    add n m = add m n := by
   -- ADMITTED
   intro n m
-  induction m with
-  | zero =>
+  induction m
+  case zero =>
     -- n + 0 = 0 + n.  n + 0 = n by def.  0 + n = n by add_0_l.
-    rw [Nat.add_zero, add_0_l]
-  | succ m' ih =>
+    dsimp [add]; rw [add_0_l]
+  case succ m' ih =>
     -- n + (m' + 1) = (m' + 1) + n
     -- LHS reduces to (n + m') + 1. By ih, n + m' = m' + n.
     -- So LHS = (m' + n) + 1.  RHS = (m' + 1) + n = (m' + n) + 1 by succ_add.
-    rw [Nat.add_succ, ih, succ_add]
+    dsimp [add]; rw [ih, succ_add]
 -- /ADMITTED
 -- GRADE_THEOREM 0.5: add_comm
 -- FULL
 
 theorem add_assoc : ∀ n m p : Nat,
-  n + (m + p) = (n + m) + p := by
+    add n (add m p) = add (add n m) p := by
   -- ADMITTED
   intro n m p
-  induction p with
-  | zero => rfl
-  | succ p' ih =>
+  induction p
+  case zero => rfl
+  case succ p' ih =>
     -- Goal: n + (m + (p' + 1)) = (n + m) + (p' + 1)
     -- By def of +, both m + (p' + 1) and (n + m) + (p' + 1) peel off a +1.
-    rw [Nat.add_succ, Nat.add_succ, Nat.add_succ, ih]
+    dsimp [add]; rw [ih]
 -- /ADMITTED
 -- GRADE_THEOREM 0.5: add_assoc
 -- []
@@ -364,25 +360,24 @@ theorem add_assoc : ∀ n m p : Nat,
 def double (n : Nat) : Nat :=
   match n with
   | 0 => 0
-  | n' + 1 => (double n') + 2
+  | n' + 1 => add (double n') 2
 
 -- Use induction to prove this simple fact about `double`:
 
 -- double_plus
-theorem double_plus : ∀ n, double n = n + n := by
+theorem double_plus : ∀ n, double n = add n n := by
   -- ADMITTED
   intro n
-  induction n with
-  | zero => rfl
-  | succ n' ih =>
+  induction n
+  case zero => rfl
+  case succ n' ih =>
     -- double (n' + 1) = (double n') + 2 by def.
     -- By ih: = (n' + n') + 2.
     -- Goal RHS: (n' + 1) + (n' + 1).
     -- By succ_add: (n' + 1) + (n' + 1) = (n' + (n' + 1)) + 1
     --           = ((n' + n') + 1) + 1 (by Nat.add_succ)
     --           = (n' + n') + 2 (definitionally).
-    simp only [double, ih]
-    rw [succ_add n' (n' + 1), Nat.add_succ n' n']
+    dsimp [double]; rw [ih, succ_add]; dsimp [add]
 -- /ADMITTED
 -- []
 -- /FULL
@@ -393,12 +388,12 @@ theorem double_plus : ∀ n, double n = n + n := by
 -- `Nat` with the definitional equality `=` on `Bool`.
 
 theorem eqb_refl : ∀ n : Nat,
-  (n == n) = true := by
+    (beq n n) = true := by
   -- ADMITTED
   intro n
-  induction n with
-  | zero => rfl
-  | succ n' ih => simp
+  induction n
+  case zero => rfl
+  case succ n' ih => dsimp [beq]; exact ih
 -- /ADMITTED
 -- []
 
@@ -414,16 +409,16 @@ theorem eqb_refl : ∀ n : Nat,
 -- with induction:
 
 theorem even_S : ∀ n : Nat,
-  even (n + 1) = !even n := by
+    even (n + 1) = !even n := by
   -- ADMITTED
   intro n
-  induction n with
-  | zero => rfl
-  | succ n' ih =>
+  induction n
+  case zero => rfl
+  case succ n' ih =>
     -- even ((n' + 1) + 1) = !even (n' + 1)
     -- (n' + 1) + 1 = n' + 2, so even (n' + 2) = even n' by def.
     -- !even (n' + 1) = !(!(even n')) = even n' by ih and Bool.not_not.
-    simp [even, ih, Bool.not_not]
+    dsimp [even]; rw [ih, notb_involutive]
 -- /ADMITTED
 -- GRADE_THEOREM 1: even_S
 -- []
@@ -442,9 +437,9 @@ theorem even_S : ∀ n : Nat,
 -- TERSE: New tactic: `have`.
 
 theorem mult_0_plus' : ∀ n m : Nat,
-  (n + 0 + 0) * m = n * m := by
+    mul (add (add n 0) 0) m = mul n m := by
   intro n m
-  have h : n + 0 + 0 = n := by rfl
+  have h : add (add n 0) 0 = n := by rfl
   rw [h]
 
 -- FULL: The `have` tactic introduces a local lemma into the proof.
@@ -464,12 +459,13 @@ theorem mult_0_plus' : ∀ n m : Nat,
 -- `rw [add_comm]` may affect the wrong one...
 
 -- plus_rearrange_firsttry
-theorem plus_rearrange_firsttry : ∀ n m p q : Nat,
-  (n + m) + (p + q) = (m + n) + (p + q) := by
+example : ∀ n m p q : Nat,
+    add (add n m) (add p q) = add (add m n) (add p q) := by
   intro n m p q
   -- We just need to swap (n + m) for (m + n)... seems
   -- like add_comm should do the trick!
   -- But `rw [add_comm]` might rewrite the wrong `+`!
+  rw [add_comm]
   sorry
 
 -- TERSE: ***
@@ -479,7 +475,7 @@ theorem plus_rearrange_firsttry : ∀ n m p q : Nat,
 -- equation we want, then rewrite with it.)
 
 theorem plus_rearrange : ∀ n m p q : Nat,
-  (n + m) + (p + q) = (m + n) + (p + q) := by
+    add (add n m) (add p q) = add (add m n) (add p q) := by
   intro n m p q
   rw [add_comm n m]
 
@@ -540,11 +536,12 @@ theorem plus_rearrange : ∀ n m p q : Nat,
 
 -- add_assoc'
 theorem add_assoc' : ∀ n m p : Nat,
-  n + (m + p) = (n + m) + p := by
-  intro n m p; induction p with
-  | zero => rfl
-  | succ p' ih =>
-    rw [Nat.add_succ, Nat.add_succ, Nat.add_succ, ih]
+    add n (add m p) = add (add n m) p := by
+  intro n m p
+  induction p
+  case zero => rfl
+  case succ p' ih =>
+    dsimp [add]; rw [ih]
 
 -- Lean is perfectly happy with this.  For a human, however, it
 -- is difficult to make much sense of it.  We can use comments and
@@ -552,13 +549,13 @@ theorem add_assoc' : ∀ n m p : Nat,
 
 -- add_assoc''
 theorem add_assoc'' : ∀ n m p : Nat,
-  n + (m + p) = (n + m) + p := by
+    add n (add m p) = add (add n m) p := by
   intro n m p
-  induction p with
-  | zero => -- p = 0
+  induction p
+  case zero => -- p = 0
     rfl
-  | succ p' ih => -- p = p' + 1
-    rw [Nat.add_succ, Nat.add_succ, Nat.add_succ, ih]
+  case succ p' ih => -- p = p' + 1
+    dsimp [add]; rw [ih]
 
 -- ... and if you're used to Lean you might be able to step
 -- through the tactics one after the other in your mind and imagine
@@ -669,17 +666,29 @@ theorem add_assoc'' : ∀ n m p : Nat,
 -- `add_shuffle3`.  You don't need to use induction yet.
 
 theorem add_shuffle3 : ∀ n m p : Nat,
-  n + (m + p) = m + (n + p) := by
+    add (add n m) p = add (add p n) m := by
   -- ADMITTED
   intro n m p
-  rw [add_assoc, add_comm n m, ← add_assoc]
+  rw [← add_assoc, add_comm m p, add_assoc, add_comm p n]
 -- /ADMITTED
 -- GRADE_THEOREM 1: add_shuffle3
+
+-- TODO: There should be an earlier lesson on using `calc`
+-- so that this solution isn't the first time we see it.
 -- QUIETSOLUTION
-theorem mult_m_Sn : ∀ m n : Nat,
-  m * (n + 1) = m + (m * n) := by
+theorem succ_mul : ∀ m n : Nat,
+    mul (n + 1) m = add (mul n m) m := by
   intro m n
-  rw [Nat.mul_succ, add_comm]
+  induction m
+  case zero => dsimp [add, mul]
+  case succ m ih =>
+    calc mul (n + 1) (m + 1)
+    _ = add (n + 1) (mul (n + 1) m)   := by dsimp [mul]
+    _ = add (n + 1) (add (mul n m) m) := by rw [ih]
+    _ = add (add (mul n m) m) (n + 1) := by rw [add_comm]
+    _ = add (add (mul n m) m) n + 1   := by dsimp [add]
+    _ = add (add n (mul n m)) m + 1   := by rw [add_shuffle3]
+    _ = add (mul n (m + 1)) (m + 1)   := by dsimp [mul, add]
 -- /QUIETSOLUTION
 
 -- Now prove commutativity of multiplication.  You will probably want
@@ -687,21 +696,15 @@ theorem mult_m_Sn : ∀ m n : Nat,
 -- the proof of this one. Hint: what is `n * (1 + k)`?
 
 theorem mul_comm : ∀ m n : Nat,
-  m * n = n * m := by
+    mul m n = mul n m := by
   -- ADMITTED
   intro m n
-  induction n with
-  | zero =>
+  induction n
+  case zero =>
     -- m * 0 = 0 * m.  m * 0 = 0 by def.  0 * m = 0 by mul_0_l.
-    rw [Nat.mul_zero, mul_0_l]
-  | succ n' ih =>
-    -- m * (n' + 1) = (n' + 1) * m
-    -- By Nat.mul_succ: m * (n' + 1) = m * n' + m
-    -- By Nat.succ_mul (or our mult_m_Sn reversed):
-    --   (n' + 1) * m = m + n' * m
-    -- By ih: m * n' = n' * m, so m * n' + m = n' * m + m.
-    -- Need: n' * m + m = m + n' * m.  That's add_comm.
-    rw [Nat.mul_succ, Nat.succ_mul, ih]
+    dsimp [mul]; rw [mul_0_l]
+  case succ n' ih =>
+    dsimp [mul]; rw [ih, add_comm, succ_mul]
 -- /ADMITTED
 -- GRADE_THEOREM 2: mul_comm
 -- []
@@ -716,88 +719,84 @@ theorem mul_comm : ∀ m n : Nat,
 -- reflect before you hack!)
 
 theorem leb_refl : ∀ n : Nat,
-  Nat.ble n n = true := by
+    n <=? n = true := by
   -- ADMITTED
   intro n
-  induction n with
-  | zero => rfl
-  | succ n' ih => simp [Nat.ble, ih]
+  induction n
+  case zero => rfl
+  case succ n' ih => dsimp [leb]; exact ih
 -- /ADMITTED
 
 theorem zero_neqb_S : ∀ n : Nat,
-  (0 == (n + 1)) = false := by
+    (0 == (n + 1)) = false := by
   -- ADMITTED
   intro n; rfl
 -- /ADMITTED
 
 theorem andb_false_r : ∀ b : Bool,
-  (b && false) = false := by
+    (b && false) = false := by
   -- ADMITTED
-  intro b; cases b with
-  | true => rfl
-  | false => rfl
+  intro b; cases b <;> rfl
 -- /ADMITTED
 
 theorem S_neqb_0 : ∀ n : Nat,
-  ((n + 1) == 0) = false := by
+    ((n + 1) == 0) = false := by
   -- ADMITTED
   intro n; rfl
 -- /ADMITTED
 
-theorem mult_1_l : ∀ n : Nat, 1 * n = n := by
+theorem mult_1_l : ∀ n : Nat, (mul 1 n) = n := by
   -- ADMITTED
   intro n
-  induction n with
-  | zero => rfl
-  | succ n' ih =>
-    rw [Nat.mul_succ, ih]
+  induction n
+  case zero => rfl
+  case succ n' ih =>
+    dsimp [mul]; rewrite [ih, add_comm]; rfl
 -- /ADMITTED
 
 theorem all3_spec : ∀ b c : Bool,
-  (b && c) || ((!b) || (!c)) = true := by
+    (b && c) || ((!b) || (!c)) = true := by
   -- ADMITTED
-  intro b c; cases b with
-  | true => cases c with
-    | true => rfl
-    | false => rfl
-  | false => rfl
+  intro b c; cases b
+  case true => cases c <;> rfl
+  case false => rfl
 -- /ADMITTED
 
 theorem mult_plus_distr_r : ∀ n m p : Nat,
-  (n + m) * p = (n * p) + (m * p) := by
+    (mul (add n m) p) = add (mul n p) (mul m p) := by
   -- ADMITTED
   intro n m p
-  induction p with
-  | zero => rfl
-  | succ p' ih =>
-    -- (n + m) * (p' + 1) = n * (p' + 1) + m * (p' + 1)
-    -- By Nat.mul_succ on each:
-    --   LHS = (n + m) * p' + (n + m)
-    --   RHS = (n * p' + n) + (m * p' + m)
-    -- By ih: (n + m) * p' = n * p' + m * p'.
-    -- Need: (n * p' + m * p') + (n + m) = (n * p' + n) + (m * p' + m)
-    rw [Nat.mul_succ, Nat.mul_succ, Nat.mul_succ, ih]
-    -- Rearrange: (n*p' + m*p') + (n + m) = (n*p' + n) + (m*p' + m)
-    rw [← add_assoc (n * p') (m * p') (n + m)]
-    rw [add_shuffle3 (m * p') n m]
-    rw [add_assoc (n * p') n (m * p' + m)]
+  induction p
+  case zero => rfl
+  case succ p' ih =>
+    dsimp [mul]; rw [ih]
+    generalize (mul n p') = i
+    generalize (mul m p') = j
+    calc add (add n m) (add i j)
+    _ = add (add (add n m) i) j := by rw [add_assoc (add n m)]
+    _ = add (add n (add m i)) j := by rw [← add_assoc n m]
+    _ = add (add n (add i m)) j := by rw [add_comm m]
+    _ = add n (add (add i m) j) := by rw [← add_assoc n]
+    _ = add n (add i (add m j)) := by rw [← add_assoc i m]
+    _ = add (add n i) (add m j) := by rw [add_assoc n i]
+-- /ADMITTED
+
+theorem mult_plus_distr_l : ∀ n m p : Nat,
+  (mul p (add n m)) = add (mul p n) (mul p m) := by
+  -- ADMITTED
+  intro n m p
+  rw [mul_comm p, mul_comm p, mul_comm p]
+  apply mult_plus_distr_r
 -- /ADMITTED
 
 theorem mult_assoc : ∀ n m p : Nat,
-  n * (m * p) = (n * m) * p := by
+    mul n (mul m p) = mul (mul n m) p := by
   -- ADMITTED
   intro n m p
-  induction p with
-  | zero => rfl
-  | succ p' ih =>
-    -- n * (m * (p' + 1)) = (n * m) * (p' + 1)
-    -- By Nat.mul_succ: m * (p' + 1) = m * p' + m
-    -- So LHS = n * (m * p' + m)
-    -- By Nat.left_distrib: = n * (m * p') + n * m
-    -- By ih: n * (m * p') = (n * m) * p'
-    -- So LHS = (n * m) * p' + n * m
-    -- By Nat.mul_succ: (n * m) * (p' + 1) = (n * m) * p' + (n * m). ✓
-    rw [Nat.mul_succ, Nat.mul_succ, Nat.left_distrib, ih]
+  induction p
+  case zero => rfl
+  case succ p' ih =>
+    dsimp [mul]; rw [← ih, mult_plus_distr_l]
 -- /ADMITTED
 -- []
 
@@ -805,6 +804,9 @@ theorem mult_assoc : ∀ n m p : Nat,
 -- * Nat to Bin and Back to Nat
 
 -- Recall the `Bin` type we defined in Basics:
+-- TODO: Modify `Bin` so that it uses our `add` and `mul`
+--       and not the stdlib's `+` and `*`
+--       so that the proofs from earlier can be used here.
 
 -- (The `Bin` type, `incr`, and `binToNat` are imported from Basics.)
 
@@ -825,7 +827,7 @@ theorem mult_assoc : ∀ n m p : Nat,
 --                             incr
 --               Bin ----------------------> Bin
 --                |                           |
---     binToNat  |                           |  binToNat
+--     binToNat   |                           |  binToNat
 --                |                           |
 --                v                           v
 --               Nat ----------------------> Nat
@@ -839,19 +841,19 @@ theorem mult_assoc : ∀ n m p : Nat,
 -- to make the property easier to prove, feel free to do so!
 
 theorem bin_to_nat_pres_incr : ∀ b : Bin,
-  binToNat (incr b) = binToNat b + 1 := by
+    binToNat (incr b) = binToNat b + 1 := by
   -- ADMITTED
   intro b
-  induction b with
-  | z => rfl
-  | b0 b' ih =>
+  induction b
+  case z => rfl
+  case b0 b' ih =>
     -- incr (.b0 b') = .b1 b'
     -- binToNat (.b1 b') = 1 + 2 * binToNat b'
     -- binToNat (.b0 b') + 1 = 2 * binToNat b' + 1
     -- Need: 1 + 2 * binToNat b' = 2 * binToNat b' + 1
     simp only [incr, binToNat]
     rw [Nat.add_comm]
-  | b1 b' ih =>
+  case b1 b' ih =>
     -- incr (.b1 b') = .b0 (incr b')
     -- binToNat (.b0 (incr b')) = 2 * binToNat (incr b')
     -- By ih: binToNat (incr b') = binToNat b' + 1
@@ -886,12 +888,13 @@ def natToBin (n : Nat) : Bin :=
 -- match the recursive structure of the program being verified, so
 -- make the recursions as simple as possible.
 
-theorem nat_bin_nat : ∀ n, binToNat (natToBin n) = n := by
+theorem nat_bin_nat : ∀ n : Nat,
+    binToNat (natToBin n) = n := by
   -- ADMITTED
   intro n
-  induction n with
-  | zero => rfl
-  | succ n' ih =>
+  induction n
+  case zero => rfl
+  case succ n' ih =>
     -- natToBin (n' + 1) = incr (natToBin n')
     -- binToNat (incr (natToBin n')) = binToNat (natToBin n') + 1 by pres_incr
     -- = n' + 1 by ih.  ✓
@@ -920,7 +923,8 @@ theorem nat_bin_nat : ∀ n, binToNat (natToBin n) = n := by
 -- chapter.
 
 -- double_incr
-theorem double_incr : ∀ n : Nat, double (n + 1) = (double n) + 2 := by
+theorem double_incr : ∀ n : Nat,
+    double (n + 1) = (double n) + 2 := by
   -- ADMITTED
   intro n; rfl
 -- /ADMITTED
@@ -944,14 +948,11 @@ example : doubleBin .z = .z := by rfl  -- ADMITTED
 -- Prove this lemma, which corresponds to `double_incr`.
 
 -- double_incr_bin
-theorem double_incr_bin : ∀ b,
+theorem double_incr_bin : ∀ b : Bin,
     doubleBin (incr b) = incr (incr (doubleBin b)) := by
   -- ADMITTED
   intro b
-  cases b with
-  | z => rfl
-  | b0 _ => rfl
-  | b1 _ => rfl
+  cases b <;> rfl
 -- /ADMITTED
 -- GRADE_THEOREM 1: double_incr_bin
 
@@ -1034,20 +1035,19 @@ example : normalize (.b1 (.b0 .z)) = .b1 .z := by rfl
 -- use of `double_incr_bin`) and another for the `b1` case.
 
 -- QUIETSOLUTION
-theorem incr_doubleBin : ∀ b, incr (doubleBin b) = .b1 b := by
+theorem incr_doubleBin : ∀ b : Bin,
+    incr (doubleBin b) = .b1 b := by
   intro b
-  cases b with
-  | z => rfl
-  | b0 _ => rfl
-  | b1 _ => rfl
+  cases b <;> rfl
 
 -- We need to relate `2 *` (used by binToNat) to `doubleBin` (used
 -- by normalize).  The key connection goes through `natToBin`.
-theorem natToBin_two_mul : ∀ n, natToBin (2 * n) = doubleBin (natToBin n) := by
+theorem natToBin_two_mul : ∀ n,
+    natToBin (2 * n) = doubleBin (natToBin n) := by
   intro n
-  induction n with
-  | zero => rfl
-  | succ n' ih =>
+  induction n
+  case zero => rfl
+  case succ n' ih =>
     -- 2 * (n' + 1) = 2 * n' + 2 by Nat.mul_succ.
     -- natToBin (2 * n' + 2): since +2 is +(1+1), this unfolds to
     --   incr (incr (natToBin (2 * n'))).
@@ -1058,15 +1058,16 @@ theorem natToBin_two_mul : ∀ n, natToBin (2 * n) = doubleBin (natToBin n) := b
     simp only [natToBin, ih, ← double_incr_bin]
 -- /QUIETSOLUTION
 
-theorem bin_nat_bin : ∀ b, natToBin (binToNat b) = normalize b := by
+theorem bin_nat_bin : ∀ b : Bin,
+    natToBin (binToNat b) = normalize b := by
   -- ADMITTED
   intro b
-  induction b with
-  | z => rfl
-  | b0 b' ih =>
+  induction b
+  case z => rfl
+  case b0 b' ih =>
     simp only [binToNat, normalize]
     rw [natToBin_two_mul, ih]
-  | b1 b' ih =>
+  case b1 b' ih =>
     simp only [binToNat, normalize]
     -- Goal: natToBin (1 + 2 * binToNat b') = incr (doubleBin (normalize b'))
     -- Rewrite 1 + x to x + 1 so natToBin can unfold

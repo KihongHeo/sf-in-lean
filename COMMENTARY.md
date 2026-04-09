@@ -96,6 +96,9 @@ My primary concern is that operators and type classes are already so confusing
 that adding another meaning of `+` is liable to throw someone way off.
 Is there another context we can teach induction in that also doesn’t require a ton of background?
 
+JC: If we continue doing arithmetic proofs,
+this is a good place to introduce equational reasoning via `calc`.
+
 ### `Lists.lean`
 
 DHS: Weird that this file contains the first `inductive` definition students have seen up to this point, 
