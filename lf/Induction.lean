@@ -279,11 +279,6 @@ For example...
 
 /- TERSE: *** -/
 
-/-
-Since `+` recurses on the second argument, it is natural to do
-induction on `n` (the second argument of `0 + n`):
--/
-
 theorem zero_add : ∀ n : Nat, 0 + n = n := by
   intro n
   induction n
@@ -308,8 +303,8 @@ In the first subgoal, `n` is replaced by `0`.  The goal becomes
 
 In the second subgoal, `n` is replaced by `n' + 1`, and the
 induction hypothesis `ih : 0 + n' = n'` is added to the context.
-The goal becomes `0 + (n' + 1) = n' + 1`.  `Nat.add_succ` tells
-us that `a + (b + 1) = (a + b) + 1`, so `rw [Nat.add_succ]`
+The goal becomes `0 + (n' + 1) = n' + 1`.  `add_succ` tells
+us that `a + (b + 1) = (a + b) + 1`, so `rw [add_succ]`
 transforms the goal to `(0 + n') + 1 = n' + 1`.  Then `rw [ih]`
 rewrites `0 + n'` to `n'`, and the goal becomes `n' + 1 = n' + 1`,
 which closes automatically.
@@ -328,11 +323,6 @@ theorem sub_self : ∀ n,
   case zero =>
     rfl
   case succ n' ih =>
-    /-
-    Goal: (n' + 1) - (n' + 1) = 0
-    By definition of Nat.sub, this reduces to n' - n' = 0,
-    which is exactly our induction hypothesis.
-    -/
     rw [succ_sub_succ]; exact ih
 /- /WORKINCLASS -/
 
@@ -350,12 +340,6 @@ Prove the following using induction. You might need previously
 proven results.
 -/
 
-/-
-In Lean, `n * 0 = 0` is true by definition (since `Nat.mul` also
-recurses on the second argument).  The interesting direction is
-`0 * n = 0`:
--/
-
 theorem zero_mul : ∀ n : Nat,
     0 * n = 0 := by
   /- ADMITTED -/
@@ -369,12 +353,6 @@ theorem zero_mul : ∀ n : Nat,
 GRADE_THEOREM 0.5: mul_0_l
 -/
 
-/-
-Similarly, in Lean `n + (m + 1) = (n + m) + 1` is true by
-definition (since `+` recurses on its second argument).  The
-interesting direction is the reverse:
--/
-
 theorem succ_add : ∀ n m : Nat,
     (n + 1) + m = (n + m) + 1 := by
   /- ADMITTED -/
@@ -382,12 +360,6 @@ theorem succ_add : ∀ n m : Nat,
   induction m
   case zero => rfl
   case succ m' ih =>
-    /-
-    Goal: (n + 1) + (m' + 1) = (n + (m' + 1)) + 1
-    Both sides get a "+1" from the definition of +.
-    `simp only` is like `simp` but uses ONLY the lemmas you list,
-    rather than also trying everything in the default set.
-    -/
     rw [add_succ (n + 1) m', add_succ n m', ih]
 /-
 /ADMITTED
@@ -404,15 +376,9 @@ theorem add_comm : ∀ n m : Nat,
   intro n m
   induction m
   case zero =>
-    /- n + 0 = 0 + n.  n + 0 = n by def.  0 + n = n by zero_add. -/
     dsimp [add]; rw [zero_add]
   case succ m' ih =>
-    /-
-    n + (m' + 1) = (m' + 1) + n
-    LHS reduces to (n + m') + 1. By ih, n + m' = m' + n.
-    So LHS = (m' + n) + 1.  RHS = (m' + 1) + n = (m' + n) + 1 by succ_add.
-    -/
-    rw [add_succ, ih, Nat.succ_add]
+    rw [add_succ, ih, succ_add]
 /-
 /ADMITTED
 GRADE_THEOREM 0.5: add_comm
@@ -426,10 +392,6 @@ theorem add_assoc : ∀ n m p : Nat,
   induction p
   case zero => rfl
   case succ p' ih =>
-    /-
-    Goal: n + (m + (p' + 1)) = (n + m) + (p' + 1)
-    By def of +, both m + (p' + 1) and (n + m) + (p' + 1) peel off a +1.
-    -/
     rw [add_succ m p', add_succ n (m + p'), add_succ (n + m) p', ih]
 /-
 /ADMITTED
@@ -455,14 +417,6 @@ theorem double_add : ∀ n, double n = n + n := by
   induction n
   case zero => rfl
   case succ n' ih =>
-    /-
-    double (n' + 1) = (double n') + 2 by def.
-    By ih: = (n' + n') + 2.
-    Goal RHS: (n' + 1) + (n' + 1).
-    By succ_add: (n' + 1) + (n' + 1) = (n' + (n' + 1)) + 1
-              = ((n' + n') + 1) + 1 (by Nat.add_succ)
-              = (n' + n') + 2 (definitionally).
-    -/
     dsimp [double]; rw [ih, add_succ (n' + 1), succ_add]
 /-
 /ADMITTED
@@ -489,6 +443,15 @@ theorem eqb_refl : ∀ n : Nat,
 []
 -/
 
+/- HIDE:
+   Note: we might expect a similar property to hold on
+   UNequal [nat]'s:
+      Theorem eqb_n_n' : forall n n' : nat,
+           n <> n' ->
+           n =? n' = false.
+   But it will be a while before we get to terms with what
+   [n <> n'] really means... -/
+
 /-
 FULL
 EX2? (even_S)
@@ -509,11 +472,6 @@ theorem even_S : ∀ n : Nat,
   induction n
   case zero => rfl
   case succ n' ih =>
-    /-
-    even ((n' + 1) + 1) = !even (n' + 1)
-    (n' + 1) + 1 = n' + 2, so even (n' + 2) = even n' by def.
-    !even (n' + 1) = !(!(even n')) = even n' by ih and Bool.not_not.
-    -/
     dsimp [even]; rw [ih, notb_involutive]
 /-
 /ADMITTED
@@ -521,6 +479,20 @@ GRADE_THEOREM 1: even_S
 []
 /FULL
 -/
+
+/- HIDE -/
+/-QUIZ -/
+/- We've seen that there are goals that [destruct] can't solve but
+    [induction] can. What about the other way around? Are there steps
+    in a proof that can be solved by pure case analysis ([destruct])
+    but not using [induction]?
+
+    (A) No
+
+    (B) Yes
+-/
+/-/QUIZ -/
+/-/HIDE -/
 
 /-
 ######################################################################
@@ -543,12 +515,15 @@ theorem mult_0_plus' : ∀ n m : Nat,
   intro n m
   have h : (n + 0) + 0 = n := by rfl
   rw [h]
+/- LATER: BCP 21: Changed 0+n to n+0+0 for a more interesting
+   proof (with 0+n was provable just by reflexivity!).  The new one is
+   still straightforward without the replace, but maybe not quite so
+   obviously so! -/
 
 /-
 FULL: The `have` tactic introduces a local lemma into the proof.
 We prove it immediately, and then it's available as a hypothesis
-for the rest of the proof.  This is similar in spirit to Rocq's
-`replace` or `assert` tactics.
+for the rest of the proof.
 -/
 
 /- TERSE: *** -/
@@ -563,6 +538,22 @@ other.  However, the `rw` tactic is not very smart about _where_
 it applies the rewrite.  There are three uses of `+` here, and
 `rw [add_comm]` may affect the wrong one...
 -/
+
+/- HIDE: APT: It is really sad not to be able to specify rewrite
+  positions.  Students get annoyed: "why is the behavior of this
+  tactic so unpredictable?"  Maybe we should [Import Setoid] to
+  enable the [rewrite ... at] notation.  BCP '20: Agreed -- let's do
+  it! (APT '21: In fact, the [Import Setoid] is already happening
+  silently via the [Require Export String] in Basics.v But sadly, we
+  would need to use [setoid_rewrite...at] instead of plain
+  [rewrite...at], since they have different semantics (despite what
+  the reference manual seems to imply).) (And even if we choose not
+  to do it, this example is very underwhelming... The fact that it
+  involves explaining the difference between a universally quantified
+  variable and a fixed but arbitrary value is... problematic... at
+  this point in the course! APT: Agreed!)  BCP 21: How bad would it
+  be simply to drop this example??  BCP 25: I think switching from
+  assert to replace makes this much much better. -/
 
 /- plus_rearrange_firsttry -/
 example : ∀ n m p q : Nat,
@@ -715,6 +706,13 @@ this:
     _Qed_.
 -/
 
+/-HIDE -/
+/- MMG: the proof above makes no use of lemmas, so it's hard for
+   students to know what to do.  It might be good to also give them a
+   sample proof of mult_1_l so they know how to "invoke" things
+   they've already proved.  -/
+/- /HIDE  -/
+
 /-
 The overall form of the proof is basically similar, and of
 course this is no accident: Lean has been designed so that its
@@ -767,12 +765,12 @@ Proof: -- SOLUTION
    By induction on `n`.
 
    - First, suppose `n = 0`.  We must show `(0 == 0) = true`.  This
-     follows directly from the definition of `BEq` on `Nat`.
+     follows directly from the definition of `eqb`.
 
    - Next, suppose `n = n' + 1`, where `(n' == n') = true`.  We
      must show `(n' + 1 == n' + 1) = true`. This
      follows directly from the induction hypothesis and the
-     definition of `BEq` on `Nat`.
+     definition of `eqb`.
 /SOLUTION
 
 GRADE_MANUAL 2: eqb_refl_informal
@@ -853,7 +851,6 @@ theorem mul_comm : ∀ m n : Nat,
   intro m n
   induction n
   case zero =>
-    /- m * 0 = 0 * m.  m * 0 = 0 by def.  0 * m = 0 by mul_0_l. -/
     rw [mul_zero, zero_mul]
   case succ n' ih =>
     rw [mul_succ, ih, succ_mul]
@@ -960,19 +957,37 @@ FULL
 ## Nat to Bin and Back to Nat
 -/
 
+namespace NatToBin
+
 /- Recall the `Bin` type we defined in Basics: -/
 
-/- (The `Bin` type, `incr`, and `binToNat` are imported from Basics.) -/
+inductive Bin : Type where
+  | z
+  | b0 (n : Bin)
+  | b1 (n : Bin)
 
 /-
 Before you start working on the next exercise, replace the stub
 definitions of `incr` and `binToNat`, below, with your solution
 from Basics.  That will make it possible for this file to be graded
 on its own.
-
-(In Lean, since we `import Basics`, these definitions are already
-available.  No need to copy them.)
 -/
+
+def incr (m : Bin) : Bin
+  -- ADMITDEF
+  := match m with
+  | .z => .b1 .z
+  | .b0 m' => .b1 m'
+  | .b1 m' => .b0 (incr m')
+  -- /ADMITDEF
+
+def binToNat (m : Bin) : Nat
+  -- ADMITDEF
+  := match m with
+  | .z => 0
+  | .b0 m' => binToNat m' * 2
+  | .b1 m' => binToNat m' * 2 + 1
+  -- /ADMITDEF
 
 /-
 In Basics, we did some unit testing of `binToNat`, but we
@@ -999,6 +1014,10 @@ it to a natural number and then incrementing.
 If you want to change your previous definitions of `incr` or `binToNat`
 to make the property easier to prove, feel free to do so!
 -/
+
+/- SOONER (DHS): This is a very-category theoretic way to present
+   this idea. Is this the most useful way to convey this to
+   an audience who is presumably unfamiliar with commutative diagrams? -/
 
 theorem bin_to_nat_pres_incr : ∀ b : Bin,
     binToNat (incr b) = binToNat b + 1 := by
@@ -1049,11 +1068,6 @@ theorem nat_bin_nat : ∀ n : Nat,
   induction n
   case zero => rfl
   case succ n' ih =>
-    /-
-    natToBin (n' + 1) = incr (natToBin n')
-    binToNat (incr (natToBin n')) = binToNat (natToBin n') + 1 by pres_incr
-    = n' + 1 by ih.  ✓
-    -/
     dsimp [natToBin]
     rw [bin_to_nat_pres_incr, ih]
 /-
@@ -1071,10 +1085,8 @@ then converting back to `Bin` -- turns out to be problematic. That
 is, the following theorem does not hold.
 -/
 
-/-
-bin_nat_bin_fails
-theorem bin_nat_bin_fails : ∀ b, natToBin (binToNat b) = b := by sorry
--/
+-- bin_nat_bin_fails
+example : ∀ b, natToBin (binToNat b) = b := by sorry
 
 /-
 Let's explore why that theorem fails, and how to prove a modified
@@ -1121,7 +1133,10 @@ theorem double_incr_bin : ∀ b : Bin,
     doubleBin (incr b) = incr (incr (doubleBin b)) := by
   /- ADMITTED -/
   intro b
-  cases b <;> rfl
+  cases b
+  . rfl
+  . rfl
+  . rfl
 /-
 /ADMITTED
 GRADE_THEOREM 1: double_incr_bin
@@ -1131,10 +1146,7 @@ GRADE_THEOREM 1: double_incr_bin
 
 /- Let's return to our desired theorem: -/
 
-/-
-bin_nat_bin_fails2
-theorem bin_nat_bin_fails2 : ∀ b, natToBin (binToNat b) = b := by sorry
--/
+example : ∀ b, natToBin (binToNat b) = b := by sorry
 
 /-
 The theorem fails because there are some `Bin` such that we won't
@@ -1225,12 +1237,11 @@ use of `double_incr_bin`) and another for the `b1` case.
 theorem incr_doubleBin : ∀ b : Bin,
     incr (doubleBin b) = .b1 b := by
   intro b
-  cases b <;> rfl
+  cases b
+  . rfl
+  . rfl
+  . rfl
 
-/-
-We need to relate `2 *` (used by binToNat) to `doubleBin` (used
-by normalize).  The key connection goes through `natToBin`.
--/
 theorem natToBin_two_mul : ∀ n,
     natToBin (n * 2) = doubleBin (natToBin n) := by
   intro n
@@ -1277,3 +1288,16 @@ GRADE_THEOREM 6: bin_nat_bin
 /HIDEFROMADVANCED
 TERSE: /HIDEFROMHTML
 -/
+
+
+/- HIDE: There is MUCH more that we could say about this topic.  We
+   could do a similar example (and pair of exercises) involving
+   [cases].  We could talk about references to external theorems.
+   Basically, for each tactic, we could give people some guidance
+   about how to lay out corresponding informal proofs...  But the
+   current direction is to minimize the role of informal proofs (at
+   least, the degree to which we try to get people to write them) in
+   SF. -/
+
+
+end NatToBin
