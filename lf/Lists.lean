@@ -231,22 +231,9 @@ inductive NatList : Type where
 -- TERSE: Some notation for lists to make our lives easier:
 
 -- Don't worry too much about what this is doing
-scoped infixr:65 (priority := high) " :: " => NatList.cons
-
-syntax "%[" withoutPosition(term,*,? " | " term) "]" : term
-macro_rules
-  | `([ $elems,* ]) => do
-    let rec expandListLit (i : Nat) (skip : Bool) (result : Lean.TSyntax `term) : Lean.MacroM Lean.Syntax := do
-      match i, skip with
-      | 0,   _     => pure result
-      | i+1, true  => expandListLit i false result
-      | i+1, false => expandListLit i true  (← ``(NatList.cons $(⟨elems.elemsAndSeps.get!Internal i⟩) $result))
-    let size := elems.elemsAndSeps.size
-    if size < 64 then
-      expandListLit size (size % 2 == 0) (← ``(NatList.nil))
-    else
-      `(%[ $elems,* | NatList.nil ])
-
+scoped infixr:65 " :: " => NatList.cons
+macro (priority := high) "[ " elems:term,* "]" : term => do
+  elems.getElems.foldrM (``(NatList.cons $(⟨·⟩) $(⟨·⟩))) (← ``(NatList.nil))
 
 -- Now these all mean exactly the same thing:
 def mylist1 : NatList := 1 :: (2 :: (3 :: []))
