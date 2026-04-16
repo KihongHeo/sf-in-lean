@@ -673,7 +673,7 @@ theorem tl_length_pred : ∀ l : NatList,
    lists to prove things like the associativity of list-append... -/
 
 theorem app_assoc : ∀ l1 l2 l3 : NatList,
-  (l1 ++ l2) ++ l3 = l1 ++ (l2 ++ l3) := by
+    (l1 ++ l2) ++ l3 = l1 ++ (l2 ++ l3) := by
   intro l1 l2 l3
   induction l1
   . case nil => rfl
@@ -779,8 +779,7 @@ example : ∀ l : NatList,
     will fail because the inductive hypothesis is not general enough. -/
 -- app_rev_length_S_firsttry
 example : ∀ (l : NatList) n,
-  (l.rev ++ [n]).length = .succ l.rev.length := by
-
+    (l.rev ++ [n]).length = .succ l.rev.length := by
   intro l n
   induction l
   . case nil =>
@@ -796,7 +795,7 @@ example : ∀ (l : NatList) n,
    needs to be. We can strengthen the lemma to work not only on reversed
    lists but on general lists. -/
 theorem app_length_succ : ∀ (l : NatList) (n : Nat),
-  (l ++ [n]).length = l.length + 1 := by
+    (l ++ [n]).length = l.length + 1 := by
   intro l n
   induction l
   . case nil => rfl
@@ -823,7 +822,7 @@ theorem rev_length : ∀ l : NatList,
 
 -- app_length
 theorem app_length : ∀ l1 l2 : List Nat,
-  (l1 ++ l2).length = l1.length + l2.length := by
+    (l1 ++ l2).length = l1.length + l2.length := by
   -- WORKINCLASS
   intro l1 l2
   induction l1
@@ -865,7 +864,7 @@ theorem foo1 : forall n : Nat, forall l : NatList,
 
 -- HIDE
 theorem foo2 :  forall n m : Nat,
-        (myRepeat n m).length = m := by
+    (myRepeat n m).length = m := by
   intro n m
   induction m
   . case zero => rfl
