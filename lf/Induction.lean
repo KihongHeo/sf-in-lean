@@ -15,57 +15,82 @@
 -- /FULL
 -- /HIDEFROMHTML
 
+/- SOONER: Readers might expect us to add eqn:H annotations to uses of
+   induction, but this changes the shape of the IH in a nasty way! :-(
+   We should at least comment. -/
+/- SOONER: We should also consider adding more examples to clarify
+   the concepts introduced in this chapter. This could help in
+   reinforcing the understanding of induction principles. -/
+/- LATER: In 3/22, MRC and BCP discussed "inlining" IndPrinciples
+   into earlier chapters, thus eliminating it as a chapter. This
+   chapter, Induction, is the first place a change would occur.  We
+   would present [nat_ind] here. Then in Lists/Poly we'd present
+   [list_ind], and the rest would go in IndProp and ProofObjects. The
+   main wrinkle is that we'd need to introduce [apply] here instead of
+   in Tactics if we want to preserve the presentation. The discussion
+   is preserved here: https://github.com/DeepSpec/sfdev/pull/471. -/
+/- LATER: Now that we've added Steve's nice late-policy exercise in
+   Basics.v, the assignment for that chapter is probably hard enough.  Now
+   what about this chapter?  Can/should we make it a notch or two
+   harder? -/
+
 -- ######################################################################
 -- # Separate Compilation
 
--- TERSE: Lean will first need to compile `Basics.lean` so it can be
---    imported here -- detailed instructions are in the full version of
---    this chapter...
--- FULL: Before getting started on this chapter, we need to import
---    all of our definitions from the previous chapter:
+/- TERSE: Lean will first need to compile `Basics.lean` so it can be
+    imported here -- detailed instructions are in the full version of
+    this chapter... -/
+/- FULL: Before getting started on this chapter, we need to import
+    all of our definitions from the previous chapter: -/
 
 import Basics
 
--- FULL: For this `import` to work, Lean needs to be able to find a
---    compiled version of the previous chapter (`Basics.lean`).  This
---    compiled version, called `Basics.olean`, is analogous to the
---    `.class` files compiled from `.java` source files and the `.o`
---    files compiled from `.c` files.
---
---    When using Lake (Lean's build system), the `lakefile.lean` file
---    specifies dependencies and build configuration.  Running `lake build`
---    will compile all necessary files in the correct order.
---
---    If you are using VS Code with the Lean 4 extension, compilation
---    happens automatically in the background.  When you open a file, the
---    extension will compile its dependencies as needed.
---
---    Troubleshooting:
---
---     - If you get complaints about missing imports, make sure you have
---       run `lake build` from the project root directory at least once.
---
---     - If you modify `Basics.lean`, VS Code will automatically
---       recompile it when you save.  You may need to reopen this file
---       or wait for recompilation to finish.
---
---     - If you get errors that seem inconsistent with the source, try
---       running `lake clean` followed by `lake build` to recompile
---       everything from scratch.
--- /FULL
+/- FULL: For this `import` to work, Lean needs to be able to find a
+    compiled version of the previous chapter (`Basics.lean`).  This
+    compiled version, called `Basics.olean`, is analogous to the
+    `.class` files compiled from `.java` source files and the `.o`
+    files compiled from `.c` files.
 
--- TERSE:
--- ######################################################################
--- # Review
--- /TERSE
--- QUIZ
--- To prove the following theorem, which tactics will we need besides
--- `intro` and `rfl`?  (A) none, (B) `rw`, (C) `cases`, (D) both
--- `rw` and `cases`, or (E) can't be done with the tactics we've seen.
---
---     theorem review1 : (true || false) = true
---
--- HIDE
+    When using Lake (Lean's build system), the `lakefile.lean` file
+    specifies dependencies and build configuration.  Running `lake build`
+    will compile all necessary files in the correct order.
+
+    If you are using VS Code with the Lean 4 extension, compilation
+    happens automatically in the background.  When you open a file, the
+    extension will compile its dependencies as needed.
+
+    Troubleshooting:
+
+     - If you get complaints about missing imports, make sure you have
+       run `lake build` from the project root directory at least once.
+
+     - If you modify `Basics.lean`, VS Code will automatically
+       recompile it when you save.  You may need to reopen this file
+       or wait for recompilation to finish.
+
+     - If you get errors that seem inconsistent with the source, try
+       running `lake clean` followed by `lake build` to recompile
+       everything from scratch.
+
+     - If you are using the Lean 4 extension for VS Code,
+       you can also restart the extension on the current file
+       via the `Restart File` button in the InfoView. The extension
+       will often prompt you do this if you change things upstream
+       in the dependency tree.
+/FULL -/
+
+/- TERSE:
+ ######################################################################
+ # Review
+ /TERSE
+ QUIZ
+ To prove the following theorem, which tactics will we need besides
+ `intro` and `rfl`?  (A) none, (B) `rw`, (C) `cases`, (D) both
+ `rw` and `cases`, or (E) can't be done with the tactics we've seen.
+
+     theorem review1 : (true || false) = true
+
+/HIDE -/
 -- review1
 theorem review1 : (true || false) = true := by rfl
 -- /HIDE
@@ -97,7 +122,9 @@ theorem review2 : ∀ b : Bool, (true || b) = true := by
 -- HIDE
 -- review3
 theorem review3 : ∀ b : Bool, (b || true) = true := by
-  intro b; cases b <;> rfl
+  intro b; cases b
+  . rfl
+  . rfl
 -- /HIDE
 -- /QUIZ
 -- QUIZ
