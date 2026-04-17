@@ -823,7 +823,7 @@ def add (n : Nat) (m : Nat) : Nat :=
 def mul (n m : Nat) : Nat :=
   match m with
   | 0 => 0
-  | .succ m' => n + (mul n m')
+  | .succ m' => (mul n m') + n
 
 -- test_mult1
 example : mul 3 3 = 9 := by rfl
@@ -1010,6 +1010,7 @@ theorem add_zero_one : 1 = 0 + 1 := by rfl
 
 -- Note: Because Lean's addition recurses on the second argument,
 -- `n + 0` reduces to `n` by definition.
+-- `n + 0` reduces to `n` by definition.
 
 theorem add_zero : ∀ n : Nat, n + 0 = n := by
   intro n; rfl
@@ -1038,7 +1039,7 @@ theorem add_succ : ∀ n m : Nat, n + (m + 1) = (n + m) + 1 := by
 theorem mul_zero : ∀ n : Nat, n * 0 = 0 := by
   intro n; rfl
 
-theorem mul_succ : ∀ n m : Nat, n * (m + 1) = n + n * m := by
+theorem mul_succ : ∀ n m : Nat, n * (m + 1) = n * m + n := by
   intro n m; rfl
 
 /- JC: Dumping the rest of the properties here.
