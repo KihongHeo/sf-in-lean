@@ -1215,15 +1215,65 @@ theorem andb3_exchange : ∀ b c d : Bool,
     ((b && c) && d) = ((b && d) && c) := by
   intro b c d
   cases b
-  case true =>
-    cases c
-    case true => cases d <;> rfl -- case on `d`, then `rfl` all generated subgoals.
-    case false => cases d <;> rfl
   case false =>
     cases c
-    case true => cases d <;> rfl
-    case false => cases d <;> rfl
+    case true =>
+      cases d
+      case false => rfl
+      case true => rfl
+    case false =>
+      cases d
+      case false => rfl
+      case true => rfl
+  case true =>
+    cases c
+    case true =>
+      cases d
+      case false => rfl
+      case true => rfl
+    case false =>
+      cases d
+      case false => rfl
+      case true => rfl
 -- /FULL
+
+/- The above is example is very verbose! While it's beneficial to be explicit
+   about case analysis now, when we write more complex proofs we will want to
+   abstract away such details. Below is a teaser of how this proof can be
+   made shorter, and then _much_ shorter, using the `<;>` tactic. This
+   tactic simply applies the same tactic to all generated goals of
+   a case analysis. In our case, we use `rfl` after `cases d`: -/
+
+theorem andb3_exchange_shorter : ∀ b c d : Bool,
+    ((b && c) && d) = ((b && d) && c) := by
+  intro b c d
+  cases b
+  case false =>
+    cases c
+    case true =>
+      cases d <;> rfl
+    case false =>
+      cases d <;> rfl
+  case true =>
+    cases c
+    case true =>
+      cases d <;> rfl
+    case false =>
+      cases d <;> rfl
+
+/- And since this is a repeated pattern in this proof, we can push it all the way.  -/
+
+theorem andb3_exchange_shortest : ∀ b c d : Bool,
+    ((b && c) && d) = ((b && d) && c) := by
+  intro b c d
+  cases b <;> cases c <;> cases d <;> rfl
+
+/- You don't have to worry about writing "the most consice proof" for this class,
+   but you may want to explore ways to make your proofs shorter:
+   it will save you time!
+
+   We will introduce more tactics for writing shorter proofs in `Tactics.lean`.
+-/
 
 -- ** New Tactics: `dsimp`, `exact`, and `contradiction`
 --
@@ -1242,41 +1292,9 @@ theorem andb3_exchange : ∀ b c d : Bool,
 -- transform `h` slightly — for instance, `exact h.symm` uses
 -- the symmetry of equality.
 
-/- JC: I think this example should be rewritten to avoid `contradiction`,
-  which gets discussed in detail in the Tactics chapter.
-  I've added `orb_false_true` as a suggestion. -/
-
--- RAB: Agreed.
-
--- The `contradiction` closes a goal by looking for contradictory
--- assumptions in the context. For instance, if `h : 0 = 1` is in the
--- context, then `contradiction` closes the current goal, since such
--- a hypothesis is impossible.
 
 -- FULL
--- EX2 (andb_true_elim2)
--- Prove the following claim.
-
-theorem andb_true_elim2 : ∀ b c : Bool,
-    (b && c) = true → c = true := by
-  -- ADMITTED
-  intro b c h
-  cases b
-  case true =>
-    -- h : true && c = true, which simplifies to h : c = true
-    dsimp [Bool.and] at h
-    exact h
-  case false =>
-    -- h : false && c = true, which simplifies to h : false = true
-    dsimp [Bool.and] at h
-    contradiction
-  -- /ADMITTED
--- GRADE_THEOREM 2: andb_true_elim2
--- []
--- /FULL
-
--- FULL
--- EX3 (orb_false_true)
+-- EX2 (orb_false_true)
 -- Prove the following claim.
 
 theorem orb_false_true : ∀ b : Bool,
