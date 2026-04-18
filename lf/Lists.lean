@@ -39,7 +39,7 @@ namespace NatList
 #check ([] ++ [])
 
 -- ######################################################################
--- * Pairs of Numbers
+-- # Pairs of Numbers
 
 /- FULL: In an `inductive` type definition, each constructor can take
    any number of arguments -- none (as with `true` and `0`),
@@ -211,7 +211,7 @@ theorem fst_swap_is_snd : ∀ p : NatProd,
 -- /FULL
 
 -- ######################################################################
--- * Lists of Numbers
+-- # Lists of Numbers
 
 /- FULL: Generalizing the definition of pairs, we can describe the
    type of _lists_ of numbers like this: "A list is either the empty
@@ -427,7 +427,7 @@ example : alternate ([] : NatList) [20, 30] = [20, 30] := by rfl  -- ADMITTED
 -- []
 
 -- ######################################################################
--- *** Bags via Lists
+-- ## Bags via Lists
 
 namespace Bag
 
@@ -584,7 +584,7 @@ end Bag
 
 -- /FULL
 -- ######################################################################
--- Reasoning About Lists
+-- # Reasoning About Lists
 
 /- FULL: As with numbers, simple facts about list-processing
    functions can sometimes be proved entirely by simplification.
@@ -633,7 +633,7 @@ theorem tl_length_pred : ∀ l : NatList,
 -/
 
 -- ######################################################################
--- ** Induction on Lists
+-- ## Induction on Lists
 
 /-
   FULL: Proofs by induction over datatypes like `NatList` are a
@@ -655,11 +655,10 @@ theorem tl_length_pred : ∀ l : NatList,
   list `l` and we want to argue that `P` holds for _all_ lists, we
   can reason as follows:
 
-    - First, show that `P` is true of `l` when `l` is `[]`.
-
-    - Then show that `P` is true of `l` when `l` is `n :: l'` for
-      some number `n` and some smaller list `l'`, assuming that `P`
-      is true for `l'`.
+  * First, show that `P` is true of `l` when `l` is `[]`.
+  * Then show that `P` is true of `l` when `l` is `n :: l'` for
+    some number `n` and some smaller list `l'`, assuming that `P`
+    is true for `l'`.
 
   Since larger lists can always be broken down into smaller ones,
   eventually reaching `[]`, these two arguments together establish
@@ -954,7 +953,7 @@ theorem foo2 :  forall n m : Nat,
 
 -- FULL
 -- ######################################################################
--- ** Search
+-- ## Search
 
 -- We've seen that proofs can make use of other theorems we've
 -- already proved, e.g., using `rw`.  But in order to refer to a
@@ -972,7 +971,7 @@ theorem foo2 :  forall n m : Nat,
 
 -- FULL
 -- ######################################################################
--- ** List Exercises, Part 1
+-- ## List Exercises, Part 1
 
 -- EX3 (list_exercises)
 -- More practice with lists:
@@ -1106,7 +1105,7 @@ theorem eqblist_refl : ∀ l : NatList,
 -- /FULL
 
 -- ######################################################################
--- ** List Exercises, Part 2
+-- ## List Exercises, Part 2
 
 open Bag
 
@@ -1263,7 +1262,7 @@ theorem rev_injective : ∀ l1 l2 : NatList,
 
 -- /FULL
 -- ######################################################################
--- * Options
+-- # Options
 
 -- FULL: Suppose we want to write a function that returns the `n`th
 -- element of some list.  If we give it type `NatList → Nat → Nat`,
@@ -1409,7 +1408,7 @@ theorem mirror_size: forall t, size t = size (mirror t) := by
 -- /HIDE
 
 -- ######################################################################
--- * Partial Maps
+-- # Partial Maps
 
 -- As a final illustration of how data structures can be defined in
 -- Lean, here is a simple _partial map_ data type, analogous to the

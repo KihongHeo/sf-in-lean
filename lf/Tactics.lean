@@ -17,20 +17,20 @@
     properties of functional programs.
 
     We will see:
-    - how to use auxiliary lemmas in both "forward-" and
+    * how to use auxiliary lemmas in both "forward-" and
       "backward-style" proofs;
-    - how to reason about data constructors -- in particular, how to
+    * how to reason about data constructors -- in particular, how to
       use the fact that they are injective and disjoint;
-    - how to strengthen an induction hypothesis, and when such
+    * how to strengthen an induction hypothesis, and when such
       strengthening is required; and
-    - more details on how to reason by case analysis. -/
+    * more details on how to reason by case analysis. -/
 
 -- HIDEFROMHTML
 
 import Poly
 
 -- ######################################################
--- * The `apply` Tactic *
+-- # The `apply` Tactic *
 
 /- FULL: We often encounter situations where the goal to be proved is
     _exactly_ the same as some hypothesis in the context or some
@@ -84,7 +84,7 @@ theorem silly2a : forall (n m : Nat),
 
 -- FULL
 -- EX2? (silly_ex)
-/- Complete the following proof using only [intros] and [apply]. -/
+/- Complete the following proof using only `intros` and `apply`. -/
 theorem silly_ex : forall p,
   (forall n, even n = true -> even (n + 1) = false) ->
   (forall n, even n = false -> odd n = true) ->
@@ -102,7 +102,7 @@ theorem silly_ex : forall p,
     simplification) -- for example, `apply` will not work if the left
     and right sides of the equality are swapped. -/
 -- TERSE:
-/- TERSE: The goal must match the hypothesis _exactly_ for [apply] to
+/- TERSE: The goal must match the hypothesis _exactly_ for `apply` to
     work: -/
 
 theorem silly3 : forall (n m : Nat),
@@ -138,12 +138,12 @@ theorem rev_exercise1 : forall α (l l' : List α),
     applied? -/
 
 -- SOLUTION
-/- The [rewrite] tactic is used to apply a known equality (a
+/- The `rewrite` tactic is used to apply a known equality (a
     hypothesis from the context or a previously proved lemma) to
     modify the goal, replacing all occurrences of one side by the
     other.
 
-    The [apply] tactic uses a known implication (a hypothesis from the
+    The `apply` tactic uses a known implication (a hypothesis from the
     context, a previously proved lemma, or a constructor) to replace a
     goal that matches the conclusion of the implication with subgoals,
     one for each premise of the implication.
@@ -157,7 +157,7 @@ theorem rev_exercise1 : forall α (l l' : List α),
 -- /HIDEFROMADVANCED
 
 -- ###################################################### --
--- Supplying arguments to `apply`
+-- ## Supplying arguments to `apply`
 
 /- HIDE: AAA dislikes the [...with...] variants of tactics, which he
    feels don't work very well.  But we (Arthur and BCP) decided to
@@ -286,8 +286,8 @@ theorem trans_eq_exercise : forall (n m o p : Nat),
 
 
 -- ######################################################
-/- * The [injection] and [discriminate] Tactics -/
-/- HIDE: Should we explain [discriminate] without an argument?  BCP 25: No. -/
+-- # The `injection` and `discriminate` Tactics
+/- HIDE: Should we explain `discriminate` without an argument?  BCP 25: No. -/
 
 /- FULL: Recall the definition of natural numbers:
 [[
@@ -353,7 +353,7 @@ theorem succ_injective : forall (n m : Nat),
     constructor.  Here is an alternate proof of the above theorem
     using `injection`: -/
 
-/- TERSE: As a convenience, the [injection] tactic allows us to
+/- TERSE: As a convenience, the `injection` tactic allows us to
     exploit injectivity of any constructor (not just `succ`). -/
 
 theorem succ_injective' : forall (n m : Nat),
@@ -372,7 +372,7 @@ theorem succ_injective' : forall (n m : Nat),
   injection h with hmn
 
 -- TERSE: ***
-/- Here's a more interesting example that shows how [injection] can
+/- Here's a more interesting example that shows how `injection` can
     derive multiple equations at once. -/
 theorem injection_ex1 : forall (n m o : Nat),
   [n, m] = [o, o] ->
@@ -386,7 +386,7 @@ theorem injection_ex1 : forall (n m o : Nat),
 
 /- There is also a related tactic, `injections`, that applies the `injection`
    tactic to all your hypotheses at once, as many times in a row as it can. Using this
-   tactic can avoid needing to repeatedly use `injection` on lists, for example.-/
+   tactic can avoid needing to repeatedly use `injection` on lists, for example. -/
 theorem injection_ex2 : forall (n m o : Nat),
   [n, m] = [o, o] ->
   n = m := by

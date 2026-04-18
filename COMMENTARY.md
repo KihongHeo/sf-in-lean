@@ -31,29 +31,46 @@ While Rocq's `simpl` and Lean's `simp` both do this,
 Instead, we explicitly rewrite by equalities such as
 `n + (m + 1) = n + m + 1` or `(h :: t) ++ l = h :: t ++ l`.
 
-## Stylistic conventions
+## Style guide
 
-### Induction/inversion
-
-JC: We should avoid the `induction h with | ...` and `cases h with | ...` style
-since they don't show the proof goals immediately after induction/inversion,
-whereas `induction h` and `cases h` would let you teach
-"and now you have a new goal to prove for each case" incrementally.
-(There are also performance issues with very large `with`s
-since the whole thing gets processed all at once instead of incrementally,
-but that won't be a problem in this book.)
-
-JC: Should we prefer `case zero => ...`, `case succ n => ...`,
-or `. case zero => ...`, `. case succ n => ...`?
+* In comments, use Markdown as needed (they will render in VSCode)
+  * Section, subsection, etc. headers begin with `#`, `##`, etc.
+  * Unnumbered lists use `*`, not `-`
+* Prefer `cases h; case ...` and `induction h; case ...`
+  over `cases h with | ...` and `induction h with | ...`
+* Prefer named cases over `.` goal selector
+  when the goal names are meaningful
+* Select cases without indentation or `.` after `cases`:
+  ```lean
+  cases b
+  case true  => ...
+  case false => ...
+  ```
+* Indent continued type declarations one further than proofs:
+  ```lean
+  theorem myTheorem : ∀ {A : Type} (this : Bool) (is : Nat) (a : A),
+      really → long → Type :=
+    intro really long
+    exact A
+  ```
 
 ### Comments
 
-| Style                  | Syntax   |
-| ---------------------- | -------- |
-| Line comment           | `--`     |
-| Block comment          | `/- -/`  |
-| Definition doc comment | `/-- -/` |
-| General doc comment    | `/-! -/` |
+#### Line comments
+
+* Instructor notes, e.g. `-- BCP:`
+* Section dividers and headings, i.e. `-- #`
+* Directives, e.g. `-- FULL` and `-- /FULL`
+  * Full list of directives:
+    `FULL`, `TERSE`, `ADMITTED`, `ADMIT_DEF`, `GRADE_THEOREM`, `[]`,
+    `HIDE`, `HIDEFROMADVANCED`, `HIDEFROMHTML`
+
+#### Block comments
+
+* Student-facing prose
+* Declaration doc comments `/-- -/` attached to top-level declarations as need
+  (they will appear on hover in VSCode)
+* General doc comments `/-! -/` currently unused
 
 ## Tactics
 

@@ -18,7 +18,7 @@ import Induction
 /- HIDEFROMADVANCED
    FULL
    ######################################################################
-   * Polymorphism -/
+   # Polymorphism -/
 
 /- In this chapter we continue our development of basic
    concepts of functional programming.  The critical new ideas are
@@ -28,7 +28,7 @@ import Induction
 
 /- /FULL
    ######################################################################
-   ** Polymorphic Lists -/
+   ## Polymorphic Lists -/
 
 /- FULL: In the last chapter, we worked with lists containing just
    numbers.  Obviously, interesting programs also need to be able to
@@ -216,7 +216,7 @@ example : myRepeat Bool false 1 = .cons false .nil := by rfl
 end Playground
 
 -- ###################################################### --
--- Type Annotation Inference
+-- ### Type Annotation Inference
 
 /- TODO: (DHS) I copied this over mostly verbatim from Poly.v,
    but I think the point doesn't work in Lean. The definition of `repeat'`
@@ -280,7 +280,7 @@ Check repeat
 def list123 : List Nat := [1, 2, 3]
 
 -- ###################################################### --
--- Type Argument Synthesis --
+-- ### Type Argument Synthesis
 
 /- FULL: To use a polymorphic function, we need to pass it one or
     more types in addition to its other arguments.  For example, the
@@ -325,7 +325,7 @@ def myRepeat''' {α : Type} (x : α) (count : Nat) : List α :=
     provide one, because Lean is not expecting it.) -/
 
 /- FULL
-   ** Supplying Type Arguments Explicitly
+   ### Supplying Type Arguments Explicitly
 
    One small problem with implicit arguments is that, once in a
    while, Lean does not have enough local information to determine
@@ -587,7 +587,7 @@ theorem rev_involutive {α : Type} : ∀ (l : List α),
    /HIDEFROMADVANCED -/
 
 /- ######################################################################
-   ** Polymorphic Pairs -/
+   ## Polymorphic Pairs -/
 
 /- Like `inductive`s, `structure`s can also be made polymorphic.
    If we generalize the definition of `NatProd` from last chapter,
@@ -673,7 +673,7 @@ example : unzip [(1, false), (2, false)] = ([1, 2], [false, false]) := by rfl  /
    /FULL -/
 
 /- ######################################################################
-   ** Polymorphic Options -/
+   ## Polymorphic Options -/
 
 /- FULL: Our last polymorphic type for now is _polymorphic options_.
    Lean's standard library provides `Option α`, with constructors
@@ -734,7 +734,7 @@ example : hdError [[1], [2]] = some [1] := by rfl  /- ADMITTED -/
    /FULL -/
 
 /- ######################################################################
-   * Functions as Data -/
+   # Functions as Data -/
 
 /- HIDEFROMADVANCED
    FULL: Like most modern programming languages -- especially other
@@ -749,7 +749,7 @@ example : hdError [[1], [2]] = some [1] := by rfl  /- ADMITTED -/
 /- /HIDEFROMADVANCED -/
 
 /- ######################################################################
-   ** Higher-Order Functions -/
+   ## Higher-Order Functions -/
 
 /- HIDEFROMADVANCED
    FULL: Functions that manipulate other functions are often called
@@ -772,7 +772,7 @@ example : doit3times minustwo 9 = 3 := by rfl
 example : doit3times not true = false := by rfl
 
 /- ######################################################################
-   ** Filter -/
+   ## Filter -/
 
 
 /- INSTRUCTORS: We've tried to be careful with terminology in the rest
@@ -832,7 +832,7 @@ example : countoddmembers' [] = 0 := by rfl
 /- /HIDEFROMADVANCED -/
 
 /- ######################################################################
-   ** Anonymous Functions -/
+   ## Anonymous Functions -/
 
 /- HIDE: Why not show them [fix] here?  It's not that complicated and
    it fills out the story.  At least as a little optional section.
@@ -932,7 +932,7 @@ example : partition (fun _ => false) [5, 9, 0] = ([], [5, 9, 0]) := by rfl  /- A
    /FULL -/
 
 /- ######################################################################
-   ** Map -/
+   ## Map -/
 
 /- FULL: Another handy higher-order function is called `map`. -/
 
@@ -1088,7 +1088,7 @@ def optionMap {α : Type} {β : Type} (f : α → β) (xo : Option α) : Option 
    /HIDEFROMADVANCED -/
 
 /- ######################################################################
-   ** Fold -/
+   ## Fold -/
 
 /- FULL: An even more powerful higher-order function is called
    `fold`.  This function is the inspiration for the "reduce"
@@ -1182,7 +1182,7 @@ example : fold (fun l n => l.length + n) [[1], [], [2, 3, 2], [4]] 0 = 5 := by r
 
 /- HIDEFROMADVANCED
    ######################################################################
-   ** Functions That Construct Functions -/
+   ## Functions That Construct Functions -/
 
 /- FULL: Most of the higher-order functions we have talked about so
    far take functions as arguments.  Let's look at some examples that
@@ -1246,7 +1246,7 @@ def fold_plus : List Nat → Nat → Nat :=
 
 /- FULL
    ######################################################################
-   * Additional Exercises -/
+   # Additional Exercises -/
 
 namespace Exercises
 
