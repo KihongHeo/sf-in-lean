@@ -369,7 +369,7 @@ def oddmembers (l : NatList) : NatList :=
   -- ADMITDEF
   match l with
   | [] => []
-  | h :: t => if odd h then h :: oddmembers t else oddmembers t
+  | h :: t => bif odd h then h :: oddmembers t else oddmembers t
   -- /ADMITDEF
 
 -- test_oddmembers
@@ -445,7 +445,7 @@ def count (v : Nat) (s : Bag) : Nat :=
   -- ADMITDEF
   match s with
   | [] => 0
-  | h :: t => if h == v then (count v t) + 1 else count v t
+  | h :: t => bif h == v then (count v t) + 1 else count v t
   -- /ADMITDEF
 
 -- All these proofs can be completed with `rfl`.
@@ -491,7 +491,7 @@ def member (v : Nat) (s : Bag) : Bool :=
   -- ADMITDEF
   match s with
   | [] => false
-  | h :: t => if v == h then true else member v t
+  | h :: t => bif v == h then true else member v t
   -- /ADMITDEF
 
 -- test_member1
@@ -519,7 +519,7 @@ def remove_one (v : Nat) (s : Bag) : Bag :=
   -- ADMITDEF
   match s with
   | [] => []
-  | h :: t => if h == v then t else h :: remove_one v t
+  | h :: t => bif h == v then t else h :: remove_one v t
   -- /ADMITDEF
 
 -- test_remove_one1
@@ -537,7 +537,7 @@ def remove_all (v : Nat) (s : Bag) : Bag :=
   -- ADMITDEF
   match s with
   | [] => []
-  | h :: t => if h == v then remove_all v t else h :: remove_all v t
+  | h :: t => bif h == v then remove_all v t else h :: remove_all v t
   -- /ADMITDEF
 
 -- test_remove_all1
@@ -610,8 +610,8 @@ theorem tl_length_pred : ∀ l : NatList,
     l.length.pred = l.tl.length := by
   intro l
   cases l
-  . case nil => rfl
-  . case cons n l' => rfl
+  case nil => rfl
+  case cons n l' => rfl
 
 -- FULL: Here, the `nil` case works because we've chosen to define
 -- `tl [] = []`. Notice that the `cons` case introduces two names,
@@ -676,8 +676,8 @@ theorem app_assoc : ∀ l1 l2 l3 : NatList,
     (l1 ++ l2) ++ l3 = l1 ++ (l2 ++ l3) := by
   intro l1 l2 l3
   induction l1
-  . case nil => rfl
-  . case cons n l1' ih =>
+  case nil => rfl
+  case cons n l1' ih =>
     rw [cons_append, cons_append, cons_append, ih]
 
 -- TERSE: ***
@@ -715,8 +715,8 @@ example : ∀ c n : Nat,
     myRepeat n c ++ myRepeat n c = myRepeat n (c + c) := by
   intro c
   induction c
-  . case zero => intro n; rfl
-  . case succ c' ih =>
+  case zero => intro n; rfl
+  case succ c' ih =>
     intro n
     -- Now we seem to be stuck.  The IH only works for c' + c',
     -- but we need c' + (c' + 1).
@@ -729,10 +729,10 @@ theorem myRepeat_plus : ∀ c1 c2 n : Nat,
     myRepeat n c1 ++ myRepeat n c2 = myRepeat n (c1 + c2) := by
   intro c1 c2 n
   induction c1
-  . case zero =>
+  case zero =>
     dsimp [myRepeat]
     rw [zero_add]; rfl
-  . case succ c1' ih =>
+  case succ c1' ih =>
     dsimp [myRepeat]
     rw [succ_add, cons_append, ih]
     dsimp [myRepeat]
@@ -765,8 +765,8 @@ example : ∀ l : NatList,
     l.rev.length = l.length := by
   intro l
   induction l
-  . case nil => rfl
-  . case cons n l' ih =>
+  case nil => rfl
+  case cons n l' ih =>
     dsimp [NatList.rev]
     -- Now we seem to be stuck: the goal involves `++`, but we
     -- but we don't have any useful equations
@@ -782,14 +782,14 @@ example : ∀ (l : NatList) n,
     (l.rev ++ [n]).length = .succ l.rev.length := by
   intro l n
   induction l
-  . case nil =>
-      dsimp [NatList.rev, NatList.length]
-      rw [nil_app]
-      dsimp [NatList.length]
-  . case cons n l' ih =>
-      dsimp [NatList.rev, NatList.length]
-      -- ih not applicable
-      sorry
+  case nil =>
+    dsimp [NatList.rev, NatList.length]
+    rw [nil_app]
+    dsimp [NatList.length]
+  case cons n l' ih =>
+    dsimp [NatList.rev, NatList.length]
+    -- ih not applicable
+    sorry
 
 /- FULL: It turns out that the above lemma is more specific than it
    needs to be. We can strengthen the lemma to work not only on reversed
@@ -798,8 +798,8 @@ theorem app_length_succ : ∀ (l : NatList) (n : Nat),
     (l ++ [n]).length = l.length + 1 := by
   intro l n
   induction l
-  . case nil => rfl
-  . case cons m l' ih =>
+  case nil => rfl
+  case cons m l' ih =>
     rw [cons_append]
     dsimp [NatList.length]
     rw [ih]
@@ -811,8 +811,8 @@ theorem rev_length : ∀ l : NatList,
     l.rev.length = l.length := by
   intro l
   induction l
-  . case nil => rfl
-  . case cons n l' ih =>
+  case nil => rfl
+  case cons n l' ih =>
     dsimp [NatList.rev, NatList.length]
     rw [app_length_succ, ih]
 
@@ -826,8 +826,8 @@ theorem app_length : ∀ l1 l2 : List Nat,
   -- WORKINCLASS
   intro l1 l2
   induction l1
-  . case nil => dsimp; rw [zero_add]
-  . case cons n l1' ih => dsimp; rw [ih, succ_add]
+  case nil => dsimp; rw [zero_add]
+  case cons n l1' ih => dsimp; rw [ih, succ_add]
 -- /WORKINCLASS
 
 -- HIDEFROMADVANCED
@@ -867,8 +867,8 @@ theorem foo2 :  forall n m : Nat,
     (myRepeat n m).length = m := by
   intro n m
   induction m
-  . case zero => rfl
-  . case succ m' ih =>
+  case zero => rfl
+  case succ m' ih =>
     dsimp [NatList.length, myRepeat] at *
     rw [ih]
 -- /HIDE
@@ -982,8 +982,8 @@ theorem app_nil_r : ∀ l : NatList,
   -- ADMITTED
   intro l
   induction l
-  . case nil => rfl
-  . case cons n l' ih =>
+  case nil => rfl
+  case cons n l' ih =>
     rw [cons_append, ih]
 -- /ADMITTED
 -- GRADE_THEOREM 0.5: NatList.app_nil_r
@@ -993,10 +993,10 @@ theorem rev_app_distr : ∀ l1 l2 : NatList,
   -- ADMITTED
   intro l1 l2
   induction l1
-  . case nil =>
+  case nil =>
     dsimp [NatList.rev]
     rw [app_nil_r, nil_app]
-  . case cons x l1' ih =>
+  case cons x l1' ih =>
     rw [cons_append]
     dsimp [NatList.rev]
     rw [ih, app_assoc]
@@ -1010,8 +1010,8 @@ theorem rev_involutive : ∀ l : NatList,
   -- ADMITTED
   intro l
   induction l
-  . case nil => rfl
-  . case cons n l' ih =>
+  case nil => rfl
+  case cons n l' ih =>
     dsimp [NatList.rev]
     rw [rev_app_distr, ih]
     rfl
@@ -1037,11 +1037,11 @@ theorem nonzeros_app : ∀ l1 l2 : NatList,
   -- ADMITTED
   intro l1 l2
   induction l1
-  . case nil => rfl
-  . case cons n l1' ih =>
+  case nil => rfl
+  case cons n l1' ih =>
     cases n
-    . case zero => dsimp [nonzeros, cons_append]; rw [ih]
-    . case succ n' => dsimp [nonzeros, cons_append]; rw [ih]
+    case zero => dsimp [nonzeros, cons_append]; rw [ih]
+    case succ n' => dsimp [nonzeros, cons_append]; rw [ih]
 
 
 -- /ADMITTED
@@ -1075,8 +1075,8 @@ theorem eqblist_refl : ∀ l : NatList,
   -- ADMITTED
   intro l
   induction l
-  . case nil => rfl
-  . case cons n l' ih =>
+  case nil => rfl
+  case cons n l' ih =>
     dsimp [eqblist, ih]
     rw [eqb_refl, ih]
     rfl
@@ -1129,8 +1129,8 @@ theorem leb_n_Sn : ∀ n : Nat,
     Nat.ble n (n + 1) = true := by
   intro n
   induction n
-  . case zero => rfl
-  . case succ n' ih => dsimp [Nat.ble]; exact ih
+  case zero => rfl
+  case succ n' ih => dsimp [Nat.ble]; exact ih
 
 -- Before doing the next exercise, make sure you've filled in the
 -- definition of `remove_one` above.
@@ -1146,21 +1146,20 @@ theorem count_remove_one : forall v s,
   count v (remove_one v s) = (count v s).pred := by
   intro v s
   induction s
-  . case nil => rfl
-  . case cons n l ih =>
+  case nil => rfl
+  case cons n l ih =>
     dsimp [count, remove_one] at *
   -- XXX they don't know about generalizing or casing on expressions yet !!!
-    generalize h : (n == v) = x
-    cases x
-    . dsimp [count]; rw [h]; dsimp; exact ih
-    . dsimp
+    cases h : n == v
+    case false => dsimp [count]; rw [h]; dsimp; exact ih
+    case true => dsimp
 
 theorem leb_pred_n_n : forall n,
     Nat.ble n.pred n = true := by
   intro n
   induction n
-  . case zero => dsimp [Nat.ble]
-  . case succ n ih =>
+  case zero => dsimp [Nat.ble]
+  case succ n ih =>
     dsimp
     rw [leb_n_Sn]
 
@@ -1168,8 +1167,8 @@ theorem remove_does_not_increase_count': forall (s : Bag) (n : Nat),
     Nat.ble (count n (remove_one n s)) (count n s) = true := by
   intro s n
   induction s
-  . case nil => rfl
-  . case cons n' l ih =>
+  case nil => rfl
+  case cons n' l ih =>
     rw [count_remove_one, leb_pred_n_n]
 -- /HIDE
 
@@ -1180,13 +1179,13 @@ theorem remove_does_not_increase_count : ∀ s : Bag,
   -- ADMITTED
   intro s
   induction s
-  . case nil => rfl
-  . case cons n s' ih =>
+  case nil => rfl
+  case cons n s' ih =>
     cases n
-    . case zero =>
+    case zero =>
       dsimp [remove_one, count]
       rw [leb_n_Sn]
-    . case succ n' =>
+    case succ n' =>
       dsimp [remove_one, count, ih]; exact ih
 -- /ADMITTED
 -- []
@@ -1218,15 +1217,15 @@ theorem bag_count_sum : ∀ (s1 s2 : Bag) (v : Nat),
   intro s1 s2 v
   unfold sum
   induction s1
-  . case nil =>
+  case nil =>
     dsimp [NatList.app, count]
     rw [zero_add]
-  . case cons h s1' ih =>
+  case cons h s1' ih =>
     dsimp [NatList.app, count]
     cases (h == v)
-    . case false =>
+    case false =>
       dsimp [succ_add]; exact ih
-    . case true =>
+    case true =>
       dsimp
       rw [succ_add, ←ih]
 -- /SOLUTION
@@ -1355,8 +1354,8 @@ theorem option_elim_hd : ∀ (l : NatList) (default : Nat),
   -- ADMITTED
   intro l default
   cases l
-  . case nil => rfl
-  . case cons n l' => rfl
+  case nil => rfl
+  case cons n l' => rfl
 -- /ADMITTED
 -- []
 

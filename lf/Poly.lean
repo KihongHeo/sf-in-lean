@@ -526,29 +526,29 @@ def List.rev {α:Type} (l:List α) : List α :=
 
 /- app_nil_r -/
 theorem app_nil_r {α : Type} : ∀ (l : List α),
-  l ++ [] = l := by
+    l ++ [] = l := by
   /- ADMITTED -/
   intro l; induction l
-  . case nil => rfl
-  . case cons h t ih => dsimp; rw [ih]
+  case nil => rfl
+  case cons h t ih => dsimp; rw [ih]
 /- /ADMITTED -/
 
 /- app_assoc -/
 theorem app_assoc {α : Type} : ∀ (l m n : List α),
-  l ++ m ++ n = l ++ (m ++ n) := by
+    l ++ m ++ n = l ++ (m ++ n) := by
   /- ADMITTED -/
   intro l m n; induction l
-  . case nil => rfl
-  . case cons h t ih => dsimp; rw [ih]
+  case nil => rfl
+  case cons h t ih => dsimp; rw [ih]
 /- /ADMITTED -/
 
 /- app_length -/
 theorem app_length {α : Type} : ∀ (l1 l2 : List α),
-  (l1 ++ l2).length = l1.length + l2.length := by
+    (l1 ++ l2).length = l1.length + l2.length := by
   /- ADMITTED -/
   intro l1 l2; induction l1
-  . case nil => dsimp; rw [zero_add]
-  . case cons h t ih => dsimp; rw [succ_add, ih]
+  case nil => dsimp; rw [zero_add]
+  case cons h t ih => dsimp; rw [succ_add, ih]
 /- /ADMITTED
    GRADE_THEOREM 0.5: app_nil_r
    GRADE_THEOREM 1: app_assoc
@@ -560,23 +560,23 @@ theorem app_length {α : Type} : ∀ (l1 l2 : List α),
 
 /- rev_app_distr -/
 theorem rev_app_distr {α : Type} : ∀ (l1 l2 : List α),
-  (l1 ++ l2).rev = l2.rev ++ l1.rev := by
+    (l1 ++ l2).rev = l2.rev ++ l1.rev := by
   /- ADMITTED -/
   intro l1 l2; induction l1
-  . case nil => dsimp [List.rev]; rw [app_nil_r]
-  . case cons h t ih => dsimp [List.rev]; rw [ih]; rw [app_assoc]
+  case nil => dsimp [List.rev]; rw [app_nil_r]
+  case cons h t ih => dsimp [List.rev]; rw [ih]; rw [app_assoc]
 /- /ADMITTED -/
 
 /- rev_involutive -/
 theorem rev_involutive {α : Type} : ∀ (l : List α),
-  l.rev.rev = l := by
+    l.rev.rev = l := by
   /- ADMITTED -/
   intro l; induction l
-  . case nil => rfl
-  . case cons h t ih =>
-      dsimp [List.rev]
-      rw [rev_app_distr, ih]
-      dsimp [List.rev]
+  case nil => rfl
+  case cons h t ih =>
+    dsimp [List.rev]
+    rw [rev_app_distr, ih]
+    dsimp [List.rev]
 /- /ADMITTED
    GRADE_THEOREM 1: rev_app_distr
    GRADE_THEOREM 1: rev_involutive
@@ -1019,22 +1019,22 @@ example : map (fun n => [even n, odd n]) [2, 1, 2, 5]
    QUIETSOLUTION -/
 
 theorem map_app {α : Type} {β : Type} : ∀ (f : α → β) (l l' : List α),
-  map f (l ++ l') = map f l ++ map f l' := by
+    map f (l ++ l') = map f l ++ map f l' := by
   intro f l l'
   induction l
-  . case nil => rfl
-  . case cons h t ih => dsimp [map]; rw [ih]
+  case nil => rfl
+  case cons h t ih => dsimp [map]; rw [ih]
 
 /- /QUIETSOLUTION -/
 
 /- map_rev -/
 theorem map_rev {α : Type} {β : Type} : ∀ (f : α → β) (l : List α),
-  map f l.rev = (map f l).rev := by
+    map f l.rev = (map f l).rev := by
   /- ADMITTED -/
   intro f l
   induction l
-  . case nil => rfl
-  . case cons h t ih => dsimp [map, List.rev]; rw [map_app, ih]; dsimp [map]
+  case nil => rfl
+  case cons h t ih => dsimp [map, List.rev]; rw [map_app, ih]; dsimp [map]
 /- /ADMITTED
    GRADE_THEOREM 3: map_rev
    [] -/
@@ -1267,13 +1267,13 @@ example : foldLength [4, 7, 0] = 3 := by rfl
 
 /- fold_length_correct -/
 theorem fold_length_correct {α : Type} : ∀ (l : List α),
-  foldLength l = l.length := by
+    foldLength l = l.length := by
   /- ADMITTED -/
   intro l; induction l
-  . case nil => rfl
-  . case cons h t ih =>
-      dsimp [foldLength, fold] at *
-      rw [ih]
+  case nil => rfl
+  case cons h t ih =>
+    dsimp [foldLength, fold] at *
+    rw [ih]
 /- /ADMITTED
    GRADE_THEOREM 2: Exercises.fold_length_correct
    [] -/
@@ -1293,12 +1293,12 @@ def foldMap {α : Type} {β : Type} (f : α → β) (l : List α) : List β :=
 /- SOLUTION
    fold_map_correct -/
 theorem fold_map_correct {α : Type} {β : Type} : ∀ (f : α → β) (l : List α),
-  foldMap f l = map f l := by
+    foldMap f l = map f l := by
   intro f l; induction l
-  . case nil => rfl
-  . case cons h t ih =>
-      dsimp [foldMap, fold, map] at *
-      rw [ih]
+  case nil => rfl
+  case cons h t ih =>
+    dsimp [foldMap, fold, map] at *
+    rw [ih]
 /- /SOLUTION -/
 
 /- GRADE_MANUAL 3: fold_map
@@ -1361,14 +1361,14 @@ example : map (Nat.add 3) [2, 0, 2] = [5, 3, 5] := by rfl
 
 /- uncurry_curry -/
 theorem uncurry_curry {α : Type} {β : Type} {γ : Type} : ∀ (f : α → β → γ) (x : α) (y : β),
-  prodCurry (prodUncurry f) x y = f x y := by
+    prodCurry (prodUncurry f) x y = f x y := by
   /- ADMITTED -/
   intro f x y; rfl
 /- /ADMITTED -/
 
 /- curry_uncurry -/
 theorem curry_uncurry {α : Type} {β : Type} {γ : Type} : ∀ (f : α × β → γ) (p : α × β),
-  prodUncurry (prodCurry f) p = f p := by
+    prodUncurry (prodCurry f) p = f p := by
   /- ADMITTED -/
   intro f ⟨x, y⟩; rfl
 /- /ADMITTED
