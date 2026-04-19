@@ -41,31 +41,32 @@ LINE_COMMENT_RE = re.compile(r"^(\s*)--( ?)(.*)$")
 
 # Markers that must NOT be wrapped in /- -/ when encountered inside a FULL block.
 FULL_PROTECTED_PATTERNS = [
-    re.compile(r"^\s*--\s*TERSE\b"),
+    re.compile(r"^\s*--\s*/?TERSE\b"),
     re.compile(r"^\s*--\s*/?HIDEFROMHTML\s*$"),
-    re.compile(r"^\s*--\s*EX\d+\b"),
+    re.compile(r"^\s*--\s*/?HIDEFROMADVANCED\s*$"),
+    re.compile(r"^\s*--\s*/?HIDE\s*$"),
+    re.compile(r"^\s*--\s*/?QUIZ\s*$"),
+    re.compile(r"^\s*--\s*/?SOLUTION\s*$"),
+    re.compile(r"^\s*--\s*/?QUIETSOLUTION\s*$"),
+    re.compile(r"^\s*--\s*/?WORKINCLASS\s*$"),
+    re.compile(r"^\s*--\s*EX\d+[!?]*[A-Z]*\??\b"),
     re.compile(r"^\s*--\s*/?ADMIT(DEF|TED)?\b"),
     re.compile(r"^\s*--\s*GRADE_THEOREM\b"),
+    re.compile(r"^\s*--\s*GRADE_MANUAL\b"),
     re.compile(r"^\s*--\s*RAB\b"),
+    re.compile(r"^\s*--\s*RADDITION\b"),
     re.compile(r"^\s*--\s*JC\b"),
     re.compile(r"^\s*--\s*BCP\b"),
-    # Test-name markers and grader terminators: `-- test_foo`, `-- []`,
-    # `-- [word, word]`. These sit adjacent to `example :` lines.
-    re.compile(r"^\s*--\s*test_\w+\s*$"),
+    re.compile(r"^\s*--\s*MMG\b"),
+    re.compile(r"^\s*--\s*APT\b"),
+    re.compile(r"^\s*--\s*DHS\b"),
+    re.compile(r"^\s*--\s*TODO\b"),
+    re.compile(r"^\s*--\s*SOONER\b"),
+    re.compile(r"^\s*--\s*LATER\b"),
+    # Grader terminators: `-- []`, `-- [word, word]`. Stay as `--`.
     re.compile(r"^\s*--\s*\[[^\]]*\]\s*$"),
-    # Eval/check output annotations: `-- ==> ...`, `-- ===> ...`.
-    re.compile(r"^\s*--\s*=+>"),
-    # Single-word all-caps marker lines used sparingly as dividers:
-    # `-- RADDTION`, `-- RAB ADDITION:` already covered by RAB pattern.
-    # `-- INSTRUCTORS:` is author-note-ish and should stay as `--`.
-    re.compile(r"^\s*--\s*INSTRUCTORS:"),
-    # Section dividers: `-- ####...` with # right after the `--` (one optional space).
-    # Banner rows like `--          ###  TEXT  ###` have extra indentation
-    # inside the comment and are treated as prose.
-    re.compile(r"^\s*-- ?#{3,}\s*$"),             # `-- ######...`
-    re.compile(r"^\s*-- ?#{1,3}\s+\S[^#]*$"),     # `-- ## Title`  (no trailing #s)
-    re.compile(r"^\s*--\s*FULL\s*$"),
-    re.compile(r"^\s*--\s*/FULL\s*$"),
+    re.compile(r"^\s*--\s*INSTRUCTORS\b"),
+    re.compile(r"^\s*--\s*/?FULL\s*$"),
 ]
 
 # Block comments we convert to `--`.
@@ -100,13 +101,17 @@ def strip_comment_prefix(line: str) -> str:
 
 
 def flush_prose(prose: List[str], indent: str, out: List[str]) -> None:
-    """Emit a prose run as a multi-line /- -/ block. Trim leading/trailing blanks."""
-    # Trim leading and trailing blank entries.
+    """Emit a prose run as a /- -/ block. Single-line bodies stay on one
+    line (`<indent>/- body -/`); multi-line bodies use the 3-line form.
+    Trims leading/trailing blanks."""
     while prose and prose[0] == "":
         prose.pop(0)
     while prose and prose[-1] == "":
         prose.pop()
     if not prose:
+        return
+    if len(prose) == 1:
+        out.append(f"{indent}/- {prose[0]} -/")
         return
     out.append(f"{indent}/-")
     for p in prose:
@@ -153,10 +158,15 @@ def handle_terse(
         i += 1
 
     body = " ".join(parts).strip()
+    # If the body is already wrapped in `/- ... -/`, strip the wrapper so
+    # we don't produce `-- TERSE: /- /- body -/ -/` when re-running the
+    # formatter on an already-formatted file.
+    bm = re.match(r"^/-\s*(.*?)\s*-/$", body)
+    if bm:
+        body = bm.group(1).strip()
     if body:
         out.append(f"{indent}-- TERSE: /- {body} -/")
     else:
-        # Pathological: TERSE with no body. Keep a minimal marker.
         out.append(f"{indent}-- TERSE:")
 
     if injected_full_rest != "":
@@ -172,7 +182,7 @@ def handle_terse(
 
 # --- FULL block body ---------------------------------------------------------
 
-AUTHOR_NOTE_RE = re.compile(r"^\s*--\s*(JC|RAB|BCP|INSTRUCTORS)\b")
+AUTHOR_NOTE_RE = re.compile(r"^\s*--\s*(JC|RAB|RADDITION|BCP|INSTRUCTORS|SOONER|LATER|MMG|APT|DHS|TODO)\b")
 
 
 def process_full_body(body_lines: List[str], out: List[str]) -> None:

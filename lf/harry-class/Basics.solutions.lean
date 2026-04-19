@@ -4,6 +4,11 @@
 
 
 /-
+  ######################################################################
+  # Introduction
+-/
+
+/-
   The _functional style_ of programming is founded on simple,
   everyday mathematical intuitions: If a procedure or method has no
   side effects, then (ignoring efficiency) all we need to understand
@@ -33,13 +38,19 @@
   programs.
 -/
 
+/-
+  ######################################################################
+  # Data and Functions
+-/
+
+/- ## Enumerated Types -/
 
 /-
   One notable thing about Lean is that its set of built-in features is
-      _extremely_ small.  For example, instead of the usual palette of atomic
-      data types (booleans, integers, strings, etc.), Lean offers a powerful
-      mechanism for defining new data types from scratch, with all these
-      familiar types as instances.
+  _extremely_ small.  For example, instead of the usual palette of atomic
+  data types (booleans, integers, strings, etc.), Lean offers a powerful
+  mechanism for defining new data types from scratch, with all these
+  familiar types as instances.
 
   Naturally, Lean also comes with an extensive standard library providing
   definitions of booleans, numbers, and many common data structures like lists
@@ -47,6 +58,16 @@
   definitions.  To illustrate this, in this course we will explicitly
   recapitulate almost all the definitions we need, rather than getting them
   from the standard library.
+
+  We take great care to match those definitions with the ones in the standard
+  library, so that by the time you are finished with this course, you will
+  already have a strong understanding of how the Lean standard library works.
+-/
+
+
+/-
+  ######################################################################
+  ## Days of the Week
 -/
 
 
@@ -91,6 +112,16 @@ def nextWorkingDay (d : Day) : Day :=
   easier.
 -/
 
+/- You may also notice the unique pattern matching syntax- for
+  example, in "`.monday`". The `.` - is syntactic sugar for `Day.monday`, and
+  exists to save the programmer the time of typing out the full qualified name.
+  You may wonder why the language doesn't just expose a pattern like `monday`
+  without the dot, like OCaml does. This is to avoid name shadowing, because
+  being explicit about names is _especially_ important to avoid confusion and
+  headaches when writing proofs. The `.` syntax is a compromise that lets us
+  know we're qualifying a name without having to type too much.
+-/
+
 
 /-
   Having defined a function, we can check that it works on
@@ -100,10 +131,10 @@ def nextWorkingDay (d : Day) : Day :=
 -/
 
 #eval nextWorkingDay Day.friday
--- ==> Day.monday
+/- ==> Day.monday -/
 
 #eval nextWorkingDay (nextWorkingDay Day.saturday)
--- ==> Day.tuesday
+/- ==> Day.tuesday -/
 
 /-
   (We show Lean's responses in comments; if you have a computer
@@ -115,7 +146,7 @@ def nextWorkingDay (d : Day) : Day :=
 
 
 /-
-  Using the Lean Extension
+  Aside: Using the Lean Extension
 -/
 
 /-
@@ -127,16 +158,12 @@ def nextWorkingDay (d : Day) : Day :=
   infoview to navigate to their definitions. This makes it easier to understand
   how your code is being interpreted by Lean and to debug any issues that
   arise.
--/
 
-/-
   The infoview always follows your cursor, and Lean typechecks the file as you
   edit it, so you can see the results of your changes immediately. You can also
   use the infoview to explore the definitions of functions and types that
   you're using, which can be very helpful for understanding how they work.
--/
 
-/-
   If you haven't already, install the Lean Extension in VSCode and open the
   `Basics.lean` file to see the infoview in action. Try hovering over the
   `nextWorkingDay` function and the `Day` type to see their definitions, and
@@ -149,7 +176,7 @@ def nextWorkingDay (d : Day) : Day :=
   form of a Lean "example":
 -/
 
--- test_next_working_day
+/- test_next_working_day -/
 example : nextWorkingDay (nextWorkingDay Day.saturday) = Day.tuesday := by
   rfl
 
@@ -184,6 +211,8 @@ example : nextWorkingDay (nextWorkingDay Day.saturday) = Day.tuesday := by
   We'll come back to this topic in later chapters.
 -/
 
+/- ###################################################################### -/
+/- ## Booleans -/
 
 /-
   Following the pattern of the days of the week above, we can
@@ -236,16 +265,16 @@ def orb (b1 : MyBool) (b2 : MyBool) : MyBool :=
   multi-argument function definitions.  The corresponding
   multi-argument _application_ syntax is illustrated by the
   following "unit tests," which constitute a complete specification
-  -- a truth table -- for the `orb` function:
+  /- a truth table -- for the `orb` function: -/
 -/
 
--- test_orb1
+/- test_orb1 -/
 example : orb .true  .false = .true  := by rfl
--- test_orb2
+/- test_orb2 -/
 example : orb .false .false = .false := by rfl
--- test_orb3
+/- test_orb3 -/
 example : orb .false .true  = .true  := by rfl
--- test_orb4
+/- test_orb4 -/
 example : orb .true  .true  = .true  := by rfl
 
 /-
@@ -259,10 +288,10 @@ local prefix:40 (priority := high) "!" => notb
 local infixl:35 (priority := high) " && " => andb
 local infixl:30 (priority := high) " || " => orb
 
--- test_orb5
+/- test_orb5 -/
 example : (.false || .false || .true) = .true := by rfl
 
--- test_orb6
+/- test_orb6 -/
 example : (! .false) = .true := by rfl
 end
 
@@ -279,16 +308,18 @@ end
 -/
 
 def nandb (b1 : MyBool) (b2 : MyBool) : MyBool
-  := sorry
+  := match b1 with
+  | .true => notb b2
+  | .false => true
 
--- test_nandb1
-example : nandb .true .false  = .true  := by sorry  -- ADMITTED
--- test_nandb2
-example : nandb .false .false = .true  := by sorry  -- ADMITTED
--- test_nandb3
-example : nandb .false .true  = .true  := by sorry  -- ADMITTED
--- test_nandb4
-example : nandb .true .true   = .false := by sorry  -- ADMITTED
+/- test_nandb1 -/
+example : nandb .true .false  = .true  := by rfl  -- ADMITTED
+/- test_nandb2 -/
+example : nandb .false .false = .true  := by rfl  -- ADMITTED
+/- test_nandb3 -/
+example : nandb .false .true  = .true  := by rfl  -- ADMITTED
+/- test_nandb4 -/
+example : nandb .true .true   = .false := by rfl  -- ADMITTED
 -- GRADE_THEOREM 1: nandb_test4
 -- []
 
@@ -299,23 +330,19 @@ example : nandb .true .true   = .false := by sorry  -- ADMITTED
 -/
 
 def andb3 (b1 : MyBool) (b2 : MyBool) (b3 : MyBool) : MyBool
-  := sorry
+  := andb b1 (andb b2 b3)
 
--- test_andb31
-example : andb3 .true .true .true  = .true  := by sorry  -- ADMITTED
--- test_andb32
-example : andb3 .false .true .true = .false := by sorry  -- ADMITTED
--- test_andb33
-example : andb3 .true .false .true = .false := by sorry  -- ADMITTED
--- test_andb34
-example : andb3 .true .true .false = .false := by sorry  -- ADMITTED
+/- test_andb31 -/
+example : andb3 .true .true .true  = .true  := by rfl  -- ADMITTED
+/- test_andb32 -/
+example : andb3 .false .true .true = .false := by rfl  -- ADMITTED
+/- test_andb33 -/
+example : andb3 .true .false .true = .false := by rfl  -- ADMITTED
+/- test_andb34 -/
+example : andb3 .true .true .false = .false := by rfl  -- ADMITTED
 -- GRADE_THEOREM 1: andb3_test4
 -- []
 
-
-  /-
-    RADDTION
-  -/
 
 /-
   Now that we've seen how to define our own booleans, we can switch back to
@@ -341,6 +368,9 @@ def boolToMyBool (b : Bool) : MyBool :=
 end
 
 
+/- ###################################################################### -/
+/- ## Types -/
+
 /-
   Every expression in Lean has a type describing what sort of
   thing it computes.  The `#check` command asks Lean to print the type
@@ -348,7 +378,7 @@ end
 -/
 
 #check true
--- ===> true : Bool
+/- ===> true : Bool -/
 
 /-
   If the thing after `#check` is followed by a colon and a type,
@@ -366,7 +396,7 @@ end
 -/
 
 #check not
--- ===> not : Bool → Bool
+/- ===> not : Bool → Bool -/
 
 /-
   The type of `not`, written `Bool → Bool` and pronounced
@@ -388,6 +418,11 @@ end
   code without having to remember complex keyboard shortcuts.
 -/
 
+
+/-
+  ######################################################################
+  ## New Types from Old
+-/
 
 /-
   The types we have defined so far are examples of simple
@@ -464,6 +499,11 @@ def isRed (c : Color) : Bool :=
   `primary` applied to any `RGB` constructor except `red`."
 -/
 
+/-
+  ######################################################################
+  ## Namespaces and Sections
+-/
+
 
 /-
   Lean provides a _namespace system_ to aid in organizing large
@@ -527,6 +567,10 @@ end
   #check RGB.blue′  -- fails to parse
 -/
 
+/-
+  ######################################################################
+  ## Tuples
+-/
 
 namespace TuplePlayground
 
@@ -569,12 +613,16 @@ def allZero (nb : Nybble) : Bool :=
 -/
 
 #eval allZero (.bits .b1 .b0 .b1 .b0)
--- ===> false
+/- ===> false -/
 #eval allZero (.bits .b0 .b0 .b0 .b0)
--- ===> true
+/- ===> true -/
 
 end TuplePlayground
 
+/-
+  ######################################################################
+  ## Numbers
+-/
 
 /-
   We put this section in a namespace so that our own definition of
@@ -679,7 +727,7 @@ def minustwo (n : Nat) : Nat :=
   | .succ (.succ n') => n'
 
 #eval minustwo 4
--- ===> 2
+/- ===> 2 -/
 
 #check Nat.succ  -- Nat → Nat
 #check Nat.pred  -- Nat → Nat
@@ -712,9 +760,9 @@ def even (n : Nat) : Bool :=
 def odd (n : Nat) : Bool :=
   not (even n)
 
--- test_odd1
+/- test_odd1 -/
 example : odd 1 = true  := by rfl
--- test_odd2
+/- test_odd2 -/
 example : odd 4 = false := by rfl
 
 
@@ -728,7 +776,7 @@ def add (n : Nat) (m : Nat) : Nat :=
 -/
 
 #eval add 3 2
--- ===> 5
+/- ===> 5 -/
 
 /-
   The steps of simplification that Lean performs here can be
@@ -737,15 +785,15 @@ def add (n : Nat) (m : Nat) : Nat :=
        `add 3 2`
     i.e. `add (succ (succ (succ 0))) (succ (succ 0))`
 -/
---    ==> `succ (add (succ (succ (succ 0))) (succ 0))`
+/-    ==> `succ (add (succ (succ (succ 0))) (succ 0))` -/
 /-
            by the second clause of the `match`
 -/
---    ==> `succ (succ (add (succ (succ (succ 0))) 0))`
+/-    ==> `succ (succ (add (succ (succ (succ 0))) 0))` -/
 /-
            by the second clause of the `match`
 -/
---    ==> `succ (succ (succ (add (succ 0))))`
+/-    ==> `succ (succ (succ (add (succ 0))))` -/
 /-
            by the first clause of the `match`
     i.e. `5`
@@ -763,7 +811,7 @@ def mul (n m : Nat) : Nat :=
   | 0 => 0
   | .succ m' => (mul n m') + n
 
--- test_mult1
+/- test_mult1 -/
 example : mul 3 3 = 9 := by rfl
 
 /-
@@ -797,12 +845,14 @@ def pow (base power : Nat) : Nat :=
 -/
 
 def factorial (n : Nat) : Nat
-  := sorry
+  := match n with
+  | 0 => 1
+  | n' + 1 => n * factorial n'
 
--- test_factorial1
-example : factorial 3 = 6         := by sorry  -- ADMITTED
--- test_factorial2
-example : factorial 5 = 10 * 12   := by sorry  -- ADMITTED
+/- test_factorial1 -/
+example : factorial 3 = 6         := by rfl  -- ADMITTED
+/- test_factorial2 -/
+example : factorial 5 = 10 * 12   := by rfl  -- ADMITTED
 -- GRADE_THEOREM 1: factorial_test2
 -- []
 
@@ -852,11 +902,11 @@ def leb (n m : Nat) : Bool :=
       | 0 => false
       | m' + 1 => leb n' m'
 
--- test_leb1
+/- test_leb1 -/
 example : leb 2 2 = true  := by rfl
--- test_leb2
+/- test_leb2 -/
 example : leb 2 4 = true  := by rfl
--- test_leb3
+/- test_leb3 -/
 example : leb 4 2 = false := by rfl
 
 /-
@@ -889,19 +939,23 @@ example : 4 <=? 2 = false := by rfl
 -/
 
 def ltb (n m : Nat) : Bool
-  := sorry
+  := leb (n + 1) m
 
 infix:65 "<?" => ltb
 
--- test_ltb1
-example : 2 <? 2 = false := by sorry  -- ADMITTED
--- test_ltb2
-example : 2 <? 4 = true  := by sorry  -- ADMITTED
--- test_ltb3
-example : 4 <? 2 = false := by sorry  -- ADMITTED
+/- test_ltb1 -/
+example : 2 <? 2 = false := by rfl  -- ADMITTED
+/- test_ltb2 -/
+example : 2 <? 4 = true  := by rfl  -- ADMITTED
+/- test_ltb3 -/
+example : 4 <? 2 = false := by rfl  -- ADMITTED
 -- GRADE_THEOREM 1: ltb_test3
 -- []
 
+/-
+  ######################################################################
+  # Proof by Simplification
+-/
 
 /-
   Now that we've looked at a few datatypes and functions,
@@ -979,6 +1033,10 @@ theorem pow_succ (n m : Nat) : n ^ (m + 1) = n * (n ^ m) := by rfl
 
 theorem beq_succ : ∀ n m : Nat, (n + 1 == m + 1) = (n == m) := by
   intro n m; rfl
+/-
+  ######################################################################
+  # Proof by Rewriting
+-/
 
 
 theorem plus_id_example : ∀ n m : Nat,
@@ -998,9 +1056,6 @@ theorem plus_id_example : ∀ n m : Nat,
 
 
 /-
-  TODO: Move this
--/
-/-
   By default, `rewrite` rewrites left-to-right. To rewrite from right
   to left, use `rewrite [← h]`, where `←` is typed as `\l` or `\<-`.
   Because the pattern `rewrite [h]; rfl` is so common, Lean provides
@@ -1014,7 +1069,9 @@ theorem plus_id_example : ∀ n m : Nat,
 
 theorem plus_id_exercise : ∀ n m o : Nat,
     n = m → m = o → n + m = m + o := by
-  sorry
+  intro n m o h1 h2
+  rewrite [h1, h2]
+  rfl
 -- GRADE_THEOREM 1: plus_id_exercise
 -- []
 
@@ -1048,6 +1105,10 @@ theorem add_mul_zero : ∀ p q : Nat,
   rewrite [mul_zero, mul_zero, add_zero]
   rfl
 
+/-
+  ######################################################################
+  # Proof by Case Analysis
+-/
 
 /-
   Of course, not everything can be proved by simple
@@ -1137,7 +1198,7 @@ theorem andb3_exchange : ∀ b c d : Bool,
       case false => rfl
       case true => rfl
 
-/- As you can see, this can become very verbose.
+/- As you can see, proofs by cases can become very verbose.
   We will introduce some tactics for writing shorter proofs
   by case analysis in `Tactics.lean`. -/
 
@@ -1167,16 +1228,24 @@ theorem andb3_exchange : ∀ b c d : Bool,
 
 theorem orb_false_true : ∀ b : Bool,
     (false || b) = true → b = true := by
-  sorry
+  intro b h
+  dsimp [Bool.or] at h
+  exact h
 -- GRADE_THEOREM 2: orb_false_true
 -- []
 
 theorem zero_neb_add_one : ∀ n : Nat,
   (0 == n + 1) = false := by
-  sorry
+  intro n; cases n
+  case zero => rfl
+  case succ n' => rfl
 -- GRADE_THEOREM 1: zero_nbeq_plus_1
 -- []
 
+/-
+  ######################################################################
+  ## More on Notation (Optional)
+-/
 
 /-
   Lean has a very flexible notation system.  Operators like `+` and `*`
@@ -1194,6 +1263,10 @@ theorem zero_neb_add_one : ∀ n : Nat,
   expected type, thanks to Lean's `OfNat` type class.
 -/
 
+/-
+  ######################################################################
+  ## Structural Recursion (Optional)
+-/
 
 /-
   Here is a copy of the definition of addition:
@@ -1230,15 +1303,20 @@ def plus' (n : Nat) (m : Nat) : Nat :=
 -/
 
 /-
-  SOLUTION
   def factorial_bad (n : Nat) : Nat :=
     if n == 0 then 1
     else n * factorial_bad (n - 1)
   This fails because Lean can't see that `n - 1` is structurally smaller.
-  /SOLUTION
+
 -/
 -- []
 
+/-
+  ######################################################################
+  # More Exercises
+-/
+
+/- ## Warmups -/
 
 /-
   Use the tactics you have learned so far to prove the following
@@ -1248,7 +1326,9 @@ def plus' (n : Nat) (m : Nat) : Nat :=
 theorem identity_fn_applied_twice : ∀ f : Bool → Bool,
     (∀ x : Bool, f x = x) →
     ∀ b : Bool, f (f b) = b := by
-  sorry
+  intro f h b
+  rewrite [h, h]
+  rfl
 -- GRADE_THEOREM 1: identity_fn_applied_twice
 -- []
 
@@ -1258,18 +1338,12 @@ theorem identity_fn_applied_twice : ∀ f : Bool → Bool,
   function `f` has the property that `f x = !x`.
 -/
 
-/-
-  SOLUTION
--/
 theorem negation_fn_applied_twice : ∀ f : Bool → Bool,
     (∀ x : Bool, f x = !x) →
     ∀ b : Bool, f (f b) = b := by
   intro f h b
   rewrite [h, h]
   cases b <;> rfl
-/-
-  /SOLUTION
--/
 
 /-
   GRADE_MANUAL 1: negation_fn_applied_twice
@@ -1283,10 +1357,30 @@ theorem negation_fn_applied_twice : ∀ f : Bool → Bool,
 theorem andb_eq_orb : ∀ b c : Bool,
     (b && c) = (b || c) →
   b = c := by
-  sorry
+  intro b c h
+  cases b
+  case true =>
+    /-
+      h : true && c = true || c, i.e., h : c = true
+    -/
+    dsimp [Bool.and, Bool.or] at h
+    rewrite [h]
+    rfl
+  case false =>
+    /-
+      h : false && c = false || c, i.e., h : false = c
+    -/
+    dsimp [Bool.and, Bool.or] at h
+    rewrite [h]
+    rfl
 -- GRADE_THEOREM 3: andb_eq_orb
 -- []
 
+
+/-
+  ######################################################################
+  ## Course Late Policies, Formalized
+-/
 
 /-
   Suppose that a course has a grading policy based on late days,
@@ -1373,7 +1467,7 @@ example : letterComparison B F = gt := by rfl
 
 theorem letterComparison_Eq : ∀ l : Letter,
     letterComparison l l = eq := by
-  sorry
+  intro l; cases l <;> rfl
 -- GRADE_THEOREM 1: letterComparison_Eq
 -- []
 
@@ -1395,16 +1489,19 @@ def modifierComparison (m1 m2 : Modifier) : Comparison :=
 -/
 
 def gradeComparison (g1 g2 : Grade) : Comparison
-  := sorry
+  := match letterComparison g1.letter g2.letter with
+  | lt => lt
+  | eq => modifierComparison g1.modifier g2.modifier
+  | gt => gt
 
--- test_grade_comparison1
-example : gradeComparison ⟨A, minus⟩ ⟨B, plus⟩ = gt := by sorry  -- ADMITTED
--- test_grade_comparison2
-example : gradeComparison ⟨A, minus⟩ ⟨A, plus⟩ = lt := by sorry  -- ADMITTED
--- test_grade_comparison3
-example : gradeComparison ⟨F, plus⟩ ⟨F, plus⟩ = eq := by sorry  -- ADMITTED
--- test_grade_comparison4
-example : gradeComparison ⟨B, minus⟩ ⟨C, plus⟩ = gt := by sorry  -- ADMITTED
+/- test_grade_comparison1 -/
+example : gradeComparison ⟨A, minus⟩ ⟨B, plus⟩ = gt := by rfl  -- ADMITTED
+/- test_grade_comparison2 -/
+example : gradeComparison ⟨A, minus⟩ ⟨A, plus⟩ = lt := by rfl  -- ADMITTED
+/- test_grade_comparison3 -/
+example : gradeComparison ⟨F, plus⟩ ⟨F, plus⟩ = eq := by rfl  -- ADMITTED
+/- test_grade_comparison4 -/
+example : gradeComparison ⟨B, minus⟩ ⟨C, plus⟩ = gt := by rfl  -- ADMITTED
 -- GRADE_THEOREM 0.5: gradeComparison_test1
 -- GRADE_THEOREM 0.5: gradeComparison_test2
 -- GRADE_THEOREM 0.5: gradeComparison_test3
@@ -1430,7 +1527,13 @@ theorem lowerLetter_F_is_F : lowerLetter F = F := by rfl
 theorem lowerLetter_lowers : ∀ l : Letter,
     letterComparison F l = lt →
     letterComparison (lowerLetter l) l = lt := by
-  sorry
+  intro l h
+  cases l with
+  | A => rfl
+  | B => rfl
+  | C => rfl
+  | D => rfl
+  | F => exact h
 -- GRADE_THEOREM 2: lowerLetter_lowers
 -- []
 
@@ -1443,38 +1546,42 @@ theorem lowerLetter_lowers : ∀ l : Letter,
   Note: The angle brackets `⟨` and `⟩` are typed as `\<` and `\>`.
 -/
 def lowerGrade (g : Grade) : Grade
-  := sorry
+  := match g with
+  | ⟨l, plus⟩ => ⟨l, natural⟩
+  | ⟨l, natural⟩ => ⟨l, minus⟩
+  | ⟨F, minus⟩ => ⟨F, minus⟩
+  | ⟨l, minus⟩ => ⟨lowerLetter l, plus⟩
 
 /-
   lower_grade_A_Plus
 -/
-example : lowerGrade ⟨A, plus⟩ = ⟨A, natural⟩ := by sorry  -- ADMITTED
+example : lowerGrade ⟨A, plus⟩ = ⟨A, natural⟩ := by rfl  -- ADMITTED
 /-
   lower_grade_A_Natural
 -/
-example : lowerGrade ⟨A, natural⟩ = ⟨A, minus⟩ := by sorry  -- ADMITTED
+example : lowerGrade ⟨A, natural⟩ = ⟨A, minus⟩ := by rfl  -- ADMITTED
 /-
   lower_grade_A_Minus
 -/
-example : lowerGrade ⟨A, minus⟩ = ⟨B, plus⟩ := by sorry  -- ADMITTED
+example : lowerGrade ⟨A, minus⟩ = ⟨B, plus⟩ := by rfl  -- ADMITTED
 /-
   lower_grade_B_Plus
 -/
-example : lowerGrade ⟨B, plus⟩ = ⟨B, natural⟩ := by sorry  -- ADMITTED
+example : lowerGrade ⟨B, plus⟩ = ⟨B, natural⟩ := by rfl  -- ADMITTED
 /-
   lower_grade_F_Natural
 -/
-example : lowerGrade ⟨F, natural⟩ = ⟨F, minus⟩ := by sorry  -- ADMITTED
+example : lowerGrade ⟨F, natural⟩ = ⟨F, minus⟩ := by rfl  -- ADMITTED
 /-
   lower_grade_twice
 -/
-example : lowerGrade (lowerGrade ⟨B, minus⟩) = ⟨C, natural⟩ := by sorry  -- ADMITTED
+example : lowerGrade (lowerGrade ⟨B, minus⟩) = ⟨C, natural⟩ := by rfl  -- ADMITTED
 /-
   lower_grade_thrice
 -/
-example : lowerGrade (lowerGrade (lowerGrade ⟨B, minus⟩)) = ⟨C, minus⟩ := by sorry  -- ADMITTED
+example : lowerGrade (lowerGrade (lowerGrade ⟨B, minus⟩)) = ⟨C, minus⟩ := by rfl  -- ADMITTED
 
-theorem lowerGrade_F_Minus : lowerGrade ⟨F, minus⟩ = ⟨F, minus⟩ := by sorry  -- ADMITTED
+theorem lowerGrade_F_Minus : lowerGrade ⟨F, minus⟩ = ⟨F, minus⟩ := by rfl  -- ADMITTED
 
 -- GRADE_THEOREM 0.25: lowerGrade_A_Plus
 /-
@@ -1491,7 +1598,17 @@ theorem lowerGrade_F_Minus : lowerGrade ⟨F, minus⟩ = ⟨F, minus⟩ := by so
 theorem lowerGrade_lowers : ∀ g : Grade,
     gradeComparison ⟨F, minus⟩ g = lt →
     gradeComparison (lowerGrade g) g = lt := by
-  sorry
+  intro g h
+  match g with
+  | ⟨l, plus⟩
+  | ⟨l, natural⟩ =>
+    dsimp [lowerGrade, gradeComparison]
+    rewrite [letterComparison_Eq]
+    dsimp [modifierComparison]
+  | ⟨l, minus⟩ =>
+    cases l
+    case F => rewrite [lowerGrade_F_Minus]; exact h
+    all_goals rfl
 -- GRADE_THEOREM 3: lowerGrade_lowers
 -- []
 
@@ -1513,7 +1630,9 @@ theorem applyLatePolicy_unfold : ∀ (lateDays : Nat) (g : Grade),
 theorem no_penalty_for_mostly_on_time : ∀ (lateDays : Nat) (g : Grade),
     (lateDays <? 9 = true) →
     applyLatePolicy lateDays g = g := by
-  sorry
+  intro lateDays g h
+  dsimp [applyLatePolicy]
+  rewrite [h]; rfl
 -- GRADE_THEOREM 2: no_penalty_for_mostly_on_time
 -- []
 
@@ -1521,12 +1640,18 @@ theorem grade_lowered_once : ∀ (lateDays : Nat) (g : Grade),
     (lateDays <? 9 = false) →
     (lateDays <? 17 = true) →
     applyLatePolicy lateDays g = lowerGrade g := by
-  sorry
+  intro lateDays g h9 h17
+  dsimp [applyLatePolicy]
+  rewrite [h9, h17]; rfl
 -- GRADE_THEOREM 2: grade_lowered_once
 -- []
 
 end LateDays
 
+/-
+  ######################################################################
+  ## Binary Numerals
+-/
 
 /-
   We can generalize our unary representation of natural numbers to
@@ -1559,25 +1684,31 @@ inductive Bin : Type where
   | b1 (n : Bin)
 
 def incr (m : Bin) : Bin
-  := sorry
+  := match m with
+  | .z => .b1 .z
+  | .b0 m' => .b1 m'
+  | .b1 m' => .b0 (incr m')
 
 def binToNat (m : Bin) : Nat
-  := sorry
+  := match m with
+  | .z => 0
+  | .b0 m' => binToNat m' * 2
+  | .b1 m' => binToNat m' * 2 + 1
 
--- test_bin_incr1
-example : incr (.b1 .z) = .b0 (.b1 .z) := by sorry  -- ADMITTED
--- test_bin_incr2
-example : incr (.b0 (.b1 .z)) = .b1 (.b1 .z) := by sorry  -- ADMITTED
--- test_bin_incr3
-example : incr (.b1 (.b1 .z)) = .b0 (.b0 (.b1 .z)) := by sorry  -- ADMITTED
--- test_bin_incr4
-example : binToNat (.b0 (.b1 .z)) = 2 := by sorry  -- ADMITTED
--- test_bin_incr5
-example : binToNat (incr (.b1 .z)) = 1 + binToNat (.b1 .z) := by sorry  -- ADMITTED
--- test_bin_incr6
-example : binToNat (incr (incr (.b1 .z))) = 2 + binToNat (.b1 .z) := by sorry  -- ADMITTED
--- test_bin_incr7
-example : binToNat (.b0 (.b0 (.b0 (.b1 .z)))) = 8 := by sorry  -- ADMITTED
+/- test_bin_incr1 -/
+example : incr (.b1 .z) = .b0 (.b1 .z) := by rfl  -- ADMITTED
+/- test_bin_incr2 -/
+example : incr (.b0 (.b1 .z)) = .b1 (.b1 .z) := by rfl  -- ADMITTED
+/- test_bin_incr3 -/
+example : incr (.b1 (.b1 .z)) = .b0 (.b0 (.b1 .z)) := by rfl  -- ADMITTED
+/- test_bin_incr4 -/
+example : binToNat (.b0 (.b1 .z)) = 2 := by rfl  -- ADMITTED
+/- test_bin_incr5 -/
+example : binToNat (incr (.b1 .z)) = 1 + binToNat (.b1 .z) := by rfl  -- ADMITTED
+/- test_bin_incr6 -/
+example : binToNat (incr (incr (.b1 .z))) = 2 + binToNat (.b1 .z) := by rfl  -- ADMITTED
+/- test_bin_incr7 -/
+example : binToNat (.b0 (.b0 (.b0 (.b1 .z)))) = 8 := by rfl  -- ADMITTED
 
 -- GRADE_THEOREM 0.5: incr_test1
 -- GRADE_THEOREM 0.5: incr_test2

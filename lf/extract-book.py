@@ -39,8 +39,16 @@ from lean_cli import process_files
 
 FULL_START_RE   = re.compile(r"^\s*--\s*FULL\s*$")
 FULL_END_RE     = re.compile(r"^\s*--\s*/FULL\s*$")
-HIDE_START_RE   = re.compile(r"^\s*--\s*HIDEFROMHTML\s*$")
-HIDE_END_RE     = re.compile(r"^\s*--\s*/HIDEFROMHTML\s*$")
+HIDEFROMHTML_START_RE     = re.compile(r"^\s*--\s*HIDEFROMHTML\s*$")
+HIDEFROMHTML_END_RE       = re.compile(r"^\s*--\s*/HIDEFROMHTML\s*$")
+HIDEFROMADVANCED_START_RE = re.compile(r"^\s*--\s*HIDEFROMADVANCED\s*$")
+HIDEFROMADVANCED_END_RE   = re.compile(r"^\s*--\s*/HIDEFROMADVANCED\s*$")
+HIDE_PLAIN_START_RE       = re.compile(r"^\s*--\s*HIDE\s*$")
+HIDE_PLAIN_END_RE         = re.compile(r"^\s*--\s*/HIDE\s*$")
+SOLUTION_START_RE         = re.compile(r"^\s*--\s*SOLUTION\s*$")
+SOLUTION_END_RE           = re.compile(r"^\s*--\s*/SOLUTION\s*$")
+QUIETSOLUTION_START_RE    = re.compile(r"^\s*--\s*QUIETSOLUTION\s*$")
+QUIETSOLUTION_END_RE      = re.compile(r"^\s*--\s*/QUIETSOLUTION\s*$")
 
 # TERSE line: the formatter emits `<indent>-- TERSE: /- body -/` (single line).
 # Keep a looser fallback for any leftover `-- TERSE:` lines.
@@ -72,6 +80,13 @@ ADMITTED_LINE_RE = re.compile(
 DROP_LINE_PATTERNS = [
     re.compile(r"^\s*--\s*INSTRUCTORS\b"),
     re.compile(r"^\s*--\s*RAB\b"),
+    re.compile(r"^\s*--\s*RADDITION\b"),
+    re.compile(r"^\s*--\s*SOONER\b"),
+    re.compile(r"^\s*--\s*LATER\b"),
+    re.compile(r"^\s*--\s*MMG\b"),
+    re.compile(r"^\s*--\s*APT\b"),
+    re.compile(r"^\s*--\s*DHS\b"),
+    re.compile(r"^\s*--\s*TODO\b"),
     re.compile(r"^\s*--\s*JC\b"),
     re.compile(r"^\s*--\s*BCP\b"),
     re.compile(r"^\s*--\s*EX\d+\b"),
@@ -81,10 +96,8 @@ DROP_LINE_PATTERNS = [
 
 # Kept-as-is markers (still `--` comments in the output).
 KEEP_COMMENT_PATTERNS = [
-    re.compile(r"^\s*--\s*test_\w+\s*$"),
     re.compile(r"^\s*--\s*\[[^\]]*\]\s*$"),
     re.compile(r"^\s*--\s*GRADE_THEOREM\b"),
-    re.compile(r"^\s*--\s*=+>"),
 ]
 
 LINE_COMMENT_RE = re.compile(r"^\s*--")
@@ -178,12 +191,13 @@ def extract(lines: List[str], variant: str) -> List[str]:
     while i < n:
         line = lines[i]
 
-        # HIDEFROMHTML: drop the entire region.
-        if HIDE_START_RE.match(line):
+        # HIDE regions: drop content entirely in all variants (plain HIDE
+        # means "author-only notes / scratch").
+        if HIDE_PLAIN_START_RE.match(line):
             hide_depth += 1
             i += 1
             continue
-        if HIDE_END_RE.match(line):
+        if HIDE_PLAIN_END_RE.match(line):
             hide_depth = max(0, hide_depth - 1)
             i += 1
             continue
@@ -191,24 +205,84 @@ def extract(lines: List[str], variant: str) -> List[str]:
             i += 1
             continue
 
-        # FULL region: prose handling depends on variant.
+        # HIDEFROMHTML: drop the region entirely in all variants (contains
+        # notes intended only for the HTML export, not student Lean sources).
+        if HIDEFROMHTML_START_RE.match(line):
+            depth_html = 1
+            i += 1
+            while i < n and depth_html > 0:
+                if HIDEFROMHTML_START_RE.match(lines[i]):
+                    depth_html += 1
+                elif HIDEFROMHTML_END_RE.match(lines[i]):
+                    depth_html -= 1
+                i += 1
+            continue
+        if HIDEFROMHTML_END_RE.match(line):
+            # Stray close — defensive skip.
+            i += 1
+            continue
+
+        # SOLUTION regions: drop the region entirely in full/terse (students
+        # should not see sample solutions); strip markers only in solutions.
+        if SOLUTION_START_RE.match(line) or QUIETSOLUTION_START_RE.match(line):
+            start_re = (SOLUTION_START_RE if SOLUTION_START_RE.match(line)
+                        else QUIETSOLUTION_START_RE)
+            end_re = (SOLUTION_END_RE if start_re is SOLUTION_START_RE
+                      else QUIETSOLUTION_END_RE)
+            if variant != "solutions":
+                depth_sol = 1
+                i += 1
+                while i < n and depth_sol > 0:
+                    if start_re.match(lines[i]):
+                        depth_sol += 1
+                    elif end_re.match(lines[i]):
+                        depth_sol -= 1
+                    i += 1
+            else:
+                i += 1
+            continue
+        if SOLUTION_END_RE.match(line) or QUIETSOLUTION_END_RE.match(line):
+            i += 1
+            continue
+
+        # HIDEFROMADVANCED: "hide from the advanced/terse version."
+        # Drop the region entirely in terse; strip markers only in full/solutions.
+        if HIDEFROMADVANCED_START_RE.match(line):
+            if not keep_full:
+                # terse: skip to matching close.
+                depth_adv = 1
+                i += 1
+                while i < n and depth_adv > 0:
+                    if HIDEFROMADVANCED_START_RE.match(lines[i]):
+                        depth_adv += 1
+                    elif HIDEFROMADVANCED_END_RE.match(lines[i]):
+                        depth_adv -= 1
+                    i += 1
+            else:
+                i += 1  # full/solutions: just strip the marker
+            continue
+        if HIDEFROMADVANCED_END_RE.match(line):
+            # Stray close (shouldn't happen in full/solutions since we paired
+            # it above; in terse it's consumed by the loop). Defensive skip.
+            i += 1
+            continue
+
+        # FULL region: behavior depends on variant.
         if FULL_START_RE.match(line):
             i += 1
             if keep_full:
-                # Unwrap prose blocks, pass non-prose through the usual rules.
+                # `full` / `solutions`: keep FULL region content (unwrap
+                # prose blocks, pass markers through).
                 while i < n and not FULL_END_RE.match(lines[i]):
                     i = process_line(lines, i, out,
                                      keep_full=True, keep_terse=False,
                                      body_to_sorry=body_to_sorry,
                                      inside_full=True)
             else:
-                # Drop everything inside the FULL region (except structural
-                # markers worth preserving, and code).
+                # `terse`: drop the entire FULL region — prose, code,
+                # every marker between `-- FULL` and `-- /FULL`.
                 while i < n and not FULL_END_RE.match(lines[i]):
-                    i = process_line(lines, i, out,
-                                     keep_full=False, keep_terse=False,
-                                     body_to_sorry=body_to_sorry,
-                                     inside_full=True)
+                    i += 1
             if i < n and FULL_END_RE.match(lines[i]):
                 i += 1
             continue
@@ -236,6 +310,41 @@ def process_line(
     """Process a single non-HIDE, non-FULL-boundary line. Returns new index."""
     n = len(lines)
     line = lines[i]
+
+    # SOLUTION / QUIETSOLUTION: drop region in full/terse, keep in solutions.
+    for start_re, end_re in (
+        (SOLUTION_START_RE, SOLUTION_END_RE),
+        (QUIETSOLUTION_START_RE, QUIETSOLUTION_END_RE),
+    ):
+        if start_re.match(line):
+            if body_to_sorry:
+                depth = 1
+                i += 1
+                while i < n and depth > 0:
+                    if start_re.match(lines[i]):
+                        depth += 1
+                    elif end_re.match(lines[i]):
+                        depth -= 1
+                    i += 1
+            else:
+                i += 1
+            return i
+    if SOLUTION_END_RE.match(line) or QUIETSOLUTION_END_RE.match(line):
+        return i + 1
+
+    # HIDEFROMHTML: drop region entirely in all variants.
+    if HIDEFROMHTML_START_RE.match(line):
+        depth = 1
+        i += 1
+        while i < n and depth > 0:
+            if HIDEFROMHTML_START_RE.match(lines[i]):
+                depth += 1
+            elif HIDEFROMHTML_END_RE.match(lines[i]):
+                depth -= 1
+            i += 1
+        return i
+    if HIDEFROMHTML_END_RE.match(line):
+        return i + 1
 
     # TERSE single-line form: `-- TERSE: /- body -/`
     m = TERSE_INLINE_RE.match(line)
@@ -266,7 +375,14 @@ def process_line(
         if i < n:
             i += 1  # skip -- /ADMITDEF
         if body_to_sorry:
-            out.append(f"{indent}:= sorry")
+            # If the `:=` is already present on the previous non-blank emitted
+            # line (e.g. `def foo (n : Nat) : T :=`), emit just `sorry`;
+            # otherwise emit `:= sorry` so the definition is syntactically complete.
+            prev = next((o for o in reversed(out) if o.strip()), "")
+            if prev.rstrip().endswith(":="):
+                out.append(f"{indent}sorry")
+            else:
+                out.append(f"{indent}:= sorry")
         else:
             out.extend(body)
         return i

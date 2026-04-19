@@ -1,58 +1,19 @@
 /- Induction: Proof by Induction -/
 
--- INSTRUCTORS: This file and Basics.lean each take about an hour to
---    get through in a not-too-rushed fashion (with questions, etc.).
-
--- HIDEFROMHTML
--- FULL
-/-
-  REMINDER:
-
-           #####################################################
-           ###  PLEASE DO NOT DISTRIBUTE SOLUTIONS PUBLICLY  ###
-           #####################################################
-
-    (See the [Preface] for why.)
--/
--- /FULL
--- /HIDEFROMHTML
-
--- SOONER: Readers might expect us to add eqn:H annotations to uses of
---   induction, but this changes the shape of the IH in a nasty way! :-(
---   We should at least comment.
--- SOONER: We should also consider adding more examples to clarify
---   the concepts introduced in this chapter. This could help in
---   reinforcing the understanding of induction principles.
--- LATER: In 3/22, MRC and BCP discussed "inlining" IndPrinciples
---   into earlier chapters, thus eliminating it as a chapter. This
---   chapter, Induction, is the first place a change would occur.  We
---   would present [nat_ind] here. Then in Lists/Poly we'd present
---   [list_ind], and the rest would go in IndProp and ProofObjects. The
---   main wrinkle is that we'd need to introduce [apply] here instead of
---   in Tactics if we want to preserve the presentation. The discussion
---   is preserved here: https://github.com/DeepSpec/sfdev/pull/471.
--- LATER: Now that we've added Steve's nice late-policy exercise in
---   Basics.v, the assignment for that chapter is probably hard enough.  Now
---   what about this chapter?  Can/should we make it a notch or two
---   harder?
 
 /-
   ######################################################################
   # Separate Compilation
 -/
 
--- TERSE: /- Lean will first need to compile `Basics.lean` so it can be imported here -- detailed instructions are in the full version of this chapter... -/
 
--- FULL
 /-
   Before getting started on this chapter, we need to import
   all of our definitions from the previous chapter:
 -/
--- /FULL
 
 import Basics
 
--- FULL
 /-
   For this `import` to work, Lean needs to be able to find a
   compiled version of the previous chapter (`Basics.lean`).  This
@@ -87,16 +48,12 @@ import Basics
      will often prompt you do this if you change things upstream
      in the dependency tree.
 -/
--- /FULL
 
--- TERSE
 /-
   ######################################################################
   # Review
 -/
--- /TERSE
 
--- QUIZ
 /-
   To prove the following theorem, which tactics will we need besides
   `intro` and `rfl`?  (A) none, (B) `rw`, (C) `cases`, (D) both
@@ -104,13 +61,7 @@ import Basics
 
       theorem review1 : (true || false) = true
 -/
--- HIDE
-/- review1 -/
-theorem review1 : (true || false) = true := by rfl
--- /HIDE
--- /QUIZ
 
--- QUIZ
 /-
   What about the next one?
 
@@ -120,14 +71,7 @@ theorem review1 : (true || false) = true := by rfl
   none (B) `rw`, (C) `cases`, (D) both `rw` and `cases`,
   or (E) can't be done with the tactics we've seen.
 -/
--- HIDE
-/- review2 -/
-theorem review2 : ∀ b : Bool, (true || b) = true := by
-  intro b; rfl
--- /HIDE
--- /QUIZ
 
--- QUIZ
 /-
   What if we change the order of the arguments of `||`?
 
@@ -137,16 +81,7 @@ theorem review2 : ∀ b : Bool, (true || b) = true := by
   none (B) `rw`, (C) `cases`, (D) both `rw` and `cases`,
   or (E) can't be done with the tactics we've seen.
 -/
--- HIDE
-/- review3 -/
-theorem review3 : ∀ b : Bool, (b || true) = true := by
-  intro b; cases b
-  . rfl
-  . rfl
--- /HIDE
--- /QUIZ
 
--- QUIZ
 /-
   What about this one?  (Recall that in Lean, `Nat.add` recurses on
   the _second_ argument: `n + 0 = n` by definition, and
@@ -157,14 +92,7 @@ theorem review3 : ∀ b : Bool, (b || true) = true := by
   (A) none, (B) `rw`, (C) `cases`, (D) both `rw` and `cases`,
   or (E) can't be done with the tactics we've seen.
 -/
--- HIDE
-/- review4 -/
-theorem review4 : ∀ n : Nat, n + 0 = n := by
-  intro n; rfl
--- /HIDE
--- /QUIZ
 
--- QUIZ
 /-
   What about this?
 
@@ -173,21 +101,12 @@ theorem review4 : ∀ n : Nat, n + 0 = n := by
   (A) none, (B) `rw`, (C) `cases`, (D) both `rw` and `cases`,
   or (E) can't be done with the tactics we've seen.
 -/
--- HIDE
-/- review5 -/
-/-
-  This one CANNOT be proved by rfl, cases, or rewriting alone --
-  it needs induction!  (We'll see why below.)
--/
--- /HIDE
--- /QUIZ
 
 /-
   ######################################################################
   ## Proof by Induction
 -/
 
--- FULL
 /-
   In Lean, `Nat.add` is defined to recurse on its _second_
   argument:
@@ -202,7 +121,6 @@ theorem review4 : ∀ n : Nat, n + 0 = n := by
   We can prove that `0` is a neutral element for `+` on the _right_
    using just `rfl`:
 -/
--- /FULL
 
 /- add_0_r_easy -/
 example : ∀ n : Nat, n + 0 = n := by
@@ -211,17 +129,13 @@ example : ∀ n : Nat, n + 0 = n := by
 
 /- zero_add_firsttry -/
 example : ∀ n : Nat, 0 + n = n := by
--- TERSE
 /- ... gets stuck. -/
--- /TERSE
--- FULL
 /-
   ... can't be done in the same simple way.  Just applying
   `rfl` doesn't work, since the `n` in `0 + n` is an arbitrary
   unknown number, so the `match` in the definition of `+` can't be
   simplified.
 -/
--- /FULL
   intro n
   /- `rfl` doesn't work here! -/
   sorry
@@ -245,17 +159,14 @@ example : ∀ n : Nat, 0 + n = n := by
     /- 0 + (n' + 1) reduces to (0 + n') + 1 ...but we're stuck on 0 + n' -/
     sorry
 
--- FULL
 /-
   We could use `cases n'` to get a bit further, but,
   since `n` can be arbitrarily large, we'll never get all the way
   there if we just go on like this.
 -/
--- /FULL
 
 /- TERSE: *** -/
 
--- FULL
 /-
   To prove interesting facts about numbers, lists, and other
   inductively defined sets, we often need a more powerful reasoning
@@ -276,9 +187,7 @@ example : ∀ n : Nat, 0 + n = n := by
   where we must show `P(n') → P(n' + 1)`.  Here's how this works for
   the theorem at hand...
 -/
--- /FULL
 
--- TERSE
 /-
   We need a bigger hammer: the _principle of induction_ over
   natural numbers...
@@ -293,7 +202,6 @@ example : ∀ n : Nat, 0 + n = n := by
 
   For example...
 -/
--- /TERSE
 
 /- TERSE: *** -/
 
@@ -310,7 +218,6 @@ theorem zero_add : ∀ n : Nat, 0 + n = n := by
     -/
     rw [add_succ, ih]
 
--- FULL
 /-
   Like `cases`, the `induction` tactic takes a `with` clause
   that specifies the names of the variables to be introduced in the
@@ -328,37 +235,26 @@ theorem zero_add : ∀ n : Nat, 0 + n = n := by
   rewrites `0 + n'` to `n'`, and the goal becomes `n' + 1 = n' + 1`,
   which closes automatically.
 -/
--- /FULL
 
--- TERSE
 /- *** -/
--- /TERSE
--- TERSE
 /- Let's try this one together: -/
--- /TERSE
 
 theorem sub_self : ∀ n,
     n - n = 0 := by
-  -- WORKINCLASS
   intro n
   induction n
   case zero =>
     rfl
   case succ n' ih =>
     rw [succ_sub_succ]; exact ih
--- /WORKINCLASS
 
--- FULL
 /-
   (The use of the `intro` tactic in these proofs is actually
   redundant.  When applied to a goal that contains quantified
   variables, the `induction` tactic will automatically move them
   into the context as needed.)
 -/
--- /FULL
 
--- FULL
--- EX2! (basic_induction)
 /-
   Prove the following using induction. You might need previously
   proven results.
@@ -366,62 +262,47 @@ theorem sub_self : ∀ n,
 
 theorem zero_mul : ∀ n : Nat,
     0 * n = 0 := by
-  -- ADMITTED
   intro n
   induction n
   case zero => rfl
   case succ n' ih =>
     rw [mul_succ]; rw [ih]
--- /ADMITTED
 -- GRADE_THEOREM 0.5: mul_0_l
 
 theorem succ_add : ∀ n m : Nat,
     (n + 1) + m = (n + m) + 1 := by
-  -- ADMITTED
   intro n m
   induction m
   case zero => rfl
   case succ m' ih =>
     rw [add_succ (n + 1) m', add_succ n m', ih]
--- /ADMITTED
 -- GRADE_THEOREM 0.5: succ_add
--- /FULL
--- TERSE
 /- *** -/
--- /TERSE
--- TERSE
 /-
   Here's another related fact about addition, which we'll
   need later.  (The proof is left as an exercise.)
 -/
--- /TERSE
 
 theorem add_comm : ∀ n m : Nat,
     n + m = m + n := by
-  -- ADMITTED
   intro n m
   induction m
   case zero =>
     dsimp [add]; rw [zero_add]
   case succ m' ih =>
     rw [add_succ, ih, succ_add]
--- /ADMITTED
 -- GRADE_THEOREM 0.5: add_comm
--- FULL
 
 theorem add_assoc : ∀ n m p : Nat,
     n + (m + p) = (n + m) + p := by
-  -- ADMITTED
   intro n m p
   induction p
   case zero => rfl
   case succ p' ih =>
     rw [add_succ m p', add_succ n (m + p'), add_succ (n + m) p', ih]
--- /ADMITTED
 -- GRADE_THEOREM 0.5: add_assoc
 -- []
 
--- EX2 (double_plus)
 /- Consider the following function, which doubles its argument: -/
 
 def double (n : Nat) : Nat :=
@@ -432,20 +313,14 @@ def double (n : Nat) : Nat :=
 /- Use induction to prove this simple fact about `double`: -/
 
 theorem double_add : ∀ n, double n = n + n := by
-  -- ADMITTED
   intro n
   induction n
   case zero => rfl
   case succ n' ih =>
     dsimp [double]; rw [ih, add_succ (n' + 1), succ_add]
--- /ADMITTED
 -- []
--- /FULL
 
--- TERSE
 /- *** -/
--- /TERSE
--- EX2 (eqb_refl)
 /-
   The following theorem relates the computational equality `BEq` on
   `Nat` with the definitional equality `=` on `Bool`.
@@ -453,35 +328,17 @@ theorem double_add : ∀ n, double n = n + n := by
 
 theorem eqb_refl : ∀ n : Nat,
     (n == n) = true := by
-  -- ADMITTED
   intro n
   induction n
   case zero => rfl
   case succ n' ih => rw [beq_succ, ih]
--- /ADMITTED
 -- []
 
--- HIDE
-/-
-  Note: we might expect a similar property to hold on
-  UNequal [nat]'s:
-     Theorem eqb_n_n' : forall n n' : nat,
-          n <> n' ->
-          n =? n' = false.
-  But it will be a while before we get to terms with what
-  [n <> n'] really means...
--/
--- /HIDE
 
--- FULL
--- EX2? (even_S)
--- TERSE
 /-
   Here's a useful theorem that proves `even (n + 1)` flips
   the parity.  This will facilitate proofs by induction on `n`:
 -/
--- /TERSE
--- FULL
 /-
   One inconvenient aspect of our definition of `even n` is the
   recursive call on `n - 2`. This makes proofs about `even n`
@@ -490,41 +347,23 @@ theorem eqb_refl : ∀ n : Nat,
   alternative characterization of `even (n + 1)` that works better
   with induction:
 -/
--- /FULL
 
 theorem even_S : ∀ n : Nat,
     even (n + 1) = !even n := by
-  -- ADMITTED
   intro n
   induction n
   case zero => rfl
   case succ n' ih =>
     dsimp [even]; rw [ih, notb_involutive]
--- /ADMITTED
 -- GRADE_THEOREM 1: even_S
 -- []
--- /FULL
 
--- HIDE
--- QUIZ
-/- We've seen that there are goals that [destruct] can't solve but
-    [induction] can. What about the other way around? Are there steps
-    in a proof that can be solved by pure case analysis ([destruct])
-    but not using [induction]?
-
-    (A) No
-
-    (B) Yes
--/
--- /QUIZ
--- /HIDE
 
 /-
   ######################################################################
   # Proofs Within Proofs
 -/
 
--- FULL
 /-
   In Lean, as in informal mathematics, large proofs are often
   broken into a sequence of theorems, with later proofs referring to
@@ -534,10 +373,7 @@ theorem even_S : ∀ n : Nat,
   cases, it is convenient to be able to simply state and prove the
   required fact "in place".  The `have` tactic allows us to do this.
 -/
--- /FULL
--- TERSE
 /- New tactic: `have`. -/
--- /TERSE
 
 theorem mult_0_plus' : ∀ n m : Nat,
     ((n + 0) + 0) * m = n * m := by
@@ -549,17 +385,14 @@ theorem mult_0_plus' : ∀ n m : Nat,
    still straightforward without the replace, but maybe not quite so
    obviously so! -/
 
--- FULL
 /-
   The `have` tactic introduces a local lemma into the proof.
   We prove it immediately, and then it's available as a hypothesis
   for the rest of the proof.
 -/
--- /FULL
 
 /- TERSE: *** -/
 
--- FULL
 /-
   As another example, suppose we want to prove that `(n + m)
   + (p + q) = (m + n) + (p + q)`. The only difference between the
@@ -570,25 +403,7 @@ theorem mult_0_plus' : ∀ n m : Nat,
   it applies the rewrite.  There are three uses of `+` here, and
   `rw [add_comm]` may affect the wrong one...
 -/
--- /FULL
 
--- HIDE
--- APT: It is really sad not to be able to specify rewrite
---   positions.  Students get annoyed: "why is the behavior of this
---   tactic so unpredictable?"  Maybe we should [Import Setoid] to
---   enable the [rewrite ... at] notation.  BCP '20: Agreed -- let's do
---   it! (APT '21: In fact, the [Import Setoid] is already happening
---   silently via the [Require Export String] in Basics.v But sadly, we
---   would need to use [setoid_rewrite...at] instead of plain
---   [rewrite...at], since they have different semantics (despite what
---   the reference manual seems to imply).) (And even if we choose not
---   to do it, this example is very underwhelming... The fact that it
---   involves explaining the difference between a universally quantified
---   variable and a fixed but arbitrary value is... problematic... at
---   this point in the course! APT: Agreed!)  BCP 21: How bad would it
---   be simply to drop this example??  BCP 25: I think switching from
---   assert to replace makes this much much better.
--- /HIDE
 
 /- plus_rearrange_firsttry -/
 example : ∀ n m p q : Nat,
@@ -602,7 +417,6 @@ example : ∀ n m p q : Nat,
   rw [add_comm]
   sorry
 
--- TERSE
 /-
   ***
   To use `add_comm` at the point where we need it, we can supply
@@ -610,14 +424,12 @@ example : ∀ n m p q : Nat,
   `+` to rewrite.  (We can also use `have` to establish the specific
   equation we want, then rewrite with it.)
 -/
--- /TERSE
 
 theorem plus_rearrange : ∀ n m p q : Nat,
     (n + m) + (p + q) = (m + n) + (p + q) := by
   intro n m p q
   rw [add_comm n m]
 
--- FULL
 /-
   ######################################################################
   # Formal vs. Informal Proof
@@ -690,7 +502,6 @@ theorem add_assoc' : ∀ n m p : Nat,
   is difficult to make much sense of it.  We can use comments and
   focused cases to show the structure a little more clearly...
 -/
--- JC: This would be a great location to introduce `calc`!
 
 /- add_assoc'' -/
 theorem add_assoc'' : ∀ n m p : Nat,
@@ -743,12 +554,10 @@ theorem add_assoc'' : ∀ n m p : Nat,
   _Qed_.
 -/
 
--- HIDE
 /- MMG: the proof above makes no use of lemmas, so it's hard for
    students to know what to do.  It might be good to also give them a
    sample proof of mult_1_l so they know how to "invoke" things
    they've already proved.  -/
--- /HIDE
 
 /-
   The overall form of the proof is basically similar, and of
@@ -763,7 +572,6 @@ theorem add_assoc'' : ∀ n m p : Nat,
   things stand).
 -/
 
--- EX2AM? (add_comm_informal)
 /-
   Translate your solution for `add_comm` into an informal proof:
 
@@ -771,7 +579,6 @@ theorem add_assoc'' : ∀ n m p : Nat,
 
   Proof:
 -/
--- SOLUTION
 /-
   Let natural numbers `n` and `m` be given.  We show `n + m = m +
   n` by induction on `m`.
@@ -788,11 +595,8 @@ theorem add_assoc'' : ∀ n m p : Nat,
   hypothesis, `n + m' = m' + n`, so both sides equal
   `(m' + n) + 1`.
 -/
--- /SOLUTION
--- GRADE_MANUAL 2: add_comm_informal
 -- []
 
--- EX2M? (eqb_refl_informal)
 /-
   Write an informal proof of the following theorem, using the
   informal proof of `add_assoc` as a model.  Don't just
@@ -802,7 +606,6 @@ theorem add_assoc'' : ∀ n m p : Nat,
 
   Proof:
 -/
--- SOLUTION
 /-
   By induction on `n`.
 
@@ -814,26 +617,17 @@ theorem add_assoc'' : ∀ n m p : Nat,
   follows directly from the induction hypothesis and the
   definition of `eqb`.
 -/
--- /SOLUTION
--- GRADE_MANUAL 2: eqb_refl_informal
 -- []
 
--- /FULL
--- TERSE
--- /TERSE
--- HIDEFROMADVANCED
 /-
   ######################################################################
   # More Exercises
 -/
 
--- EX1 (mul_one)
 theorem mul_one : ∀ p : Nat,
     p * 1 = p := by
-  -- ADMITTED
   intro p
   rw [add_zero_one, mul_succ, mul_zero, zero_add]
-  -- /ADMITTED
   -- GRADE_THEOREM 1: mul_one
 
 theorem mul_two : ∀ p : Nat,
@@ -841,14 +635,11 @@ theorem mul_two : ∀ p : Nat,
   intro p
   rw [mul_succ, mul_succ, mul_zero, zero_add]
 
--- TERSE
 /-
   These additional exercises state facts that will be used in
   later chapters.  We don't need to work them in class.
 -/
--- /TERSE
 
--- EX3! (mul_comm)
 /-
   Use `have` (or `rw` with explicit arguments) to help prove
   `add_shuffle3`.  You don't need to use induction yet.
@@ -856,15 +647,11 @@ theorem mul_two : ∀ p : Nat,
 
 theorem add_shuffle3 : ∀ n m p : Nat,
     (n + m) + p = (n + p) + m := by
-  -- ADMITTED
   intro n m p
   rw [← add_assoc, add_comm m p, add_assoc]
--- /ADMITTED
 -- GRADE_THEOREM 1: add_shuffle3
 
 
--- TODO (DHS): If we want to introduce calc here we need to explain it
--- QUIETSOLUTION
 theorem succ_mul : ∀ m n : Nat,
     (n + 1) * m = (n * m) + m := by
   intro m n
@@ -879,7 +666,6 @@ theorem succ_mul : ∀ m n : Nat,
     _ = (n + (n * m)) + m + 1   := by rw [← add_assoc n _ m]
     _ = ((n * m) + n) + m + 1   := by rw [add_comm n]
     _ = (n * (m + 1)) + (m + 1) := by rw [mul_succ, add_succ _ m]
--- /QUIETSOLUTION
 
 /-
   Now prove commutativity of multiplication.  You will probably want
@@ -889,18 +675,15 @@ theorem succ_mul : ∀ m n : Nat,
 
 theorem mul_comm : ∀ m n : Nat,
     m * n = n * m := by
-  -- ADMITTED
   intro m n
   induction n
   case zero =>
     rw [mul_zero, zero_mul]
   case succ n' ih =>
     rw [mul_succ, ih, succ_mul]
--- /ADMITTED
 -- GRADE_THEOREM 2: mul_comm
 -- []
 
--- EX3? (more_exercises)
 /-
   Take a piece of paper.  For each of the following theorems, first
   _think_ about whether (a) it can be proved using only
@@ -913,53 +696,38 @@ theorem mul_comm : ∀ m n : Nat,
 
 theorem leb_refl : ∀ n : Nat,
     n <=? n = true := by
-  -- ADMITTED
   intro n
   induction n
   case zero => rfl
   case succ n' ih => dsimp [leb]; exact ih
--- /ADMITTED
 
 theorem zero_ne_add_one : ∀ n : Nat,
     (0 == n + 1) = false := by
-  -- ADMITTED
   intro n; rfl
--- /ADMITTED
 
 theorem andb_false : ∀ b : Bool,
     (b && false) = false := by
-  -- ADMITTED
   intro b; cases b <;> rfl
--- /ADMITTED
 
 theorem add_one_ne_zero : ∀ n : Nat,
     (n + 1 == 0) = false := by
-  -- ADMITTED
   intro n; rfl
--- /ADMITTED
 
 theorem one_mul : ∀ n : Nat, 1 * n = n := by
-  -- ADMITTED
   intro n
   induction n
   case zero => rfl
   case succ n' ih =>
     rw [mul_succ, ih, add_comm]
--- /ADMITTED
 
 theorem all3_spec : ∀ b c : Bool,
     (b && c) || ((!b) || (!c)) = true := by
-  -- ADMITTED
   intro b c; cases b
   case true => cases c <;> rfl
   case false => rfl
--- /ADMITTED
 
--- TODO: (DHS) At the moment these are our first instances of generalize,
---   so we likely need to explain this tactic here or earlier in the chapter, more likely
 theorem right_distrib : ∀ n m p : Nat,
     (n + m) * p = n * p + m * p := by
-  -- ADMITTED
   intro n m p
   induction p
   case zero => rfl
@@ -971,28 +739,22 @@ theorem right_distrib : ∀ n m p : Nat,
     _ = ((i + j) + n) + m := by rw [add_assoc (i + j)]
     _ = ((i + n) + j) + m := by rw [add_shuffle3 i j n]
     _ = (i + n) + (j + m) := by rw [add_assoc (i + n)]
--- /ADMITTED
 
 theorem left_distrib : ∀ n m p : Nat,
     p * (n + m) = p * n + p * m := by
-  -- ADMITTED
   intro n m p
   rw [mul_comm p, mul_comm p, mul_comm p]
   rw [right_distrib]
--- /ADMITTED
 
 theorem mul_assoc : ∀ n m p : Nat,
     n * (m * p) = (n * m) * p := by
-  -- ADMITTED
   intro n m p
   induction p
   case zero => rfl
   case succ p' ih =>
     rw [mul_succ, mul_succ, ← ih, left_distrib]
--- /ADMITTED
 -- []
 
--- FULL
 /- ## Nat to Bin and Back to Nat -/
 
 namespace NatToBin
@@ -1012,27 +774,22 @@ inductive Bin : Type where
 -/
 
 def incr (m : Bin) : Bin
-  -- ADMITDEF
   := match m with
   | .z => .b1 .z
   | .b0 m' => .b1 m'
   | .b1 m' => .b0 (incr m')
-  -- /ADMITDEF
 
 def binToNat (m : Bin) : Nat
-  -- ADMITDEF
   := match m with
   | .z => 0
   | .b0 m' => binToNat m' * 2
   | .b1 m' => binToNat m' * 2 + 1
-  -- /ADMITDEF
 
 /-
   In Basics, we did some unit testing of `binToNat`, but we
   didn't prove its correctness. Now we'll do so.
 -/
 
--- EX3! (binary_commute)
 /-
   Prove that the following diagram commutes:
 
@@ -1059,7 +816,6 @@ def binToNat (m : Bin) : Nat
 
 theorem bin_to_nat_pres_incr : ∀ b : Bin,
     binToNat (incr b) = binToNat b + 1 := by
-  -- ADMITTED
   intro b
   induction b
   case z => rfl
@@ -1069,21 +825,17 @@ theorem bin_to_nat_pres_incr : ∀ b : Bin,
     dsimp [incr, binToNat]; rw [ih]
     rw [mul_two, mul_two, add_succ]
     rw [add_shuffle3 _ 1]
--- /ADMITTED
 -- GRADE_THEOREM 3: bin_to_nat_pres_incr
 
 -- []
 
--- EX3 (nat_bin_nat)
 
 /- Write a function to convert natural numbers to binary numbers. -/
 
 def natToBin (n : Nat) : Bin :=
-  -- ADMITDEF
   match n with
   | 0 => .z
   | n' + 1 => incr (natToBin n')
-  -- /ADMITDEF
 
 /-
   Prove that, if we start with any `Nat`, convert it to `Bin`, and
@@ -1099,14 +851,12 @@ def natToBin (n : Nat) : Bin :=
 
 theorem nat_bin_nat : ∀ n : Nat,
     binToNat (natToBin n) = n := by
-  -- ADMITTED
   intro n
   induction n
   case zero => rfl
   case succ n' ih =>
     dsimp [natToBin]
     rw [bin_to_nat_pres_incr, ih]
--- /ADMITTED
 -- GRADE_THEOREM 3: nat_bin_nat
 
 -- []
@@ -1128,7 +878,6 @@ example : ∀ b, natToBin (binToNat b) = b := by sorry
   unrelated, but will turn out to be relevant.
 -/
 
--- EX2A (double_bin)
 
 /-
   Prove this lemma about `double`, which we defined earlier in the
@@ -1138,19 +887,15 @@ example : ∀ b, natToBin (binToNat b) = b := by sorry
 /- double_incr -/
 theorem double_incr : ∀ n : Nat,
     double (n + 1) = (double n) + 2 := by
-  -- ADMITTED
   intro n; rfl
--- /ADMITTED
 -- GRADE_THEOREM 0.5: double_incr
 
 /- Now define a similar doubling function for `Bin`. -/
 
 def doubleBin (b : Bin) : Bin :=
-  -- ADMITDEF
   match b with
   | .z => .z
   | _ => .b0 b
-  -- /ADMITDEF
 
 /- Check that your function correctly doubles zero. -/
 
@@ -1163,13 +908,11 @@ example : doubleBin .z = .z := by rfl  -- ADMITTED
 /- double_incr_bin -/
 theorem double_incr_bin : ∀ b : Bin,
     doubleBin (incr b) = incr (incr (doubleBin b)) := by
-  -- ADMITTED
   intro b
   cases b
   . rfl
   . rfl
   . rfl
--- /ADMITTED
 -- GRADE_THEOREM 1: double_incr_bin
 
 -- []
@@ -1192,7 +935,6 @@ example : ∀ b, natToBin (binToNat b) = b := by sorry
   yet otherwise seem correct.
 -/
 
--- SOLUTION
 /-
   The problem is that `0` has many representations: it can be written
   `.z`, `.b0 .z`, `.b0 (.b0 .z)`, and so on.  For these alternate
@@ -1202,7 +944,6 @@ example : ∀ b, natToBin (binToNat b) = b := by sorry
   Any other number also has many representations, after applying
   constructors to the multiple representations of zero.
 -/
--- /SOLUTION
 
 /-
   To solve that problem, we can introduce a _normalization_ function
@@ -1211,7 +952,6 @@ example : ∀ b, natToBin (binToNat b) = b := by sorry
   back again produces that normalized, simplest `Bin`.
 -/
 
--- EX4A (bin_nat_bin)
 
 /-
   Define `normalize`. You will need to keep its definition as simple
@@ -1224,12 +964,10 @@ example : ∀ b, natToBin (binToNat b) = b := by sorry
 -/
 
 def normalize (b : Bin) : Bin :=
-  -- ADMITDEF
   match b with
   | .z => .z
   | .b0 b' => doubleBin (normalize b')
   | .b1 b' => incr (doubleBin (normalize b'))
-  -- /ADMITDEF
 
 /-
   It would be wise to do some `example` proofs to check that your
@@ -1237,7 +975,6 @@ def normalize (b : Bin) : Bin :=
   proceed. They won't be graded, but fill them in below.
 -/
 
--- SOLUTION
 /- normalize_test_0 -/
 example : normalize .z = .z := by rfl
 /- normalize_test_1 -/
@@ -1248,7 +985,6 @@ example : normalize (.b0 .z) = .z := by rfl
 example : normalize (.b0 (.b0 .z)) = .z := by rfl
 /- normalize_test_4 -/
 example : normalize (.b1 (.b0 .z)) = .b1 .z := by rfl
--- /SOLUTION
 
 /-
   Finally, prove the main theorem. The inductive cases could be a
@@ -1261,7 +997,6 @@ example : normalize (.b1 (.b0 .z)) = .b1 .z := by rfl
   use of `double_incr_bin`) and another for the `b1` case.
 -/
 
--- SOLUTION
 theorem incr_doubleBin : ∀ b : Bin,
     incr (doubleBin b) = .b1 b := by
   intro b
@@ -1288,11 +1023,9 @@ theorem natToBin_two_mul : ∀ n,
     rw [add_succ, add_shuffle3 n']
     dsimp [natToBin]
     rw [ih, ← double_incr_bin]
--- /SOLUTION
 
 theorem bin_nat_bin : ∀ b : Bin,
     natToBin (binToNat b) = normalize b := by
-  -- ADMITTED
   intro b
   induction b
   case z => rfl
@@ -1304,28 +1037,10 @@ theorem bin_nat_bin : ∀ b : Bin,
     /- Goal: natToBin (binToNat b' * 2 + 1) = incr (doubleBin (normalize b')) -/
     dsimp [natToBin]
     rw [natToBin_two_mul, ih]
--- /ADMITTED
 
 end NatToBin
 
 -- GRADE_THEOREM 6: bin_nat_bin
 -- []
--- /FULL
-
--- /HIDEFROMADVANCED
--- TERSE
--- /TERSE
 
 
--- HIDE
-/-
-  There is MUCH more that we could say about this topic.  We
-  could do a similar example (and pair of exercises) involving
-  [cases].  We could talk about references to external theorems.
-  Basically, for each tactic, we could give people some guidance
-  about how to lay out corresponding informal proofs...  But the
-  current direction is to minimize the role of informal proofs (at
-  least, the degree to which we try to get people to write them) in
-  SF.
--/
--- /HIDE
