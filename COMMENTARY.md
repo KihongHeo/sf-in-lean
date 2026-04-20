@@ -93,7 +93,7 @@ Tactics to consider introducing:
 * `Induction.lean`: `induction`, `have`, `calc`, `generalize`
 * `Lists.lean`: `unfold`
 * `Poly.lean`: N/A
-* `Tactics.lean`: `apply`, `symm`, `injection`, `injections`
+* `Tactics.lean`: `apply`, `symm`, `injection`, `injections`, `congr`
 
 ### `rewrite` vs `rw`
 

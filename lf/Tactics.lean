@@ -290,11 +290,11 @@ theorem trans_eq_exercise : forall (n m o p : Nat),
 /- HIDE: Should we explain `discriminate` without an argument?  BCP 25: No. -/
 
 /- FULL: Recall the definition of natural numbers:
-[[
-     Inductive nat : Type :=
-       | O
-       | S (n : nat).
-]]
+
+     inductive Nat : Type :=
+       | zero
+       | succ (n : Nat).
+
     It is obvious from this definition that every number has one of
     two forms: either it is the constructor `0` or it is built by
     applying the constructor `.succ` to another number.  But there is more
@@ -516,3 +516,200 @@ theorem eqb_0_l : forall (n : Nat),
     that the subgoal we are working on is impossible and removes it
     from further consideration. -/
     contradiction
+
+
+/- HIDE: APT: Could add an advanced exercise asking them to show
+   somthing like [true = false -> 0 = 1] using [rewrite] and a
+   function definition and using [discriminate].  BCP: This might be
+   nice, but not sure this is a critical point to make. -/
+/- HIDE: "There should be more discussion and practice with how to
+   deal with subexpressions that do not allow application of
+   hypotheses, for example how to deal with the [S m] in [m + (S m)].
+   Again, I sort of understand what to do with [destruct] and
+   induction, but it would help to have more exercises that break down
+   the process of making this connection."  BCP 9/18: Not sure exactly
+   what to add, but if anybody has good ideas... -/
+
+-- TERSE
+/- HIDE: This relies on the fact that [injection] only works with
+   constructors. Should this be discussed earlier? Or is this the
+   right place to mention it briefly?  BCP 20: I think here is OK,
+   though a longer explanation (including a remark on why you would
+   not want this in general!) would be welcome... -/
+/- HIDE: Robert Rand: I think it's nice to start them off with a
+   easy question and also to use more datatypes than nat and bool. -/
+
+-- QUIZ
+/- Recall our rgb and color types:
+
+inductive RGB : Type where
+  | red | green | blue
+inductive Color : Type where |
+  black | white | primary (p: RGB)
+
+Suppose Lean's proof state looks like
+    x : RGB
+    y : RGB
+    h : .primary x = .primary y
+
+    ⊢ y = x
+    and we apply the tactic `injection h with hxy`.  What will happen?
+
+    (1) "No goals."
+
+    (2) The tactic fails.
+
+    (3) Hypothesis `h` becomes `hxy : x = y`.
+
+    (4) None of the above.
+-/
+
+-- HIDE
+theorem quiz0 : forall (x y : RGB),
+  Color.primary x = Color.primary y ->
+  x = y := by
+  intro x y h
+  injection h
+-- /HIDE
+-- /QUIZ
+
+-- QUIZ
+/- Suppose Lean's proof state looks like
+      x : bool
+      y : bool
+      h : !x = !y
+
+      ⊢ y = x
+    and we apply the tactic `injection h with hxy`  What will happen?
+
+    (A) "No more goals."
+
+    (B) The tactic fails.
+
+    (C) Hypothesis `h` becomes `hxy : x = y`.
+
+    (D) None of the above.
+-/
+-- HIDE
+/-- error: Tactic `injection` failed: equality of constructor applications expected
+
+x y : Bool
+h : (!decide (x = !y)) = true
+⊢ y = x -/
+#guard_msgs in
+theorem quiz1 : forall x y : Bool, !x = !y -> y = x := by
+  intro x y h
+  injection h with hxy
+-- /HIDE
+-- /QUIZ
+
+-- QUIZ
+/- Now suppose Lean's proof state looks like
+
+        x : Nat
+        y : Nat
+        h : x + 1 = y + 1
+
+        ⊢ y = x
+
+    and we apply the tactic `injection h with hxy`.  What will happen?
+
+    (A) "No more goals."
+
+    (B) The tactic fails.
+
+    (C) Hypothesis `h` becomes `hxy : x = y`.
+
+    (D) None of the above.
+-/
+-- HIDE
+theorem quiz2 : forall x y : Nat, x + 1 = y + 1 -> y = x := by
+  intro x y h
+  injection h with hxy
+  symm
+  assumption
+-- /HIDE
+-- /QUIZ
+
+-- QUIZ
+/- Finally, suppose Lean's proof state looks like
+
+         x : Nat
+         y : Nat
+         h : 1 + x = 1 + y
+
+         ⊢ y = x
+
+    and we apply the tactic `injection h with hxy`.  What will happen?
+
+    (A) "No more goals."
+
+    (B) The tactic fails.
+
+    (C) Hypothesis `h` becomes `hxy : x = y`.
+
+    (D) None of the above.
+-/
+-- HIDE
+/-- error: Tactic `injection` failed: equality of constructor applications expected
+
+x y : Nat
+h : 1 + x = 1 + y
+⊢ y = x -/
+#guard_msgs in
+theorem quiz3 : forall x y : Nat, 1 + x = 1 + y -> y = x := by
+  intro x y h
+  injection h with hxy
+-- /HIDE
+-- /QUIZ
+-- /TERSE
+
+/- HIDE: BCP 9/16: Not sure this theorem is pulling its weight in SF!
+   It's used relatively few places, and there is nothing too
+   interesting to say about it here -- indeed it kind of disrupts the
+   flow.  BCP 9/18: I actually found it useful several times in the
+   lecture on this chapter, so I think it's best to leave it. -/
+-- TERSE: ***
+/- The injectivity of constructors allows us to reason that
+   `forall (n m : Nat), n + 1 = m + 1 -> n = m`.  The converse of this
+    implication is an instance of a more general fact about both
+    constructors and functions, which we will find useful below: -/
+
+theorem function_congruence : forall (α β : Type) (f: α -> β) (x y: α),
+  x = y -> f x = f y := by
+  intro α β f x y eq
+  rw [eq]
+
+theorem eq_implies_succ_equal : forall (n m : Nat),
+  n = m -> n + 1 = m + 1 := by
+  intro n m eq
+  rw [eq]
+
+-- TODO: (DHS) can someone double check me on this? I think `congr` works this way
+-- but I want to be sure
+/- FULL: Indeed, there is also a tactic named `congr` that can
+    prove such theorems directly.  Given a goal of the form
+    `f a1 ... an = g b1 ... bn`, the tactic `congr` will produce subgoals
+    of the form `f = g`, `a1 = b1`, ..., `an = bn`. At the same time,
+    any of these subgoals that are simple enough (e.g., immediately
+    provable by `rfl`) will be automatically discharged. -/
+
+-- TERSE: Rocq also provides `congr` as a tactic.
+
+theorem eq_implies_succ_equal' : forall (n m : Nat),
+  n = m -> n + 1 = m + 1 := by
+
+  intro n m eq
+  congr
+
+-- ######################################################
+-- * Using Tactics on Hypotheses
+
+/- FULL: By default, most tactics work on the goal formula and leave
+    the context unchanged.  However, most tactics also have a variant
+    that performs a similar operation on a statement in the context.
+
+    For example, the tactic "[simpl in H]" performs simplification on
+    the hypothesis [H] in the context. -/
+/- TERSE: Many tactics come with "[... in ...]" variants that work on
+    hypotheses instead of goals. -/
