@@ -703,7 +703,7 @@ theorem eq_implies_succ_equal' : forall (n m : Nat),
   congr
 
 -- ######################################################
--- * Using Tactics on Hypotheses
+-- * Using Tactics on Hypotheses *
 
 /- FULL: By default, most tactics work on the goal formula and leave
     the context unchanged.  However, most tactics also have a variant
