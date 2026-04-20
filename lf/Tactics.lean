@@ -427,3 +427,92 @@ theorem injection_ex3' : forall (α : Type) (x y z w : α) (l j : List α),
 -- /HIDE
 -- /FULL
 -- /HIDEFROMADVANCED
+
+
+/- So much for injectivity of constructors.  What about disjointness? -/
+
+/- FULL: The principle of disjointness says that two terms beginning
+    with different constructors (like `0` and `succ`, or `true` and `false`)
+    can never be equal.  This means that, any time we find ourselves
+    in a context where we've _assumed_ that two such terms are equal,
+    we are justified in concluding anything we want, since the
+    assumption is nonsensical. -/
+
+/- TERSE: Two terms beginning with different constructors (like
+    `0` and `succ`, or `true` and `false`) can never be equal! -/
+
+-- TERSE: ***
+
+/- The `contradiction` tactic, which we've already seen for handling
+   cases where we have assumed `False`, also embodies this principle:
+   if we have a a hypothesis involving an equality between different
+   constructors (e.g., `false = true`), `contradiction` solves the current
+   goal immediately.  Some examples: -/
+
+theorem disjoint_ex1 : forall (n m : Nat),
+  false = true ->
+  n = m := by
+  intro n m contra
+  contradiction
+
+theorem disjoint_ex2 : forall (n : Nat),
+  n + 1 = 0 ->
+  2 + 2 = 5 := by
+  intro n contra
+  contradiction
+
+
+/- These examples are instances of a logical principle known as the
+    _principle of explosion_, which asserts that a contradictory
+    hypothesis entails anything (even manifestly false things!). -/
+
+/-  FULL: If you find the principle of explosion confusing, remember
+    that these proofs are _not_ showing that the conclusion of the
+    statement holds.  Rather, they are showing that, _if_ the
+    nonsensical situation described by the premise did somehow hold,
+    _then_ the nonsensical conclusion would too -- because we'd be
+    living in an inconsistent universe where every statement is true.
+
+    We'll explore the principle of explosion in more detail in the
+    next chapter. -/
+
+-- FULL
+/- EX1 (disjoint_ex3) -/
+theorem disjoint_ex3 :
+  forall (α : Type) (x y z : α) (l : List α),
+    x :: y :: l = [] ->
+    x = z := by
+  -- ADMITTED
+  intros X x y z l eq1
+  contradiction
+-- /ADMITTED
+-- GRADE_THEOREM 1: disjoint_ex3
+-- []
+-- /FULL
+
+-- TERSE: ***
+
+/- For a more useful example, we can use `contradiction` to make a
+    connection between the two different notions of equality (`=` and
+    `==`) that we have seen for natural numbers. -/
+theorem eqb_0_l : forall (n : Nat),
+    (0 == n) = true ->
+    n = 0 := by
+  intro n h
+/- FULL: We can proceed by case analysis on `n`. The first case is
+    trivial. -/
+  cases n
+  -- n = 0
+  . case zero =>
+    rfl
+
+/- FULL: However, the second one doesn't look so simple: assuming
+    `(0 == n' + 1) = true`, we must show `n' + 1 = 0`!  The way forward
+    is to observe that the assumption itself is nonsensical: -/
+
+  -- n = n' + 1
+  . case succ n' =>
+/- FULL: If we use `contradiction` here, Lean confirms
+    that the subgoal we are working on is impossible and removes it
+    from further consideration. -/
+    contradiction
