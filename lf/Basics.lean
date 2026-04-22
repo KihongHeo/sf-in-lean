@@ -1339,8 +1339,10 @@ theorem add_mul_zero : ∀ p q : Nat,
 -- /FULL
 
 -- TERSE: /- Sometimes simple calculation and rewriting are not enough... -/
+/-- warning: declaration uses `sorry` -/
+#guard_msgs(warning) in
 example : ∀ n : Nat,
-    (n + 1 == 0) = false := by
+    (1 + n == 0) = false := by
   intro n
   /-
     `rfl` doesn't work here because `n` is unknown
@@ -1357,7 +1359,7 @@ example : ∀ n : Nat,
 -- TERSE: /- We can use `cases` to perform case analysis: -/
 
 theorem add_one_neb_zero : ∀ n : Nat,
-    (n + 1 == 0) = false := by
+    (1 + n == 0) = false := by
   intro n
   cases n
   case zero => rfl
