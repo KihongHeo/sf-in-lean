@@ -8,6 +8,9 @@ package sf where
   ]
 
 @[default_target]
+lean_lib CustomTactics where
+  srcDir := "lf"
+
 lean_lib Basics where
   srcDir := "lf"
 

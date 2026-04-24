@@ -411,7 +411,6 @@ theorem add_comm : ∀ n m : Nat,
     rw [add_succ, ih, succ_add]
 -- /ADMITTED
 -- GRADE_THEOREM 0.5: add_comm
--- FULL
 
 theorem add_assoc : ∀ n m p : Nat,
     n + (m + p) = (n + m) + p := by
@@ -431,7 +430,7 @@ theorem add_assoc : ∀ n m p : Nat,
 def double (n : Nat) : Nat :=
   match n with
   | 0 => 0
-  | n' + 1 => (double n') + 2
+  | .succ n' => (double n') + 2
 
 /- Use induction to prove this simple fact about `double`: -/
 
@@ -444,11 +443,7 @@ theorem double_add : ∀ n, double n = n + n := by
     dsimp [double]; rw [ih, add_succ (n' + 1), succ_add]
 -- /ADMITTED
 -- []
--- /FULL
 
--- TERSE
-/- *** -/
--- /TERSE
 -- EX2 (eqb_refl)
 /-
   The following theorem relates the computational equality `BEq` on

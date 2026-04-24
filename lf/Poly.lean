@@ -785,6 +785,7 @@ example : doit3times not true = false := by rfl
    and "filtering" the list to yield a new list containing just
    those elements for which the predicate returns `true`. -/
 
+
 def filter {α : Type} (test : α → Bool) (l : List α) : List α :=
   match l with
   | [] => []

@@ -89,7 +89,7 @@ its output when it fails to prove a theorem contains a lot of information that c
 This can be overwhelming in the beginning, so this chapter uses only decide and simp."
 
 Tactics to consider introducing:
-`rcases`, `obtain`, `show`, `assumption`, `rename_i`, `revert`, `constructor`, `split`, `subst`, `suffices`, `specialize`
+`rcases`, `obtain`, `show`, `assumption`, `rename_i`, `revert`, `constructor`, `split`, `subst`, `suffices`
 
 ### Inventory
 
@@ -97,7 +97,8 @@ Tactics to consider introducing:
 * `Induction.lean`: `induction`, `have`
 * `Lists.lean`: `unfold`
 * `Poly.lean`: N/A
-* `Tactics.lean`: `apply`, `symm`, `injection`, `injections`, `congr`
+* `Tactics.lean`: `apply`, `symm`, `injection`, `injections`, `congr`, `replace`, `induction generalizing`, 
+    `let ⟨... , ...⟩ := ...`
 
 We should remove the use of `calc` and `generalize` in `Induction`, and introduce them later. 
 In particular, `generalize` should appear in `IndProp`, maybe? Also, move `unfold` earlier.
