@@ -1908,47 +1908,48 @@ theorem bool_fn_applied_thrice :
       - `congr`: change a goal of the form `f x = f y` into `x = y` -/
 -- /FULL
 
-(* TERSE *)
-(* ###################################################### *)
-(** * Micro Sermon *)
+-- TERSE
+-- ######################################################
+-- Micro Sermon
 
-(** Mindless proof-hacking is a terrible temptation...
+/- Mindless proof-hacking is a terrible temptation...
 
     Try to resist!
-*)
+-/
 
-(* /TERSE *)
-(* FULL *)
-(* ###################################################### *)
-(** * Additional Exercises *)
+-- /TERSE
+-- FULL
+/- ###################################################### -/
+/- Additional Exercises -/
 
-(* EX3 (eqb_sym) *)
-Theorem eqb_sym : forall (n m : Nat),
-  (n =? m) = (m =? n).
-Proof.
-  (* ADMITTED *)
-  intros n. induction n as [| n' IHn'].
-  - (* n = 0 *)
-    intros m. destruct m as [| m'].
-    + (* m = 0 *) reflexivity.
-    + (* m = S m' *) reflexivity.
-  - (* n = S n' *)
-    intros m. destruct m as [| m'].
-    + (* m = 0 *) reflexivity.
-    + (* m = S m' *) apply IHn'.  Qed.
-(* /ADMITTED *)
-(* GRADE_THEOREM 3: eqb_sym *)
-(** [] *)
+-- EX3 (eqb_sym)
+theorem eqb_sym : forall (n m : Nat),
+  (n == m) = (m == n) := by
 
-(* EX3AM? (eqb_sym_informal) *)
-(** Give an informal proof of this lemma that corresponds to your
+  intro n m
+  induction n generalizing m
+  . cases m
+    . rfl
+    . rfl
+  . case succ n' ih =>
+    cases m
+    . rfl
+    . rw [beq_succ, beq_succ]
+      apply ih
+-- ADMITTED
+-- /ADMITTED
+-- GRADE_THEOREM 3: eqb_sym
+-- []
+
+-- EX3AM? (eqb_sym_informal)
+/- Give an informal proof of this lemma that corresponds to your
     formal proof above:
 
    Theorem: For any `Nat`s `n` `m`, `(n =? m) = (m =? n)`.
 
-   Proof: *)
-   (* SOLUTION *)
-(**
+   Proof: -/
+-- SOLUTION
+/-
    Let an arbitrary Nat `n` be given.  Proceed by induction
    on `n`.
 
@@ -1987,80 +1988,85 @@ Proof.
 [[
          m' =? n' = n' =? m'.
 ]]
-       which is exactly the induction hypothesis.  *)
-   (* /SOLUTION *)
-(** [] *)
-(* /FULL *)
+       which is exactly the induction hypothesis.  -/
+-- /SOLUTION
+-- []
+-- /FULL
 
-(* FULL *)
-(* EX3? (eqb_trans) *)
-Theorem eqb_trans : forall n m p,
-  n =? m = true ->
-  m =? p = true ->
-  n =? p = true.
-Proof.
-  (* ADMITTED *)
-  intros n m p. intros Hnm Hmp.
-  apply eqb_true in Hnm.
-  rewrite -> Hnm.
-  rewrite -> Hmp.
-  reflexivity.  Qed.
-(* /ADMITTED *)
-(** [] *)
-(* /FULL *)
+-- FULL
+-- EX3? (eqb_trans)
+theorem eqb_trans : forall (n m p : Nat),
+  (n == m) = true ->
+  (m == p) = true ->
+  (n == p) = true := by
+-- ADMITTED
+  intros n m p hnm hmp
+  apply eqb_true at hnm
+  rw [hnm, hmp]
+-- /ADMITTED
+-- []
+-- /FULL
 
-(* FULL *)
-(* EX3AM (split_combine) *)
-(** We proved, in an exercise above, that `combine` is the inverse of
+-- FULL
+-- EX3AM (split_combine)
+/- We proved, in an exercise above, that `combine` is the inverse of
     `split`.  Complete the definition of `split_combine_statement`
     below with a property that states that `split` is the inverse of
     `combine`. Then, prove that the property holds.
 
     Hint: Take a look at the definition of `combine` in \CHAP{Poly}.
     Your property will need to account for the behavior of `combine`
-    in its base cases, which possibly drop some list elements. *)
+    in its base cases, which possibly drop some list elements. -/
 
-Definition split_combine_statement : Prop
-  (* ("`: Prop`" means that we are giving a name to a
-     logical proposition here.) *)
-  (* ADMITDEF *) :=
-  forall (X Y:Type) (l1 : list X) (l2 : list Y),
-    length l1 = length l2 -> split (combine l1 l2) = (l1, l2).
-(* /ADMITDEF *)
+def split_combine_statement : Prop :=
+  /- ("`: Prop`" means that we are giving a name to a
+     logical proposition here.) -/
+-- ADMITDEF
+  forall (α β :Type) (l1 : List α) (l2 : List β),
+    l1.length = l2.length ->
+    split (zip l1 l2) = (l1, l2)
+-- /ADMITDEF
 
-Theorem split_combine : split_combine_statement.
-Proof.
-(* ADMITTED *)
-  intros X Y. induction l1 as `| x l1' IHl1'`.
-  - (* l1 = [] *)
-    intros l2 Heq. destruct l2 as `|y l2'`.
-    + (* l2 = [] *) reflexivity.
-    + (* l2 = y :: l2' *) discriminate Heq.
-  - (* l1 = x :: l1' *)
-    intros l2 Heq. destruct l2 as `|y l2'`.
-    + (* l2 = [] *) discriminate Heq.
-    + (* l2 = y :: l2' *)
-      simpl. rewrite IHl1'. reflexivity.
-      injection Heq as goal. apply goal. Qed.
-(* /ADMITTED *)
-(* QUIETSOLUTION *)
+theorem split_combine : split_combine_statement := by
+-- ADMITTED
+  intros α β l1 l2 h
+  induction l1 generalizing l2
+  case nil =>
+    cases l2
+    . rfl
+    . contradiction
+  case cons hd tl ih =>
+    cases l2
+    . contradiction
+    . case cons hd' tl' =>
+      dsimp [split, zip]
+      rw [ih]
+      injections
+-- /ADMITTED
+-- QUIETSOLUTION
 
-(** Here are more approaches *)
+/- Here are more approaches -/
 
-Theorem split_combine' : forall (X Y:Type) l (l1 : list X) (l2 : list Y),
-  (l1, l2) = split l -> split (combine l1 l2) = (l1, l2).
-Proof.
-  induction l as [| [x y] l' IHl'].
-  - (* l = [] *) intros l1 l2 Heq.
-    simpl in Heq. injection Heq as l2mt l1mt.
-    rewrite l2mt. rewrite l1mt. reflexivity.
-  - (* l = (x,y) :: l' *) intros l1 l2 Heq.
-    simpl in Heq. destruct (split l') as [l1' l2'].
-    injection Heq as l2in l1in.
-    rewrite l2in. rewrite l1in. simpl. rewrite IHl'.
-    reflexivity. reflexivity.  Qed.
+theorem split_combine' : forall (α β :Type) l (l1 : List α) (l2 : List β),
+  (l1, l2) = split l -> split (zip l1 l2) = (l1, l2) := by
 
-Theorem split_combine''_equiv :
+  intro α β l l1 l2 h
+  induction l generalizing l1 l2
+  . case nil =>
+    dsimp [split] at h
+    injections h1 h2
+    rw [h1, h2]
+    rfl
+  . case cons hd tl ih =>
+    let ⟨a, b⟩ := hd
+    dsimp [split] at h
+    injections h1 h2
+    rw [h1, h2]
+    dsimp [zip, split]
+    rw [ih]
+    rfl
+
+/- Theorem split_combine''_equiv :
   forall (X Y:Type) l (l1 : list X) (l2 : list Y),
     (split l = (l1, l2) -> split (combine l1 l2) = (l1, l2))
     <-> (split l = (l1, l2) -> combine l1 l2 = l).
@@ -2087,14 +2093,14 @@ Proof.
     simpl in Heq. destruct (split l') as [l1' l2'].
     injection Heq as l2in l1in.
     rewrite <- l2in. rewrite <- l1in. simpl. rewrite IHl'.
-    reflexivity. reflexivity.  Qed.
-(* /QUIETSOLUTION *)
-(* GRADE_MANUAL 3: split_combine *)
-(** [] *)
-(* /FULL *)
+    reflexivity. reflexivity.  Qed. -/
+-- /QUIETSOLUTION
+-- GRADE_MANUAL 3: split_combine
+-- []
+-- /FULL
 
-(* FULL *)
-(* EX3A (filter_exercise) *)
+-- FULL
+-- EX3A (filter_exercise)
 Theorem filter_exercise : forall (X : Type) (test : X -> Bool)
                                  (x : X) (l lf : list X),
   filter test l = x :: lf ->
