@@ -93,7 +93,7 @@ Tactics to consider introducing:
 
 ### Inventory
 
-* `Basics.lean`: `rfl`, `intro`, `rewrite`, `rw`, `cases`, `dsimp`, `exact`, `contradiction`, `<;>` (to move), `all_goals` (to remove)
+* `Basics.lean`: `rfl`, `intro`, `rewrite`, `rw`, `cases`, `dsimp`, `exact`, `contradiction`
 * `Induction.lean`: `induction`, `have`
 * `Lists.lean`: `unfold`
 * `Poly.lean`: N/A
