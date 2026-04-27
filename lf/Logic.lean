@@ -423,8 +423,9 @@ theorem zero_or_succ : ∀ n : Nat,
   case succ => right; dsimp [pred]
   -- /WORKINCLASS
 
--- EX2 (mul_is_succ)
-theorem mul_is_succ : forall n m : Nat,
+-- TERSE: HIDEFROMHTML
+-- EX2 (mul_is_zero)
+theorem mul_is_zero : forall n m : Nat,
     n * m = 0 → n = 0 ∨ m = 0 := by
   -- ADMITTED
   intro n m H
@@ -442,10 +443,14 @@ theorem mul_is_succ : forall n m : Nat,
 -- EX1 (or_commute)
 theorem or_commute : ∀ P Q : Prop,
     P ∨ Q → Q ∨ P := by
+  -- ADMITTED
   intro P Q H
   cases H
   case inl HP => right; exact HP
   case inr HQ => left; exact HQ
+  -- /ADMITTED
+-- []
+-- TERSE: /HIDEFROMHTML
 
 /- ## Falsehood and Negation -/
 
@@ -855,3 +860,102 @@ constructor:
 #print Iff
 
 #check (fun α β : Prop => α ↔ β : Prop → Prop → Prop)
+
+theorem iff_sym : ∀ P Q : Prop,
+    (P ↔ Q) → (Q ↔ P) := by
+  -- WORKINCLASS
+  intro P Q ⟨HPQ, HQP⟩
+  constructor
+  case mp => exact HQP
+  case mpr => exact HPQ
+  -- /WORKINCLASS
+
+theorem not_true_iff_false : ∀ b : Bool,
+    b ≠ true ↔ b = false := by
+  intro b
+  constructor
+  case mp => apply not_true_is_false
+  case mpr => intro H; rw [H]; intro H'; contradiction
+
+-- TERSE: HIDEFROMHTML
+-- EX1? (iff_properties)
+/- Using the above proof that `↔` is symmetric (`iff_sym`) as a guide,
+    prove that it is also reflexive and transitive. -/
+
+theorem iff_refl : ∀ P : Prop, P ↔ P := by
+  -- ADMITTED
+  intro P; constructor
+  case mp => intro H; exact H
+  case mpr => intro H; exact H
+  -- /ADMITTED
+
+theorem iff_trans : ∀ P Q R : Prop,
+    (P ↔ Q) → (Q ↔ R) → (P ↔ R) := by
+  -- ADMITTED
+  intro P Q R ⟨HPQ, HQP⟩ ⟨HQR, HRQ⟩; constructor
+  case mp => intro HP; apply HQR; apply HPQ; exact HP
+  case mpr => intro HR; apply HQP; apply HRQ; exact HR
+  -- /ADMITTED
+
+-- []
+-- TERSE: /HIDEFROMHTML
+
+theorem or_associate : ∀ P Q R : Prop,
+    P ∨ (Q ∨ R) ↔ (P ∨ Q) ∨ R := by
+  intro P Q R; constructor
+  case mp =>
+    intro H
+    cases H
+    case inl HP => left; left; exact HP
+    case inr HQR =>
+      cases HQR
+      case inl HQ => left; right; exact HQ
+      case inr HR => right; exact HR
+  case mpr =>
+    intro H
+    cases H
+    case inl HPQ =>
+      cases HPQ
+      case inl HP => left; exact HP
+      case inr HQ => right; left; exact HQ
+    case inr HR => right; right; exact HR
+
+-- FULL
+-- EX3 (or_distributes_over_and)
+theorem or_distributes_over_and : ∀ P Q R : Prop,
+    P ∨ (Q ∧ R) ↔ (P ∨ Q) ∧ (P ∨ R) := by
+  -- ADMITTED
+  intro P Q R; constructor
+  case mp =>
+    intro HPQR; cases HPQR
+    case inl HP =>
+      constructor
+      case left => left; exact HP
+      case right => left; exact HP
+    case inr HQR =>
+      let ⟨HQ, HR⟩ := HQR
+      constructor
+      case left => right; exact HQ
+      case right => right; exact HR
+  case mpr =>
+    intro ⟨HPQ, HPR⟩
+    cases HPQ
+    case inl HP => left; exact HP
+    case inr HQ =>
+      cases HPR
+      case inl HP => left; exact HP
+      case inr HR =>
+        right; constructor
+        exact HQ
+        exact HR
+  -- /ADMITTED
+-- []
+-- /FULL
+
+theorem mul_eq_0 : forall n m : Nat,
+    n * m = 0 ↔ n = 0 ∨ m = 0 := by
+  intro n m
+  constructor
+  case mp => apply mul_is_zero
+  case mpr => apply factor_is_zero
+
