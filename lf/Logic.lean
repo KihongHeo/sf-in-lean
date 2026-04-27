@@ -210,6 +210,7 @@ theorem succ_inj : injective succ := by
 
 #check (3 + 2 == 5 : Bool)
 
+-------------------------------------------------------------------------------
 /- ## Logical Connectives -/
 
 /- ### Conjunction -/
@@ -452,7 +453,7 @@ theorem or_commute : ∀ P Q : Prop,
 -- []
 -- TERSE: /HIDEFROMHTML
 
-/- ## Falsehood and Negation -/
+/- ### Falsehood and Negation -/
 
 /- Up to this point, we have mostly been concerned with proving
     "positive" statements -- addition is commutative, appending lists
@@ -842,7 +843,7 @@ theorem nil_is_not_cons : ∀ {α : Type} (x : α) (xs : List α),
 -- []
 -- /FULL
 
-/- ## Logical Equivalence -/
+/- ### Logical Equivalence -/
 
 /- The handy "if and only if" connective, which asserts that two
     propositions have the same truth value, is a structure containing
@@ -959,11 +960,12 @@ theorem mul_eq_0 : forall n m : Nat,
   case mp => apply mul_is_zero
   case mpr => apply factor_is_zero
 
-/- ## Existential Quantification -/
+/- ### Existential Quantification -/
 
 /- FULL: Another fundamental logical connective is _existential quantification_.
     To say that there is some `x` of type `T` such that some property `P`
-    holds of `x`, we write `∃ x : T, P`.
+    holds of `x`, we write `∃ x : T, P`. This is notation for the `Exists`
+    connective, and is defined as `Exists (fun (x : T) => P)`.
     As with `∀ x : T`, the type annotation `: T` can be omitted if Lean
     is able to infer from the context what the type of `x` should be.
 
@@ -975,6 +977,8 @@ theorem mul_eq_0 : forall n m : Nat,
     are replaced by `t`. The `exists` tactic tries to close the proof
     with simple tactics such as `rfl` or `contradiction`, so we may not
     have to prove `P` explicitly. -/
+
+#check (Exists : ∀ {T : Type}, (T → Prop) → Prop)
 
 def Even x := ∃ n : Nat, x = double n
 
@@ -1035,4 +1039,147 @@ theorem dist_exists_or : ∀ (X : Type) (P Q : X → Prop),
 -- []
 
 -- EX3? (leb_plus_exists)
+theorem leb_plus_exists : ∀ n m : Nat,
+    (n ≤? m = true) → ∃ x, m = x + n := by
+  -- ADMITTED
+  intro n
+  induction n
+  case zero => intro m H; exists m
+  case succ n' IHn' =>
+    intro m
+    cases m
+    case zero => intro H; contradiction
+    case succ m' =>
+      intro H
+      dsimp [leb] at H
+      apply IHn' at H
+      let ⟨x, Hx⟩ := H
+      exists x
+      rw [Hx]; rfl
+  -- /ADMITTED
 
+-- QUIETSOLUTION
+theorem leb_plus : ∀ n m : Nat,
+    (n ≤? (m + n)) = true := by
+  intro n
+  induction n
+  case zero => intro m; rfl
+  case succ n' IHn' =>
+    intro m
+    dsimp [leb]
+    apply IHn'
+-- /QUIETSOLUTION
+
+theorem add_exists_leb : ∀ n m,
+    (∃ x, m = x + n) → n ≤? m = true := by
+  -- ADMITTED
+  intro n m ⟨x, Hx⟩
+  rw [Hx]
+  apply leb_plus
+  -- /ADMITTED
+
+-- HIDE
+/- A direct proof without a lemma. -/
+theorem add_exists_leb' : ∀ n m,
+    (∃ x, m = x + n) → n ≤? m = true := by
+  intro n
+  induction n
+  case zero => intro m H; rfl
+  case succ n' IHn' =>
+    intro m ⟨x, Hx⟩
+    rw [Hx]
+    dsimp [leb]
+    apply IHn'
+    exists x
+-- /HIDE
+-- []
+-- /FULL
+
+-------------------------------------------------------------------------------
+/- ## Recap: Logical Connectives in Lean -/
+
+/- Connectives introduced in this chapter:
+    * `A ∧ B` (conjunction):
+      * introduced with `constructor`
+      * eliminated with `intro ⟨HA, HB⟩` or `let ⟨HA, HB⟩ := H`
+    * `A ∨ B` (disjunction):
+      * introduced with `left` and `right`
+      * eliminated with `cases`
+    * `False` (falsehood):
+      * eliminated with `cases` or `contradiction`
+    * `¬ A` (negation):
+      * defined as `A → False`
+    * `True` (truthhood):
+      * introduced as`True.intro` or with `constructor`
+    * `A ↔ B` (iff):
+      * introduced with `constructor`
+      * eliminated with `intro ⟨HAB, HBA⟩` or `let ⟨HAB, HBA⟩ := H`
+    * `∃ x : A, P` (existential):
+      * introduced with `exists t`
+      * eliminated with `intro ⟨x, Hx⟩` or `let ⟨x, Hx⟩ := H`
+ 
+    Fundamental connectives we've been using since the beginning:
+    * equality (`e1 = e2`)
+    * implication (`P → Q`)
+    * universal quantification (`∀ x, P`) -/
+
+-------------------------------------------------------------------------------
+/- ## Programming with Propositions -/
+
+/- FULL: The logical connectives that we have seen provide a rich vocabulary
+    for defining complex propositions from simpler ones.
+    To illustrate, let's look at how to express teh claim that an element `x`
+    occurs in a list `l`.
+    Notice that this property has a simple recursive structure: -/
+
+/- TERSE: What does it mean to say that
+    "an element `x` occurs in a list `l`"?
+    * If `l` is the empty list, then `x` cannot occur in it,
+      so the property "`x` appears in `l`" is simply false.
+    * Otherwise, `l` has the form `[x' :: l']`.
+      In this case, `x` occurs in `l` if it is equal to `x'`
+      or if it occurs in `l'`. -/
+
+/- We can translate this directly into a straightforward recursive function
+    taken an element and a list and returning... a proposition! -/
+
+def In {α : Type} (x : α) (xs : List α) : Prop :=
+  match xs with
+  | [] => False
+  | x' :: xs' => x = x' ∨ In x xs'
+
+/- When `In` is applied to a concrete list, it exapnds into a concrete sequence
+   of nested disjunctions. -/
+
+example : In 4 [1, 2, 3, 4, 5] := by
+  -- WORKINCLASS
+  dsimp [In]; right; right; right; left; rfl
+  -- /WORKINCLASS
+
+example : ∀ n : Nat, In n [2, 4] → ∃ n' : Nat, n = 2 * n' := by
+  -- WORKINCLASS
+  dsimp [In]
+  intro n H
+  cases H
+  case inl H => exists 1
+  case inr H =>
+    cases H
+    case inl H => exists 2
+    case inr H => cases H
+  -- /WORKINCLASS
+
+/- We can also reason about more generic statements involving `In`. -/
+
+theorem In_map : ∀ (α β : Type) (f : α → β) (xs : List α) (x : α),
+    In x xs → In (f x) (List.map f xs) := by
+  -- TERSE: FOLD
+  intro A FB f xs x
+  induction xs
+  case nil => intro H; contradiction
+  case cons x' xs' IH =>
+    dsimp [In]
+    intro H
+    cases H
+    case inl H => rw [H]; left; rfl
+    case inr H => right; exact (IH H)
+  -- TERSE: /FOLD
