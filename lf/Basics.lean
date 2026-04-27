@@ -1095,12 +1095,12 @@ example : leb 4 2 = false := by rfl
 instance : BEq Nat where
   beq := beq
 
-infix:65 "<=?" => leb
+infix:65 "≤?" => leb
 
 /-
   test_leb3'
 -/
-example : 4 <=? 2 = false := by rfl
+example : 4 ≤? 2 = false := by rfl
 
 -- FULL
 /-
