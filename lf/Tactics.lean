@@ -1372,7 +1372,7 @@ theorem double_injective_take2 : forall n m,
     we induct on `n` before introducing `m`, so that the induction
     hypothesis becomes sufficiently general. -/
 
-theorem sub_add_leb : forall n m, n <=? m = true -> (m - n) + n = m := by
+theorem sub_add_leb : forall n m, n ≤? m = true -> (m - n) + n = m := by
   intro n
   induction n
   . case zero =>

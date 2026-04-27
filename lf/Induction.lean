@@ -913,7 +913,7 @@ theorem mul_comm : ∀ m n : Nat,
 -/
 
 theorem leb_refl : ∀ n : Nat,
-    n <=? n = true := by
+    n ≤? n = true := by
   -- ADMITTED
   intro n
   induction n

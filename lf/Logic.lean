@@ -959,3 +959,80 @@ theorem mul_eq_0 : forall n m : Nat,
   case mp => apply mul_is_zero
   case mpr => apply factor_is_zero
 
+/- ## Existential Quantification -/
+
+/- FULL: Another fundamental logical connective is _existential quantification_.
+    To say that there is some `x` of type `T` such that some property `P`
+    holds of `x`, we write `∃ x : T, P`.
+    As with `∀ x : T`, the type annotation `: T` can be omitted if Lean
+    is able to infer from the context what the type of `x` should be.
+
+    To prove a statement of the form `∃ x, P`, we must show that `P`
+    holds for some specific choice for `x`, known as the _witness_ of the
+    existential.  This is done in two steps: First, we explicitly tell Lean
+    which witness `t` we have in mind by invoking the tactic `exists t`.
+    Then we prove that `P` holds after all occurrences of `x`
+    are replaced by `t`. The `exists` tactic tries to close the proof
+    with simple tactics such as `rfl` or `contradiction`, so we may not
+    have to prove `P` explicitly. -/
+
+def Even x := ∃ n : Nat, x = double n
+
+#check (Even : Nat → Prop)
+
+example : Even 4 := by
+  unfold Even; exists 2
+  -- `4 = double 2` holds by `rfl`,
+  -- but is proven automatically by `exists`
+
+/- Conversely, if we have an existential hypothesis `∃ x, P` in the context,
+    can destruct it to obtain a witness `x` and a hypothesi stating that `P`
+    holds of `x`. -/
+
+example : ∀ n, (∃ m, n = m + 4) → (∃ o, n = o + 2) := by
+  -- WORKINCLASS
+  intro n ⟨m, Hm⟩
+  exists (m + 2)
+  -- /WORKINCLASS
+
+-- FULL
+-- EX1! (dist_not_exists)
+/- Prove that "`P` holds for all `x` implies "there is no `x` for which
+    `P` does not hold." (Hint: `cases` works on existential assumptions!) -/
+
+theorem dist_not_exists : ∀ (X : Type) (P : X → Prop),
+    (∀ x, P x) → ¬ (∃ x, ¬ P x) := by
+  -- ADMITTED
+  intro X P H ⟨x, Hx⟩
+  apply Hx; apply H
+  -- /ADMITTED
+-- GRADE_THEOREM 1: dist_not_exists
+-- []
+
+-- EX2 (dist_exists_or)
+/- FULL: Prove that existential quantification distributes over disjunction. -/
+
+theorem dist_exists_or : ∀ (X : Type) (P Q : X → Prop),
+    (∃ x, P x ∨ Q x) ↔ (∃ x, P x) ∨ (∃ x, Q x) := by
+  -- ADMITTED
+  intro X P Q; constructor
+  case mp =>
+    intro ⟨x, HPQ⟩
+    cases HPQ
+    case inl HP => left; exists x
+    case inr HQ => right; exists x
+  case mpr =>
+    intro HPQ
+    cases HPQ
+    case inl HP =>
+      let ⟨x, Hx⟩ := HP
+      exists x; left; exact Hx
+    case inr HQ =>
+      let ⟨x, Hx⟩ := HQ
+      exists x; right; exact Hx
+  -- /ADMITTED
+-- GRADE_THEOREM 2: dist_exists_or
+-- []
+
+-- EX3? (leb_plus_exists)
+
