@@ -848,53 +848,55 @@ example : odd_count (.tick .boom) = true  := by rfl
 /- test_odd2 -/
 example : odd_count (.tick (.tick .boom)) = false := by rfl
 
-/- You may notice at this point that `Countdown` is suspiciously similar to a
-Natural number. This is an intentional choice: Lean is a powerful programming
-language and theorem prover for mathematics, and comes with extensive baked-in machinery for
-working with natural numbers. We use this example to gradually introduce the concept
-of recursive types without the full complexity (and power) of Lean's `Nat` -/
+/-
+  You may notice at this point that a `Countdown` is suspiciously similar to a
+  (Natural) number. This is an intentional choice: Lean is a powerful programming
+  language and theorem prover for mathematics, and comes with extensive baked-in machinery for
+  working with natural numbers. We use this example to gradually introduce the concept
+  of recursive types without the full complexity (and power) of Lean's `Nat`.
+-/
+
 
 -- TERSE: /- *** -/
 -- TERSE: /- A multi-argument recursive function. -/
 
-def add (n : Nat) (m : Nat) : Nat :=
-  match m with
-  | 0 => n
-  | .succ m' => .succ (add n m')
+/- Let's define a function that combines two Countdowns to make a bigger one. -/
+
+def combine (c1 : Countdown) (c2 : Countdown) : Countdown :=
+  match c1 with
+  | .boom => c2
+  | .tick c1' => .tick (combine c1' c2)
 
 -- FULL
 /-
-  Adding three to two gives us five (whew!):
+  Combining countdowns with tick counts two and one gives us three (whew!):
 -/
 -- /FULL
 
-#eval add 3 2
-/- ===> 5 -/
+#eval combine (.tick (.tick .boom)) (.tick .boom)
+/- tick (tick (tick boom)) -/
 
 -- FULL
 /-
   The steps of simplification that Lean performs here can be
   visualized as follows:
 
-       `add 3 2`
-    i.e. `add (succ (succ (succ 0))) (succ (succ 0))`
+       `combine (.tick (.tick .boom)) (.tick .boom)`
+    i.e. `combine (tick (tick boom)) (tick boom)`
 -/
-/-    ==> `succ (add (succ (succ (succ 0))) (succ 0))` -/
+
 /-
-           by the second clause of the `match`
--/
-/-    ==> `succ (succ (add (succ (succ (succ 0))) 0))` -/
-/-
-           by the second clause of the `match`
--/
-/-    ==> `succ (succ (succ (add (succ 0))))` -/
-/-
-           by the first clause of the `match`
-    i.e. `5`
+  ==> `tick (combine (tick boom) (tick boom))`   -- by the second clause of the `match`
+  ==> `tick (tick (combine boom (tick boom)))`   -- by the second clause of the `match`
+  ==> `tick (tick (tick boom))`                 -- by the first clause of the `match`
+  i.e. `tick (tick (tick boom))`
 -/
 -- /FULL
 
 -- TERSE: /- *** -/
+
+-- BEGIN WIP
+
 
 -- FULL
 /-
