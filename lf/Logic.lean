@@ -1437,3 +1437,222 @@ example : ∀ x y z : Nat, x + (y + z) = (z + y) + x := by
   rw [add_comm x (y + z)]
   rw [add_comm z y]
 -- /FULL
+
+-- JC: Omitting this example below because `apply` in Lean works like `eapply` in Rocq,
+--     and I don't think this is the right moment to introduce the concept of
+--     metavariables and the fact that goals are just term holes.
+/- Here's another example of using a theorem about lists like a function.
+    Suppose we have proven the following simple fact about lists...
+
+theorem In_not_nil : ∀ α (x : α) (xs : List α),
+    In x xs → xs ≠ [] := by
+  -- FOLD
+  intro α x xs H Hxs; rw [Hxs] at H; cases H
+  -- /FOLD
+
+/- FULL: (i.e., if a list `xs` contains some element `x`,
+    then `xs` must be nonempty.) -/
+
+/- Note that one quantified variable (`x`) does not appear in the conclusion
+    (`xs ≠ []`). Intuitively, we should be able ot use this theorem to prove
+    the special case where `x` is `42`. However, simply invoking the tactic
+    `apply In_not_nil` will fail because it cannot infer the value of `x`. -/
+
+example : ∀ xs : List Nat, In 42 xs → xs ≠ [] := by
+  intros xs H
+  apply In_not_nil
+  exact H
+
+/- There are several way sto work around this: -/
+
+/- We can use `apply ... at ...`: -/
+example : ∀ xs : List Nat, In 42 xs → xs ≠ [] := by
+  intros xs H
+  apply In_not_nil at H
+  exact H
+
+/- We can explicitly supply the argument `42` for the parameter `x`: -/
+example : ∀ xs : List Nat, In 42 xs → xs ≠ [] := by
+  intros xs H
+  apply In_not_nil (x := 42)
+  exact H
+
+/- Or we can explicitly apply the argument to the lemma directly: -/
+example : ∀ xs : List Nat, In 42 xs → xs ≠ [] := by
+  intros xs H
+  apply In_not_nil Nat 42
+  exact H
+
+/- We can also provide the `exact` proof by applying the lemma
+    to the hypothesis and allow the other arguments to be inferred: -/
+example : ∀ xs : List Nat, In 42 xs → xs ≠ [] := by
+  intros xs H
+  exact In_not_nil _ _ _ H
+-/
+
+-- FULL
+/- You can "use a theorem as a function" in this way with almost any tactic
+    that can take a theorem's name as an argument.
+
+    Note, also, that theorem application uses the same inference mechanisms
+    as function application; thus, it is possible, for example, to supply
+    wildcards as arguments to be inferred, or to declare some hypotheses
+    to a theorem as implicit by default. These features are illustrated in
+    the proof below. (The details of how this proof works are not critical
+    -- the goal here is just to illustrate applying theorems to arguments.) -/
+
+example : ∀ {n : Nat} {ns : List Nat},
+    In n (List.map (fun m => m * 0) ns) → n = 0 := by
+  intros n ns H
+  let ⟨m, Hm, _⟩ := (In_map_iff _ _ _ _ _).mp H
+  rw [mul_zero] at Hm; rw [Hm]
+
+/- We will see many more examples in later chapters. -/
+-- /FULL
+
+-- HIDEFROMADVANCED
+-- TERSE
+
+-- HIDE
+namespace FunctionTheoremQuiz
+-- /HIDE
+
+-- HIDEFROMHTML
+/--  warning: declaration uses `sorry` -/
+#guard_msgs in
+example : ∀ n m : Nat,
+    n = m → m = 42 →
+    (∀ (α : Type) (a b c : α), a = b → b = c → a = c) →
+    True := by
+  intros n m H1 H2 trans_eq
+-- /HIDEFROMHTML
+
+-- QUIZ
+/- Suppose we have
+    ```
+    n m : Nat
+    H1 : n = m
+    H2 : b = 42
+    trans_eq : ∀ (α : Type) (a b c : α), a = b → b = c → a = c
+    ```
+    What is the type of this "proof object"?
+    ```
+    trans_eq Nat n m 42 H1 H2
+    ```
+
+    1. `n = m`
+    2. `42 = n`
+    3. `n = 42`
+    4. Does not typecheck
+   -/
+  -- FOLD
+  have : n = 42 := trans_eq Nat n m 42 H1 H2
+  -- /FOLD
+-- /QUIZ
+
+-- QUIZ
+/- Suppose, again, we have
+    ```
+    n m : Nat
+    H1 : n = m
+    H2 : b = 42
+    trans_eq : ∀ (α : Type) (a b c : α), a = b → b = c → a = c
+    ```
+    What is the type of this proof object?
+    ```
+    trans_eq _ _ _ _ H1 H2
+    ```
+
+    1. `n = m`
+    2. `42 = n`
+    3. `n = 42`
+    4. Does not typecheck
+   -/
+  -- FOLD
+  have : n = 42 := trans_eq _ _ _ _ H1 H2
+  -- /FOLD
+-- /QUIZ
+
+-- QUIZ
+/- Suppose, again, we have
+    ```
+    n m : Nat
+    H1 : n = m
+    H2 : b = 42
+    trans_eq : ∀ (α : Type) (a b c : α), a = b → b = c → a = c
+    ```
+    What is the type of this proof object?
+    ```
+    trans_eq Nat m 42 n H2
+    ```
+
+    1. `m = n`
+    2. `m = n → 42 = n`
+    3. `42 = n → m = n`
+    4. Does not typecheck
+   -/
+  -- FOLD
+  have : 42 = n → m = n := trans_eq Nat m 42 n H2
+  -- /FOLD
+-- /QUIZ
+
+-- QUIZ
+/- Suppose, again, we have
+    ```
+    n m : Nat
+    H1 : n = m
+    H2 : b = 42
+    trans_eq : ∀ (α : Type) (a b c : α), a = b → b = c → a = c
+    ```
+    What is the type of this proof object?
+    ```
+    trans_eq _ 42 n m
+    ```
+
+    1. `n = m → m = 42 → n = 42`
+    2. `42 = n → n = m → 42 = m`
+    3. `n = 42 → 42 = m → n = m`
+    4. Does not typecheck
+   -/
+  -- FOLD
+  have : 42 = n → n = m → 42 = m := trans_eq _ 42 n m
+  -- /FOLD
+-- /QUIZ
+
+-- QUIZ
+/- Suppose, again, we have
+    ```
+    n m : Nat
+    H1 : n = m
+    H2 : b = 42
+    trans_eq : ∀ (α : Type) (a b c : α), a = b → b = c → a = c
+    ```
+    What is the type of this proof object?
+    ```
+    trans_eq _ _ _ _ H2 H1
+    ```
+
+    1. `b = a`
+    2. `42 = a`
+    3. `a = 42`
+    4. Does not typecheck
+   -/
+  -- FOLD
+  /- have := trans_eq _ _ _ _ H2 H1 -/
+  -- /FOLD
+-- /QUIZ
+
+  -- HIDEFROMHTML
+  sorry
+  -- /HIDEFROMHTML
+
+-- HIDE
+end FunctionTheoremQuiz
+-- /HIDE
+
+-- /TERSE
+-- /HIDEFROMADVANCED
+
+-------------------------------------------------------------------------------
+/- ## Working with Decidable Properties -/
+
