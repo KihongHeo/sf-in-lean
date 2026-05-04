@@ -491,7 +491,7 @@ theorem eqb_refl : ∀ n : Nat,
 -/
 -- /FULL
 
-theorem even_S : ∀ n : Nat,
+theorem even_succ : ∀ n : Nat,
     even (n + 1) = !even n := by
   -- ADMITTED
   intro n

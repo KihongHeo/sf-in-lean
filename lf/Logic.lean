@@ -11,8 +11,9 @@
 -- HIDEFROMHTML
 import Basics
 import Induction
+import Tactics
 import CustomTactics
-open Nat hiding add_succ mul_succ
+open Nat hiding add_succ mul_succ beq
 -- /HIDEFROMHTML
 
 /- FULL: We have now seen many examples of factual claims (i.e.,
@@ -43,6 +44,7 @@ open Nat hiding add_succ mul_succ
 
     Like everything in Lean, well-formed propositions have a _type_: -/
 
+-------------------------------------------------------------------------------
 /- ## The `Prop` Type -/
 
 #check (∀ n m : Nat, n + m = m + n : Prop)
@@ -1229,27 +1231,6 @@ theorem In_map_iff : ∀ (α β : Type) (f : α → β) (xs : List α) (y : β),
     -- /ADMITTED
 -- []
 
--- JC [TODO]: move this to after propext
--- EX2 (In_app_iff)
-theorem In_app_iff : ∀ (α : Type) (xs xs' : List α) (x : α),
-    In x (xs ++ xs') ↔ In x xs ∨ In x xs' := by
-  intro α xs; induction xs
-  -- ADMITTED
-  case nil =>
-    intro xs x; constructor
-    case mp => intro H; right; exact H
-    case mpr =>
-      dsimp [In]; intro H; cases H
-      case inl H => contradiction
-      case inr H => exact H
-  case cons y ys IH =>
-    intro xs' x; dsimp [In]
-    rw [or_assoc]
-    sorry
-  -- /ADMITTED
--- []
--- /FULL
-
 -- FULL
 -- EX3! (All)
 /- We noted above that functions returning propositions can be seen as
@@ -1656,3 +1637,456 @@ end FunctionTheoremQuiz
 -------------------------------------------------------------------------------
 /- ## Working with Decidable Properties -/
 
+/- We've seen two different ways of expressing logical claims in Lean:
+    with _booleans_ (of type `Bool`), and with _propositions_ (of type `Prop`).
+    Here are the key differences between `Bool` and `Prop`:
+
+    |                     | `Bool` | `Prop` |
+    | ------------------- | ------ | ------ |
+    | decidable?          | yes    | no     |
+    | useable with match? | yes    | no     | -/
+
+/- FULL:  FULL: The crucial difference between the two worlds is _decidability_.
+    Every (closed) expression of type `Bool` can be simplified in a finite
+    number of steps to either `true` or `false` -- i.e., there is a terminating
+    mechanical procedure for deciding whether or not it is `true`.
+
+    This means that, for example, the type `Nat → Bool` is inhabited only by
+    functions that, given a `Nat, always yield either `true` or `false` in
+    finite time; this, in turn, means (by a standard computability argument)
+    that there is _no_ function in `Nat → Bool` that checks whether a given
+    number is the code of a terminating Turing machine.
+
+    By contrast, the type `Prop` includes both decidable and undecidable
+    mathematical propositions; in particular, the type `Nat → Prop`
+    does contain functions representing properties like
+    "the nth Turing machine halts."
+
+    The second table row follows directly from this essential difference.
+    To evaluate a pattern match (or conditional) on a boolean, we need to know
+    whether the scrutinee evaluates to `true` or `false`; this only works for
+    `bool`, not `Prop`. -/
+
+/- TERSE: Since functions in Lean by default must terminate on all inputs,
+    a terminating function of type `Nat → Bool` is a _decision procedure_ --
+    i.e., it yields `true` or `false` on all inputs.
+
+    For example, `even : Nat → Bool` is a decision procedure for the property
+    "is even". -/
+
+/- Since `Prop` includes _both_ decidable and undecidable properties,
+    we have two options when we want to formalize a property that happens
+    to be decidable: we can express it either as a boolean computation,
+    or as a function into `Prop`. -/
+
+/- For instance, to claim that a number `n` is even,
+    we can say either that `even n` evaluates to `true`... -/
+example : even 42 = true := by rfl
+
+/- ... or that there exists some `k` such that `n = double k`. -/
+example : Even 42 := by exists 21
+
+/- Of course, it would be deeply strange if these two characterizations
+    of evenness did not describe the same set of natural numbers!
+    Fortunately, they do! -/
+
+-- TERSE: HIDEFROMHTML
+
+/- To prove this, we first need two helper lemmas. -/
+
+theorem even_double : ∀ k : Nat,
+    even (double k) = true := by
+  -- FOLD
+  intro k; induction k
+  case zero => rfl
+  case succ k' IHk' => dsimp [even, double]; exact IHk'
+  -- /FOLD
+
+-- FULL
+-- EX3 (even_double_conf)
+theorem even_double_conv : ∀ n : Nat, ∃ k : Nat,
+    n = bif even n then double k else succ (double k) := by
+  -- ADMITTED
+  intro n; induction n
+  case zero => exists 0
+  case succ n' IHn' =>
+    let ⟨k', IHk'⟩ := IHn'
+    rw [even_succ]
+    cases HE : even n'
+    case false =>
+      rw [HE] at IHk'; dsimp [not] at *
+      exists (k' + 1); rw [IHk']
+      dsimp [double]
+    case true =>
+      rw [HE] at IHk'; dsimp [not] at *
+      exists k'; congr
+  -- /ADMITTED
+-- []
+-- /FOLD
+-- TERSE: /HIDEFROMHTML
+
+/- Now the main theorem: -/
+theorem even_bool_prop: ∀ n : Nat,
+    even n = true ↔ Even n := by
+  -- FOLD
+  intro n; constructor
+  case mp =>
+    intro H
+    let ⟨k, Hk⟩ := even_double_conv n
+    rw [H] at Hk; dsimp at Hk
+    unfold Even; exists k
+  case mpr =>
+   intro ⟨k, Hk⟩; rw [Hk]; apply even_double
+  -- /FOLD
+
+/- In view of this theorem, we can say that the boolean computation `even n`
+    is _reflected_ in the truth of the proposition `∃ k, n = double k`. -/
+
+-- HIDE
+/- Similarly, we can state what it means for a number to be nonzero
+    in two different ways: -/
+
+def Nonzero (n : Nat) : Prop := ∃ m, n = succ m
+
+def nonzero (n : Nat) := not (n == 0)
+
+theorem nonzero_bool_prop : ∀ n : Nat,
+    nonzero n = true ↔ Nonzero n := by
+  -- WORKINCLASS
+  intro n; unfold Nonzero nonzero; constructor
+  case mp =>
+    intro H; cases n
+    case zero => dsimp [not] at H; contradiction
+    case succ n' => exists n'
+  case mpr =>
+    intro ⟨m, Hm⟩; rw [Hm]; rfl
+  -- /WORKINCLASS
+-- /HIDE
+
+/- Similarly, to state that two numbers `n` and `m` are equal,
+    we can say either
+
+    1. that `n == m` returns `true`, or
+    2. that `n = m`.
+
+    Again, these two notions are equivalent: -/
+
+theorem beq_eq : ∀ n1 n2 : Nat,
+    (n1 == n2) = true ↔ n1 = n2 := by
+  -- FOLD
+  intro n1 n2; constructor
+  case mp => apply eqb_true
+  case mpr => intro H; rw [H, eqb_refl]
+  -- /FOLD
+
+-- HIDEFROMADVANCED
+
+/- So what should we do in situations where some claim could be formalized
+    as either a proposition or a boolean computation?
+    Which should we choose?
+
+    In general, _both_ can be useful. For example, booleans are more useful
+    for defining functions, since we can test whether they are true using
+    conditional expressions. -/
+
+def is_even_prime (n : Nat) : Bool :=
+  bif n == 2 then true else false
+
+/- FULL:  FULL: Beyond the fact that non-computable properties are possible
+    in general to phrase as boolean computations, even many _computable_
+    properties are easier to express using `Prop` than `bool`, since
+    recursive function definitions are subject to significant restrictions.
+    For instance, the next chapter shows how to define the property that
+    a regular expression matches a given string using `Prop`.
+    Doing the same with `Bool` would amount to writing a regular expression
+    matching algorithm, which would be more complicated, harder to understand,
+    and harder to reason about than a simple (non-algorithmic) definition
+    of this property.
+
+    Conversely, an important side benefit of stating facts using booleans
+    is enabling some proof automation through computation with terms, a
+    technique known as _proof by reflection_.
+
+    Consider the following statement: -/
+
+-- JC: This was originally 1000 but Lean's default recursion depth
+--     is not large enough to reduce `double 50` lol
+example : Even 100 := by
+/- The most direct way to prove this is to give the value of `k` explicitly. -/
+  unfold Even; exists 50
+
+/- The proof of the corresponding boolean statement is simpler,
+    because we don't have to invent the witness `50`:
+    computation does it for us! -/
+
+example : even 100 := by rfl
+
+/- Now, the useful observation is that, since the two notions are equivalent,
+    we can use the boolean formulation to prove the other one
+    without mentioning the value 500 explicitly: -/
+
+example : Even 100 := by
+  let ⟨H, _⟩ := even_bool_prop 100
+  apply H; rfl
+
+/- Although we haven't gained much in terms of proof-script simplicity
+    in this case, larger proofs can often be made considerably simpler
+    by the use of reflection. -/
+
+-- JC: Is there a Lean version? Or maybe just mention Rocq?
+/- As an extreme example, a famous mechanized proof of the even more famous
+    _four colour theorem_ uses reflection ot reduce the analysis of hundreds
+    of different cases to a boolean computation. -/
+
+/- Another advantage of booleans is that the _negation_ of a claim about
+    booleans is straightforward to state and (when true) to prove:
+    simply slip the expected boolean result. -/
+
+example : even 101 = false := by rfl
+
+/- In contrast, propositional negation can be difficult to work with directly.
+    For example, suppose we state the nonevenness of `101` propositionally: -/
+
+example : ¬ Even 101 := by
+/- Proving this directly -- by assuming that there is some `n` such that
+    `101 = double n` and then somehow reasoning to a contradiction --
+    would be rather complicated.
+
+    But if we convert it to a claim about the boolean `even` function,
+    we can let Lean do the work for us. -/
+  -- WORKINCLASS
+  intro H; let ⟨_, Hb⟩ := even_bool_prop 101
+  apply Hb at H; dsimp [even] at H; contradiction
+  -- /WORKINCLASS
+
+/- Conversely, there are situations where it can be easier to work with
+    propositions rather than booleans. In particular, knowing that
+    `(n == m) = true` is generally of little direct help in the middle of
+    a proof involving `n` and `m`. But if we convert the statement to
+    the equivalent form `n = m`, then we can easily rewrite with it. -/
+
+theorem add_beq_true : ∀ n m p : Nat,
+    (n == m) = true → (n + p == m + p) = true := by
+  -- WORKINCLASS
+  intro n m p H
+  let ⟨Hb, _⟩ := beq_eq n m
+  apply Hb at H; rw [H, eqb_refl]
+  -- /WORKINCLASS
+
+/- FULL: We won't discuss reflection any further for the moment,
+    but it serves as a good example showing the different strengths
+    of booleans and general propositions.
+    Being able to cross back and forth between the boolean and propositional
+    worlds will often be convenient in later chapters. -/
+
+-- FULL
+
+-- EX2 (logical connectives)
+/- The following theorems relate the propositional connectives studied
+    in this chapter to the corresponding boolean operations. -/
+
+theorem andb_true_iff : ∀ b1 b2 : Bool,
+    (b1 && b2) = true ↔ b1 = true ∧ b2 = true := by
+  -- ADMITTED
+  intro b1 b2; constructor
+  case mp =>
+    cases b1
+    case false => dsimp [and]; intro; contradiction
+    case true => dsimp [and]; intro H; exact ⟨rfl, H⟩
+  case mpr =>
+    cases b1
+    case false => intro ⟨_, _⟩; contradiction
+    case true => intro ⟨_, H⟩; dsimp [and]; exact H
+  -- /ADMITTED
+
+theorem orb_true_iff : ∀ b1 b2 : Bool,
+    (b1 || b2) = true ↔ b1 = true ∨ b2 = true := by
+  -- ADMITTED
+  intro b1 b2; constructor
+  case mp =>
+    cases b1
+    case false => dsimp [or]; intro H; right; exact H
+    case true => dsimp [or]; intro; left; rfl
+  case mpr =>
+    cases b1
+    case false =>
+      intro H; obtain _ | Hr := H
+      case inl => contradiction
+      case inr => dsimp [or]; exact Hr
+    case true => intro; dsimp [or]
+  -- /ADMITTED
+-- GRADE_THEOREM 1: andb_true_iff
+-- GRADE_THEOREM 2: orb_true_iff
+-- []
+
+-- EX3 (beq_list)
+/- Given a boolean operator `beq` for testing equality of elements
+    of some type `α`, we can define a function `beq_list` for testing
+    equality of lists with elements in `α`. Complete the definition
+    of the `beq_list` function below. to make sure that your definition
+    is correct, prove the lemma `beq_list_true_iff`. -/
+
+def beq_list {α : Type} (beq : α → α → Bool) (xs1 xs2 : List α) : Bool :=
+  -- ADMITDEF
+  match xs1, xs2 with
+  | [], [] => true
+  | x1 :: xs1, x2 :: xs2 => beq x1 x2 && beq_list beq xs1 xs2
+  | _, _ => false
+  -- /ADMITDEF
+
+-- JC: Should this also go after `propext` to use rewriting by `↔`?
+theorem beq_list_true_iff : ∀ α (beq : α → α → Bool),
+    (∀ x1 x2, beq x1 x2 = true ↔ x1 = x2) →
+    ∀ xs1 xs2, beq_list beq xs1 xs2 = true ↔ xs1 = xs2 := by
+  -- ADMITTED
+  intro α beq Hbeq xs1
+  induction xs1
+  case nil =>
+    intro xs2; cases xs2
+    case nil =>
+      dsimp [beq_list]; constructor
+      case mp => intro; rfl
+      case mpr => intro; rfl
+    case cons x2 xs2' =>
+      dsimp [beq_list]; constructor
+      case mp => intro; contradiction
+      case mpr => intro; contradiction
+  case cons x1 xs1' IHxs1' =>
+    intro xs2; cases xs2
+    case nil =>
+      dsimp [beq_list]; constructor
+      case mp => intro; contradiction
+      case mpr => intro; contradiction
+    case cons x2 xs2' =>
+      dsimp [beq_list]
+      let ⟨Hl, Hr⟩ := andb_true_iff (beq x1 x2) (beq_list beq xs1' xs2')
+      let ⟨Hx1, Hx2⟩ := Hbeq x1 x2
+      let ⟨IH1, IH2⟩ := IHxs1' xs2'
+      constructor
+      case mp =>
+        intro H; let ⟨Hx, Hxs⟩ := Hl H; congr
+        . apply Hx1; exact Hx
+        . apply IH1; exact Hxs
+      case mpr =>
+        intro H; injection H with Hx Hxs
+        apply Hr; constructor
+        case left => apply Hx2; exact Hx
+        case right => apply IH2; exact Hxs
+  -- /ADMITTED
+-- GRADE_THEOREM 3: beq_list_true_iff
+-- []
+-- /FULL
+
+-- FULL
+-- EX2! (All_forallb)
+/- Prove the theorem below, which relates `forallb`, from the exercise
+    `Tactics.forall_exists_challenge`, to the `All` property defined above. -/
+
+/- Copy the definition of `forallb` from Tactics here so that this file can be
+    graded on its own. -/
+def Logic.forallb {α : Type} (test : α → Bool) (xs : List α) : Bool :=
+  -- ADMITDEF
+  match xs with
+  | [] => true
+  | x :: xs' => test x && forallb test xs'
+  -- /ADMITDEF
+
+theorem forallb_true_iff : ∀ α (test : α → Bool) (xs : List α),
+    Logic.forallb test xs = true ↔ All (fun x => test x = true) xs := by
+  -- ADMITTED
+  intro α test xs
+  induction xs
+  case nil =>
+    dsimp [Logic.forallb, All]; constructor
+    case mp => intro; exact ⟨⟩
+    case mpr => intro; rfl
+  case cons x xs' IHxs' =>
+    let ⟨H1, H2⟩ := andb_true_iff (test x) (Logic.forallb test xs')
+    let ⟨IH1, IH2⟩ := IHxs'
+    dsimp [Logic.forallb, All]
+    constructor
+    case mp =>
+      intro H
+      let ⟨H1', H2'⟩ := H1 H
+      constructor
+      case left => exact H1'
+      case right => apply IH1; exact H2'
+    case mpr =>
+      intro ⟨H1', H2'⟩
+      apply H2; constructor
+      case left => exact H1'
+      case right => apply IH2; exact H2'
+  -- /ADMITTED
+/- (Ungraded thought question) Are there any important properties often
+    the function `forallb` which are not captured by this specification? -/
+
+-- SOLUTION
+/- This theorem exactly captures the input-output behavior of `forallb`.
+    However, it does not say anything about the running time. -/
+-- /SOLUTION
+-- GRADE_THEOREM 2: forallb_true_iff
+-- []
+-- /FULL
+
+-------------------------------------------------------------------------------
+/- ## The Logic of Lean -/
+
+/- FULL: Lean's logical core differs in some important ways from other formal
+    systems that are used by mathematicians to write down precise and rigorous
+    definitions and proofs -- in particular from Zermelo–Fraenkel Set Theory
+    (ZFC), the most popular foundation for paper-and-pencil mathematics.
+
+    We conclude this chapter with a brief discussion of some of the
+    most significant differences between these two worlds. -/
+
+/- TERSE: Lean's logical core is a "metalanguage for mathematics" in
+    the same sense as familiar foundations for paper-and-pencil math, like
+    Zermelo–Fraenkel Set Theory (ZFC).
+
+    Mostly, the differences are not too important,
+    but a few points are useful to understand. -/
+
+/- ### Propositional Extensionality -/
+
+theorem mul_eq_0_ternary : ∀ n m p : Nat,
+    n * m * p = 0 ↔ n = 0 ∨ m = 0 ∨ p = 0 := by
+  intro n m p
+  rw [mul_eq_0, mul_eq_0, or_associate]
+
+-- EX2 (In_app_iff)
+theorem In_app_iff : ∀ (α : Type) (xs xs' : List α) (x : α),
+    In x (xs ++ xs') ↔ In x xs ∨ In x xs' := by
+  intro α xs; induction xs
+  -- ADMITTED
+  case nil =>
+    intro xs x; constructor
+    case mp => intro H; right; exact H
+    case mpr =>
+      dsimp [In]; intro H; cases H
+      case inl H => contradiction
+      case inr H => exact H
+  case cons y ys IH =>
+    intro xs' x; dsimp [In]
+    rw [IH, or_assoc]
+  -- /ADMITTED
+-- []
+-- /FULL
+
+-- EX1 (beq_neq)
+/- The following theorem is an alternative "negative" formulation of `beq_eq`
+    that is more convenient in certain situations.
+    (We'll see examples in later chapters.) Hint: `not_true_iff_false`. -/
+
+theorem beq_neq : ∀ n m : Nat,
+    (n == m) = false ↔ n ≠ m := by
+  -- ADMITTED
+  intro n m
+  rw [← not_true_iff_false]
+  unfold Ne
+  rw [beq_eq n m]
+  -- /ADMITTED
+-- []
+
+/- ### Functional Extensionality -/
+
+/- ### Classical vs. Constructive Logic -/
