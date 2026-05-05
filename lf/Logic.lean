@@ -62,7 +62,7 @@ open Nat hiding add_succ mul_succ beq beq_eq
 
 /- FULL: Indeed, propositions don't just have types -- they are
     _first-class_ entities that can be manipulated in all the same ways as
-    any of the other things in Rocq's world. -/
+    any of the other things in Lean' world. -/
 
 /- So far, we've seen one primary place where propositions can appear:
     in `theorem` declarations. -/
@@ -412,7 +412,7 @@ theorem factor_is_zero : ∀ n m : Nat,
     under a different assumption -- `A` in the first subgoal and `B`
     in the second. -/
 
-/- Rather than performing case analysis via `cases`, we can also use `obtains`
+/- Rather than performing case analysis via `cases`, we can also use `obtain`
     to match on the two possible injections, much like with `let`. -/
 
 theorem and_is_false : ∀ b1 b2 : Bool,
@@ -545,10 +545,10 @@ theorem zero_not_one : 0 ≠ 1 := by
   -- JC: `cases contra` and `injection contra` both also work,
   -- but is probably harder to explain.
 
-/- It takes a little practice to get used to working with negation in Rocq.
+/- It takes a little practice to get used to working with negation in Lean.
     Even though _you_ may see perfectly well why a claim involving
     negation holds, it can be a little tricky at first to see how to make
-    Rocq understand it!
+    Lean understand it!
 
     Here are proofs of a few familiar facts to help get you warmed up. -/
 
@@ -1125,7 +1125,7 @@ theorem add_exists_leb' : ∀ n m,
     * `∃ x : A, P` (existential):
       * introduced with `exists t`
       * eliminated with `intro ⟨x, Hx⟩` or `let ⟨x, Hx⟩ := H`
- 
+
     Fundamental connectives we've been using since the beginning:
     * equality (`e1 = e2`)
     * implication (`P → Q`)
@@ -2124,7 +2124,7 @@ theorem and_comm_flip : ∀ P Q R : Prop,
 
 /- This can be proven by constructing the `↔`, then destructing the `↔`
     in `add_comm` and `add_assoc`, then applying them a few times.
-    But this is a lot of hassle, when the proof conceptually simple:
+    But this is a lot of hassle, when the proof is conceptually simple:
     we flip `Q` and `R`, then we flip that conjunction with `P`, and we
     finish by associativity. By using `and_comm_eq`, this is easily done
     by rewriting equal propositions. -/
