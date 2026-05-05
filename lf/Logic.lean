@@ -13,7 +13,7 @@ import Basics
 import Induction
 import Tactics
 import CustomTactics
-open Nat hiding add_succ mul_succ beq
+open Nat hiding add_succ mul_succ beq beq_eq
 -- /HIDEFROMHTML
 
 /- FULL: We have now seen many examples of factual claims (i.e.,
@@ -1772,11 +1772,11 @@ theorem nonzero_bool_prop : ∀ n : Nat,
 
     Again, these two notions are equivalent: -/
 
-theorem beq_eq : ∀ n1 n2 : Nat,
+theorem beq_eq_true : ∀ n1 n2 : Nat,
     (n1 == n2) = true ↔ n1 = n2 := by
   -- FOLD
   intro n1 n2; constructor
-  case mp => apply eqb_true
+  case mp => apply beq_eq
   case mpr => intro H; rw [H, eqb_refl]
   -- /FOLD
 
@@ -1870,7 +1870,7 @@ theorem add_beq_true : ∀ n m p : Nat,
     (n == m) = true → (n + p == m + p) = true := by
   -- WORKINCLASS
   intro n m p H
-  let ⟨Hb, _⟩ := beq_eq n m
+  let ⟨Hb, _⟩ := beq_eq_true n m
   apply Hb at H; rw [H, eqb_refl]
   -- /WORKINCLASS
 
@@ -2168,13 +2168,13 @@ theorem In_app_iff : ∀ (α : Type) (xs xs' : List α) (x : α),
 /- The following theorem is an alternative "negative" formulation of `beq_eq`
     that is more convenient in certain situations.
     (We'll see examples in later chapters.) Hint: `not_true_iff_false`. -/
-theorem beq_neq : ∀ n m : Nat,
+theorem beq_neq_false : ∀ n m : Nat,
     (n == m) = false ↔ n ≠ m := by
   -- ADMITTED
   intro n m
   rw [← not_true_iff_false]
   unfold Ne
-  rw [beq_eq n m]
+  rw [beq_eq_true n m]
   -- /ADMITTED
 -- []
 
