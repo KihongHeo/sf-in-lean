@@ -184,17 +184,13 @@ theorem trans_eq_example : forall (a b c d e f : Nat),
    super confusing -- m doesn't come between n and o! Rocq's eq_trans uses
    x, y and z, which is what I wanted to change this too anyhow. -/
 
-theorem trans_eq : forall (α : Type) (x y z : α),
+theorem trans_eq : forall {α : Type} (x y z : α),
     x = y -> y = z -> x = z := by
   intro α x y z eq1 eq2
   rw [eq1, eq2]
 
-/- FULL: Now, we should be able to use [trans_eq] to prove the above
-    example.  However, to do this we need a slight refinement of the
-    [apply] tactic. -/
--- TERSE: ***
-/- TERSE: Applying this lemma to the example above requires a slight
-    refinement of `apply`: -/
+/- Now, we should be able to use [trans_eq] to prove the above
+    example.  -/
 
 /- HIDE: Robert Rand: This one makes a nice workinclass. You can show
    the various ways around the problem, including named "with",
@@ -210,26 +206,28 @@ theorem trans_eq_example' : forall (a b c d e f : Nat),
 /- If we simply tell Lean `apply trans_eq` at this point, it can
     tell (by matching the goal against the conclusion of the lemma)
     that it should instantiate `α` with `List Nat`, `x` with `[a, b]`, and
-    `z` with `[e,f]`.  However, the matching process doesn't determine
-    an instantiation for `y`: we have to supply one explicitly by
-    supplying arguments to `trans_eq` in the invocation of `apply` -/
+    `z` with `[e,f]`. However, the matching process doesn't determine
+    an instantiation for `y`, nor does it know which hypothese to use
+    for the premises to `trans_eq`. As we saw earlier, `apply` would generate
+    new goals for these premises, and we could finish the proof
+    by explicitly applying these hypotheses to those new goals. But,
+    we can also be more direct by supplying those hypotheses directly to
+    `apply`. -/
 -- /FULL
 -- TERSE
 
-/- Doing [apply trans_eq] doesn't work!  But... -/
+/- Doing [apply trans_eq] doesn't finish the proof!  But... -/
 -- /TERSE
-  apply trans_eq (List Nat) [a, b] [c, d]
+  apply trans_eq [a, b] [c, d] [e, f] eq1 eq2
 -- TERSE
 -- ...does.
 
 -- /TERSE
-  apply eq1
-  apply eq2
 
 /- TODO: (DHS) This and below are new (my addition), thoughts? -/
-/- In the previous example, we had to specify the `α` and `x` arguments
-   to `trans_eq` before we could supply `[c, d]` for `y`. However,
-   we just said that Lean was able to infer these arguments, so it's
+/- In the previous example, we had to specify the `x` and `z` arguments
+   to `trans_eq` before we could supply `[c, d]` for `y` or `eq1` and `eq2` for
+   the premises. However, we just said that Lean was able to infer these arguments, so it's
    a bit redundant (and wordy) for us to do that. Thankfully,
    Lean allows us to use `_`s for positional arguments that it is able to infer. -/
 theorem trans_eq_example'' : forall (a b c d e f : Nat),
@@ -237,13 +235,11 @@ theorem trans_eq_example'' : forall (a b c d e f : Nat),
     [c, d] = [e, f] ->
     [a, b] = [e, f] := by
   intro a b c d e f eq1 eq2
-  apply trans_eq _ _ [c, d]
-  apply eq1
-  apply eq2
+  apply trans_eq _ _ _ eq1 eq2
 
-/- In fact, we can be even more concise. If we know the name of
+/- As an aside: if we know the name of
    the argument we are supplying (in this case `y`), we can
-   just name it directly, and avoid typing all those `_`s. -/
+   just name it directly, and avoid typing any `_`s. -/
 theorem trans_eq_example''' : forall (a b c d e f : Nat),
     [a, b] = [c, d] ->
     [c, d] = [e, f] ->
@@ -253,22 +249,41 @@ theorem trans_eq_example''' : forall (a b c d e f : Nat),
   apply eq1
   apply eq2
 
--- TERSE:
+/-
+  FULL: Like any other kind of software, there are conventions and best practices associated
+  with writing proofs in Lean. One of these conventions concerns the use of the `exact`
+  tactic. When fully applying another theorem like in the previous examples,
+  it is considered good practice to use the `exact` tactic instead of `apply`. This signals to
+  a reader of the proof that the proof is "exactly" an instance of another lemma, and that nothing
+  of particular interest is happening here. This achieves a similar goal as when
+  a mathematician says that one result is "just" an instance of another.
+-/
+/- TERSE: By convention, we use `exact` for situations when we can completely finish the proof
+          with a single application  -/
+theorem trans_eq_example_exact : forall (a b c d e f : Nat),
+    [a, b] = [c, d] ->
+    [c, d] = [e, f] ->
+    [a, b] = [e, f] := by
+  intro a b c d e f eq1 eq2
+  exact trans_eq _ _ _ eq1 eq2
+
 /- TODO: (DHS) if we decide we want to introduce `calc` earlier, we can
    remove this explanation or tweak it. -/
 /- FULL: Lean also has a built-in tactic `calc` that
     accomplishes the same purpose as applying `trans_eq`.
     The tactic allows us to specify the in-between states
-    of any transitive relation. -/
+    of any transitive relation. The notation is reminiscent of
+    the proofs you might see in a mathematics textbook.
+    -/
 /- TERSE: `calc` is also available as a tactic. -/
 theorem trans_eq_example'''' : forall (a b c d e f : Nat),
     [a, b] = [c, d] ->
     [c, d] = [e, f] ->
     [a, b] = [e, f] := by
   intro a b c d e f eq1 eq2
-  calc [a, b]
-  _ = [c, d] := by rw [eq1]
-  _ = [e, f] := by rw [eq2]
+  calc
+  [a, b] = [c, d] := by rw [eq1]
+  [c, d] = [e, f] := by rw [eq2]
 
 -- FULL
 -- EX3? (trans_eq_exercise)
@@ -278,17 +293,15 @@ theorem trans_eq_exercise : forall (n m o p : Nat),
      (n + p) = (minustwo o) := by
   -- ADMITTED
   intro n m o p eq1 eq2
-  calc (n + p)
+  calc
   _ = m := by rw [eq2]
   _ = minustwo o := by rw [eq1]
 -- /ADMITTED
 -- []
 -- /FULL
 
-
 -- ######################################################
 -- # The `injection` and `contradiction` Tactics
-/- HIDE: Should we explain `discriminate` without an argument?  BCP 25: No. -/
 
 /- FULL: Recall the definition of natural numbers:
 
@@ -496,7 +509,7 @@ theorem disjoint_ex3 :
 /- For a more useful example, we can use `contradiction` to make a
     connection between the two different notions of equality (`=` and
     `==`) that we have seen for natural numbers. -/
-theorem eqb_0_l : forall (n : Nat),
+theorem beq_0_l : forall (n : Nat),
     (0 == n) = true ->
     n = 0 := by
   intro n h
@@ -518,14 +531,13 @@ theorem eqb_0_l : forall (n : Nat),
     from further consideration. -/
     contradiction
 
-
 /- HIDE: APT: Could add an advanced exercise asking them to show
    somthing like [true = false -> 0 = 1] using [rewrite] and a
    function definition and using [discriminate].  BCP: This might be
    nice, but not sure this is a critical point to make. -/
 /- HIDE: "There should be more discussion and practice with how to
    deal with subexpressions that do not allow application of
-   hypotheses, for example how to deal with the [S m] in [m + (S m)].
+   hypotheses, for example how to deal with the `.succ m` in `m + (.succ m)`.
    Again, I sort of understand what to do with [destruct] and
    induction, but it would help to have more exercises that break down
    the process of making this connection."  BCP 9/18: Not sure exactly
@@ -906,6 +918,7 @@ theorem trans_eq_example''''' : forall (a b c d e f : Nat),
   /- .. and here we could also write `exact eq2` -/
   assumption
 
+
 -- ######################################################
 /- Varying the Induction Hypothesis -/
 
@@ -1015,7 +1028,7 @@ example : forall n m,
 
     then we can prove
 
-       - "if `double (S n) = double m` then `.succ n = m`".
+       - "if `double (.succ n) = double m` then `.succ n = m`".
 
     To see why this is strange, let's think of a particular `m` --
     say, `5`.  The statement is then saying that, if we know
@@ -1024,7 +1037,7 @@ example : forall n m,
 
     then we can prove
 
-      - `R` = "if `double (S n) = 10` then `S n = 5`".
+      - `R` = "if `double (.succ n) = 10` then `.succ n = 5`".
 
     But knowing `Q` doesn't give us any help at all with proving `R`!
     If we tried to prove `R` from `Q`, we would start with something
@@ -1118,9 +1131,9 @@ theorem double_injective : forall (n m : Nat),
 /- TERSE: The following theorem, which further strengthens the link between
     `==` and `=`, follows the same pattern. -/
 -- FULL
--- EX2 (eqb_true)
+-- EX2 (beq_eq)
 -- /FULL
-theorem eqb_true : forall (n m : Nat),
+theorem beq_eq : forall (n m : Nat),
   (n == m) = true -> n = m := by
   -- FULL
   -- ADMITTED
@@ -1148,74 +1161,74 @@ theorem eqb_true : forall (n m : Nat),
 -- /TERSE
 -- FULL
 -- /ADMITTED
--- GRADE_THEOREM 2: eqb_true
+-- GRADE_THEOREM 2: beq_eq
 -- []
 
 
--- EX2AM? (eqb_true_informal)
-/- Give a careful informal proof of `eqb_true`, stating the induction
+-- EX2AM? (beq_eq_informal)
+/- Give a careful informal proof of `beq_eq`, stating the induction
     hypothesis explicitly and being as explicit as possible about
     quantifiers, everywhere. -/
 
 -- SOLUTION
-/- _Theorem_: For all natural numbers `n` and `m`, if [n =? m =
+/- _Theorem_: For all natural numbers `n` and `m`, if [n == m =
       true], then `n = m`.
 
     _Proof_ (more pedantic, arguably less clear): We argue by
     induction on `n`.
 
       - Base case: `n = 0`.  We must show, for all natural numbers
-        `m`, that `0 =? m = true` implies `0 = m`.  We proceed by
+        `m`, that `0 == m = true` implies `0 = m`.  We proceed by
         cases on `m`.
 
-          - If `m = 0`, we must show that `0 =? 0 = true` implies [0 =
+          - If `m = 0`, we must show that `0 == 0 = true` implies [0 =
             0], which holds by reflexivity.
 
-          - If `m = S m'` for some `m'`, we must show that [0 =? S m'
-            = true] implies `0 = S m'`.  But `0 =? S m'` evaluates to
+          - If `m = .succ m'` for some `m'`, we must show that [0 == .succ m'
+            = true] implies `0 = .succ m'`.  But `0 == .succ m'` evaluates to
             `false`, so the antecedent of this implication is [false =
             true], which is absurd, and hence the whole implication is
             true.
 
-      - Inductive case: `n = S n'`. We must show that for all natural
-        numbers `m`, `S n' =? m = true` implies `S n' = m`.
+      - Inductive case: `n = .succ n'`. We must show that for all natural
+        numbers `m`, `.succ n' == m = true` implies `.succ n' = m`.
 
         We may assume the induction hypothesis: for all natural
-        numbers `m`, `n' =? m = true`, implies `n' = m`.
+        numbers `m`, `n' == m = true`, implies `n' = m`.
 
         We again proceed by cases on `m`.
 
-          - If `m = 0`, we must show that `S n' =? 0 = true` implies
-            `S n' = m`. But `S n' =? 0` evaluates to `false`, so the
+          - If `m = 0`, we must show that `.succ n' == 0 = true` implies
+            `.succ n' = m`. But `.succ n' == 0` evaluates to `false`, so the
             antecedent of this implies is again absurd, and hence the
             whole implication is true.
 
-          - If `m = S m'` for some `m'`, we must show that [S n' =? S
-            m' = true] implies `S n' = S m'`.  So let us assume the [S
-            n' =? S m' = true].  This simplifies to [n' =? m' =
+          - If `m = .succ m'` for some `m'`, we must show that [.succ n' == .succ
+            m' = true] implies `.succ n' = .succ m'`.  So let us assume the [.succ
+            n' == .succ m' = true].  This simplifies to [n' == m' =
             true]. Hence we can apply the induction hypothesis (with
             `m` instantiated to `m'`) to obtain `n' = m'`.  Hence, to
-            show `S n' = S m'` it suffices to show `S n' = S n'`,
+            show `.succ n' = .succ m'` it suffices to show `.succ n' = .succ n'`,
             which is true by reflexivity. []
 
     _Alternate proof_ (in a more natural style):
     By induction on `n`.
 
-      - Suppose `n = 0`.  We must show that if `0 =? m = true` then [0
-        = m]. Now if `m` were of the form `S m'` for some `m'`, then
-        we would have `0 =? S m' = true`, which is absurd. So `m` must
+      - Suppose `n = 0`.  We must show that if `0 == m = true` then [0
+        = m]. Now if `m` were of the form `.succ m'` for some `m'`, then
+        we would have `0 == .succ m' = true`, which is absurd. So `m` must
         indeed be 0.
 
-      - Otherwise, we have `n = S n'`. The induction hypothesis states
-        that for all m, if `n' =? m = true`, then `n' = m`; and on the
-        assumption `S n' =? m = true`, we must show that `S n' = m`.
-        In this case `m` must have the form `S m'` for some `m'`, for
-        if `m` were 0, our assumption would be `S n' =? 0 = true`,
-        which is absurd.  So our assumption has the form [S n' =? S m'
-        = true], which simplifies to `n' =? m' = true`. Applying the
+      - Otherwise, we have `n = .succ n'`. The induction hypothesis states
+        that for all m, if `n' == m = true`, then `n' = m`; and on the
+        assumption `.succ n' == m = true`, we must show that `.succ n' = m`.
+        In this case `m` must have the form `.succ m'` for some `m'`, for
+        if `m` were 0, our assumption would be `.succ n' == 0 = true`,
+        which is absurd.  So our assumption has the form [.succ n' == .succ m'
+        = true], which simplifies to `n' == m' = true`. Applying the
         induction hypothesis to the assumption (with `m` instantiated
         to `m'`) gives us that `n' = m'`, which directly implies our
-        goal `S n' = S m'`. [] -/
+        goal `.succ n' = .succ m'`. [] -/
 -- /SOLUTION
 
 -- GRADE_MANUAL 2: informal_proof
@@ -1243,7 +1256,7 @@ theorem plus_n_n_injective : forall (n m : Nat),
       rw [add_succ, add_succ (m' + 1)] at eq
       injection eq with eq
       rw [add_comm, add_comm (m' + 1)] at eq
-      injections; congr; apply ih; assumption
+      injections eq; congr; exact ih _ eq
 -- /ADMITTED
 -- GRADE_THEOREM 3: plus_n_n_injective
 -- []
@@ -1310,7 +1323,7 @@ theorem double_injective_take2 : forall n m,
   . case succ _ ih =>
     cases n
     . contradiction
-    . congr; injections; apply ih; assumption
+    . congr; injections _ eq; exact ih _ eq
 
 /- LATER: Somewhere (in this file? in Poly?), we might want to include
    a more careful discussion of the way generalized IHs are handled in
@@ -1334,28 +1347,29 @@ theorem double_injective_take2 : forall n m,
 
         Since `m = 0`, by the definition of `double` we have [double n =
         0].  There are two cases to consider for `n`.  If `n = 0` we are
-        done, since `m = 0 = n`, as required.  Otherwise, if `n = S n'`
+        done, since `m = 0 = n`, as required.  Otherwise, if `n = .succ n'`
         for some `n'`, we derive a contradiction: by the definition of
-        `double`, we can calculate `double n = S (S (double n'))`, but
+        `double`, we can calculate `double n = .succ (.succ (double n'))`, but
         this contradicts the assumption that `double n = 0`.
 
-      - Second, suppose `m = S m'` and that `n` is again a number such
-        that `double n = double m`.  We must show that `n = S m'`, with
+      - Second, suppose `m = .succ m'` and that `n` is again a number such
+        that `double n = double m`.  We must show that `n = .succ m'`, with
         the induction hypothesis that for every number `s`, if [double s =
         double m'] then `s = m'`.
 
-        By the fact that `m = S m'` and the definition of `double`, we
-        have `double n = S (S (double m'))`.  There are two cases to
+        By the fact that `m = .succ m'` and the definition of `double`, we
+        have `double n = .succ (.succ (double m'))`.  There are two cases to
         consider for `n`.
 
         If `n = 0`, then by definition `double n = 0`, a contradiction.
 
-        Thus, we may assume that `n = S n'` for some `n'`, and again by
-        the definition of `double` we have [S (S (double n')) =
-        S (S (double m'))], which implies by injectivity that [double n' =
-        double m'].  Instantiating the induction hypothesis with `n'` thus
+        Thus, we may assume that `n = .succ n'` for some `n'`, and again by
+        the definition of `double` we have
+        `.succ (.succ (double n')) = .succ (.succ (double m'))`,
+        which implies by injectivity that `double n' = double m'`.
+        Instantiating the induction hypothesis with `n'` thus
         allows us to conclude that `n' = m'`, and it follows immediately
-        that `S n' = S m'`.  Since `S n' = n` and `S m' = m`, this is just
+        that `.succ n' = .succ m'`.  Since `.succ n' = n` and `.succ m' = m`, this is just
         what we wanted to show. [] -/
 
 /- LATER: Maybe we should put one more good example to round out this section? -/
@@ -1367,7 +1381,7 @@ theorem double_injective_take2 : forall n m,
     `sub`.  Since we are working with natural numbers, we need an
     assumption to prevent `sub` from truncating its result. With
     this assumption, the induction hypothesis becomes
-    `forall m, n' <=? m = true -> (m - n') + n' = m`.  The beginning of the proof
+    `forall m, n' <== m = true -> (m - n') + n' = m`.  The beginning of the proof
     uses techniques we have already seen -- in particular, notice how
     we induct on `n` before introducing `m`, so that the induction
     hypothesis becomes sufficiently general. -/
@@ -1398,10 +1412,36 @@ theorem sub_add_leb : forall n m, n ≤? m = true -> (m - n) + n = m := by
       rw [ih]
       assumption
 
--- FULL
--- EX3! (gen_dep_practice)
--- Prove this by induction on `l`.
+-- ######################################################
+/- Supplying Proof as Arguments -/
 
+/- As we've already seen in some of our previous proofs about `trans_eq`,
+   we can supply hypotheses as arguments to other hypotheses using `apply`
+   and `exact`. Sometimes, however, our hypotheses may require a premise that we
+   know to be true, but is not directly available to use via a named hypothesis in our context.
+   In such cases, we can actually directly supply a proof as an argument:
+-/
+theorem silly_by_rfl : forall (a b : Nat),
+     (0 = 0 -> a = b) ->
+    a = b := by
+  intro a b h
+  exact h (by rfl)
+/-
+  In this example, our premise contains the equality between `a` and `b`
+  that we need to prove our goal, but it first requires us to supply
+  a proof that `0 = 0` in order to use that fact. We could simply use
+  `apply h; rfl` to finish the proof here, but a more elegant and idiomatic
+  approach is to supply the proof that `0 = 0` directly to `h` as an argument
+  using the `exact` tactic. The `by` keyword signals to Lean that a proof is beginning,
+  and we can discharge that proof just by using `rfl`. In cases where proof arguments
+  are very simple, we prefer this style for more concise proofs.
+-/
+
+/-
+  The above example looks quite silly, and you may wonder when we ever
+  encounter situations like this in a real proof. In practice, using `cases` or `induction`
+  can often generate instances that look like this. As a more practical example:
+-/
 theorem nth_error_after_last: forall (n : Nat) (α : Type) (l : List α),
   l.length = n ->
   nthError l n = none := by
@@ -1409,13 +1449,22 @@ theorem nth_error_after_last: forall (n : Nat) (α : Type) (l : List α),
   intros n α l hlen
   induction l generalizing n
   case nil => rfl
-  case cons hd tl ih =>
-    dsimp [nthError]; dsimp [List.length] at hlen
-    rw [←hlen]
-    dsimp; apply ih; rfl
--- /ADMITTED
--- GRADE_THEOREM 3: nth_error_after_last
--- []
+  case cons _ tl ih =>
+    dsimp [List.length] at hlen; rw [←hlen]
+    dsimp [nthError]
+    /-
+      Our goal is now `exact`ly a special case of our inductive hypothesis,
+      with `n` insantiated as `List.length tl`. However,
+      in order to access that fact, we have to prove that `List.length tl = n`,
+      or in this case that `List.length tl = List.length tl`. But this is
+      true by reflexivity, so we can use `(by rfl)` as a proof of this fact.
+      Lean is also able to infer that the argument `n` to the `ih` must be
+      `List.length tl`, since the only thing that is reflexively equal to
+      `List.length tl` is itself.
+    -/
+    exact ih _ (by rfl)
+
+
 -- HIDE
 
 /- LATER: BCP 9/16: Hiding the following three exercises, which
@@ -1424,7 +1473,7 @@ theorem nth_error_after_last: forall (n : Nat) (α : Type) (l : List α),
 /- Prove this by induction on `l1`, without using `app_length`
     from `Lists`. -/
 
-theorem app_length_cons : forall (α : Type) (l1 l2 : List α)
+theorem app_length_cons : forall {α : Type} (l1 l2 : List α)
                                  (x : α) (n : Nat),
   (l1 ++ (x :: l2)).length = n ->
   .succ ((l1 ++ l2).length) = n := by
@@ -1436,8 +1485,7 @@ theorem app_length_cons : forall (α : Type) (l1 l2 : List α)
   case cons hd tl ih =>
     dsimp; dsimp [List.length] at heq
     rw [←heq]
-    have h : .succ (tl ++ l2).length = (tl ++ x :: l2).length := by
-      apply ih; rfl
+    have h : .succ (tl ++ l2).length = (tl ++ x :: l2).length := by exact ih _ (by rfl)
     dsimp at h; rw [h]
 -- /ADMITTED
 -- []
@@ -1467,7 +1515,7 @@ theorem app_length_twice : forall (α:Type) (n:Nat) (l:List α),
   case cons hd tl ih =>
     dsimp; dsimp at heq
     have h : .succ (tl ++ tl).length = (tl ++ hd :: tl).length := by
-      apply app_length_cons (x := hd); rfl
+      apply app_length_cons _ _ hd _ (by rfl)
     dsimp at h
     rw [←heq, ←h, ih tl.length, add_assoc]
     congr 1
@@ -1493,12 +1541,12 @@ theorem diagonal_induction: forall (P : Nat -> Nat -> Prop),
   induction m generalizing n
   case zero =>
     induction n
-    case zero => apply H00
-    case succ _ ih => apply H0S; apply ih
+    case zero => exact H00
+    case succ _ ih => exact H0S _ ih
   case succ _ ih =>
     cases n
-    . apply HS0; apply ih
-    . apply HSS; apply ih
+    . exact HS0 _ (ih _)
+    . exact HSS _  _ (ih _ )
 
 -- /ADMITTED
 -- []
@@ -1579,8 +1627,8 @@ Qed.
 
 Definition bar x :=
   match x with
-  | O => 5
-  | S _ => 5
+  | 0 => 5
+  | .succ _ => 5
   end.
 
 (** ...then the analogous proof will get stuck: *)
@@ -1606,7 +1654,7 @@ Abort.
 (** TERSE: *** *)
 (** FULL: At this point, there are two ways to make progress.  One is to use
     `destruct m` to break the proof into two cases, each focusing on a
-    more concrete choice of `m` (`O` vs `S _`).  In each case, the
+    more concrete choice of `m` (`O` vs `.succ _`).  In each case, the
     `match` inside of `bar` can now make progress, and the proof is
     easy to complete. *)
 (** TERSE: There are now two ways make progress.
@@ -1675,7 +1723,7 @@ theorem sillyfun_false : forall (n : Nat),
   case false =>
     dsimp; cases (n == 5)
     case false => rfl
-    case true =>rfl
+    case true => rfl
   case true => rfl
 
 /- FULL: After unfolding `sillyfun` in the above proof, we find that
@@ -1798,7 +1846,7 @@ theorem sillyfun1_odd : forall (n : Nat),
       rw [h'] at eq; dsimp at eq
       contradiction
     . case true =>
-      apply eqb_true at h'
+      apply beq_eq at h'
       rw [h']; rfl
 -- /FULL
 -- FULL
@@ -1808,7 +1856,7 @@ theorem sillyfun1_odd : forall (n : Nat),
       proof. -/
 -- /FULL
   . case true =>
-    apply eqb_true at h
+    apply beq_eq at h
     rw [h]; rfl
 
 -- FULL
@@ -1926,8 +1974,8 @@ theorem bool_fn_applied_thrice :
 /- ###################################################### -/
 /- Additional Exercises -/
 
--- EX3 (eqb_sym)
-theorem eqb_sym : forall (n m : Nat),
+-- EX3 (beq_symm)
+theorem beq_symm : forall (n m : Nat),
   (n == m) = (m == n) := by
 
   intro n m
@@ -1939,17 +1987,17 @@ theorem eqb_sym : forall (n m : Nat),
     cases m
     . rfl
     . rw [beq_succ, beq_succ]
-      apply ih
+      exact ih _
 -- ADMITTED
 -- /ADMITTED
--- GRADE_THEOREM 3: eqb_sym
+-- GRADE_THEOREM 3: beq_symm
 -- []
 
--- EX3AM? (eqb_sym_informal)
+-- EX3AM? (beq_symm_informal)
 /- Give an informal proof of this lemma that corresponds to your
     formal proof above:
 
-   Theorem: For any `Nat`s `n` `m`, `(n =? m) = (m =? n)`.
+   Theorem: For any `Nat`s `n` `m`, `(n == m) = (m == n)`.
 
    Proof: -/
 -- SOLUTION
@@ -1960,37 +2008,37 @@ theorem eqb_sym : forall (n m : Nat),
    - For the base case, we have `n = 0`.  Let `m` be given.
      We must show that
 [[
-       0 =? m = m =? 0
+       0 == m = m == 0
 ]]
      Either `m = 0` or not.
 
-     - If `m = 0`, we must show `0 =? 0 = 0 =? 0`
+     - If `m = 0`, we must show `0 == 0 = 0 == 0`
        which is true by reflexivity.
 
-     - Otherwise, `m = S m'` for some `m'`, and we must show
-       `0 =? (S m') = (S m') =? 0`. By the definition
-       of `eqb`, both sides are `false`.
+     - Otherwise, `m = .succ m'` for some `m'`, and we must show
+       `0 == (.succ m') = (.succ m') == 0`. By the definition
+       of `beq`, both sides are `false`.
 
-   - In the inductive case, we have `n = S n'` for some
+   - In the inductive case, we have `n = .succ n'` for some
      `n'` such that, for any `m`,
 [[
-       n' =? m = m =? n'
+       n' == m = m == n'
 ]]
      Let `m` be given.  Again, `m` is either zero or nonzero.
 
      - Suppose first `m = 0`.  It's
-       enough to show `(S n') =? 0 = 0 =? (S n')`.
-       By the definition of `eqb`, both sides are `false`.
+       enough to show `(.succ n') == 0 = 0 == (.succ n')`.
+       By the definition of `beq`, both sides are `false`.
 
-     - Otherwise, `m = S m'` for some `m'`.  By the
+     - Otherwise, `m = .succ m'` for some `m'`.  By the
        assumption, it's enough to show:
 [[
-         (S n') =? (S m') = (S m') =? (S n')
+         (.succ n') == (.succ m') = (.succ m') == (.succ n')
 ]]
-       And, by the definition of `eqb`, this reduces to
+       And, by the definition of `beq`, this reduces to
        showing:
 [[
-         m' =? n' = n' =? m'.
+         m' == n' = n' == m'.
 ]]
        which is exactly the induction hypothesis.  -/
 -- /SOLUTION
@@ -1998,14 +2046,14 @@ theorem eqb_sym : forall (n m : Nat),
 -- /FULL
 
 -- FULL
--- EX3? (eqb_trans)
-theorem eqb_trans : forall (n m p : Nat),
+-- EX3? (beq_trans)
+theorem beq_trans : forall (n m p : Nat),
   (n == m) = true ->
   (m == p) = true ->
   (n == p) = true := by
 -- ADMITTED
   intros n m p hnm hmp
-  apply eqb_true at hnm
+  apply beq_eq at hnm
   rw [hnm, hmp]
 -- /ADMITTED
 -- []
@@ -2117,8 +2165,7 @@ theorem filter_exercise : forall (α : Type) (test : α -> Bool)
     dsimp [filter] at h
     cases h' : (test hd)
     . rw [h'] at h; dsimp at h
-      apply ih
-      exact h
+      exact ih _ _ _ h
     . rw [h'] at h; dsimp at h
       injections h1 h2
       rw [←h1]
@@ -2135,12 +2182,12 @@ theorem filter_exercise : forall (α : Type) (test : α -> Bool)
       forallb odd [1,3,5,7,9] = true
       forallb negb [false,false] = true
       forallb even [0,2,4,5] = false
-      forallb (eqb 5) [] = true
+      forallb (beq 5) [] = true
 ]]
     The second checks whether there exists an element in the list that
     satisfies a given predicate:
 [[
-      existsb (eqb 5) [0,2,3,6] = false
+      existsb (beq 5) [0,2,3,6] = false
       existsb (andb true) [true,true,false] = true
       existsb odd [1,0,0,0,0,3] = true
       existsb even [] = false
