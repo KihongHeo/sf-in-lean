@@ -12,9 +12,10 @@ We also offer some rules for distributed collaboration. We want to take input fr
 
 ## Tenets
 
-1. Human understanding via clear pedagogy is primary
-1. Prefer to write definitions and proofs in idiomatic Lean, only deviating temporarily for pedagogical reasons
-1. When in doubt, follow the path of topics taken by SF in Rocq; deviations should have good, specific reasons
+1. SF aims for exceptional pedagogy to advance human understanding
+1. SF is _exercise-based_: Every important concept has hands-on exercises to reinforce it
+1. Definitions and proofs are written in idiomatic Lean, only deviating (temporarily) for pedagogical reasons
+1. SF in Lean follows the path of topics of SF in Rocq unless there are specific reasons not to
 
 **To do**: Complete these.
 
