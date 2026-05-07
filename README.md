@@ -8,13 +8,13 @@ We believe that there is room for a pedagogically minded text focusing on the ma
 
 To this end, and to facilitate rapid development, we offer a list of tenets that guide SF in Lean's development. These tenets will keep us on track when making decisions, and hopefully redirect us away from topics adequately covered elsewhere, and toward clear gaps.
 
-We also offer some rules for distributed collaboration. We want to take input from as many people as possible, but develop clear guidelines for taking contributions and resolving disagreements.
+We also offer some rules for distributed collaboration. We want to take input from as many people as possible but develop clear guidelines for taking contributions and resolving disagreements.
 
 ## Tenets
 
 1. Human understanding via clear pedagogy is primary
-1. Prefer to write definitions and proofs in idiomatic Lean, only deviating temporarily for pedagogical reasons
-1. When in doubt, follow the path of topics taken by SF in Rocq; deviations should have good, specific reasons
+2. Prefer to write definitions and proofs in idiomatic Lean, only deviating temporarily for pedagogical reasons
+3. By default, follow the well-tested path of topics taken by SF in Rocq; deviations should have good, specific reasons
 
 **To do**: Complete these.
 
