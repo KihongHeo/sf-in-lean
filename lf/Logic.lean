@@ -62,7 +62,7 @@ open Nat hiding add_succ mul_succ beq beq_eq
 
 /- FULL: Indeed, propositions don't just have types -- they are
     _first-class_ entities that can be manipulated in all the same ways as
-    any of the other things in Lean' world. -/
+    any of the other things in Lean's world. -/
 
 /- So far, we've seen one primary place where propositions can appear:
     in `theorem` declarations. -/
@@ -403,9 +403,9 @@ theorem factor_is_zero (n m : Nat) (h : n = 0 ∨ m = 0) : n * m = 0 := by
   case inr hm => rw [hm, mul_zero]
 
 /- FULL: We can see in this example that, when we perform case
-    analysis on a disjunction `A ∨ B`, we must separately discharge
+    analysis on a disjunction `P ∨ Q`, we must separately discharge
     two proof obligations, each showing that the conclusion holds
-    under a different assumption -- `A` in the first subgoal and `B`
+    under a different assumption -- `P` in the first subgoal and `Q`
     in the second. -/
 
 /- Rather than performing case analysis via `cases`, we can also use `obtain`
