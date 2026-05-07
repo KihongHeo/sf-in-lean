@@ -33,7 +33,7 @@
    /HIDEFROMHTML
 -/
 
-import LF.Induction
+import Induction
 namespace NatList
 
 #check ([] ++ [])
@@ -181,9 +181,9 @@ theorem surjective_pairing : ∀ p : NatProd,
     p = ⟨p.fst, p.snd⟩ := by
   intro ⟨n, m⟩; rfl
 
-theorem surjective_pairing_cases : ∀ p : NatProd,
+theorem surjective_pairing_cases (p : NatProd) :
     p = ⟨p.fst, p.snd⟩ := by
-  intro p; cases p; rfl
+  cases p; rfl
 
 /- FULL: Notice that, by contrast with the behavior of `cases` on
    `Nat`s, where it generates two subgoals, `cases` generates just
@@ -193,19 +193,19 @@ theorem surjective_pairing_cases : ∀ p : NatProd,
 -- FULL
 -- EX1 (snd_fst_is_swap)
 -- snd_fst_is_swap
-theorem snd_fst_is_swap : ∀ p : NatProd,
+theorem snd_fst_is_swap (p : NatProd) :
     (⟨p.snd, p.fst⟩ : NatProd) = p.swap := by
   -- ADMITTED
-  intro ⟨n, m⟩; rfl
+  cases p; rfl
 -- /ADMITTED
 -- []
 
 -- EX1? (fst_swap_is_snd)
 -- fst_swap_is_snd
-theorem fst_swap_is_snd : ∀ p : NatProd,
+theorem fst_swap_is_snd (p : NatProd) :
     p.swap.fst = p.snd := by
   -- ADMITTED
-  intro ⟨n, m⟩; rfl
+  cases p; rfl
 -- /ADMITTED
 -- []
 -- /FULL
@@ -305,6 +305,8 @@ example : [1, 2, 3] ++ ([] : NatList) = [1, 2, 3] := by rfl
 
   (For a thorough treatment of type classes, see Chapter 3 of
    _Functional Programming in Lean_.) -/
+/- TODO (DHS) : Should we replace the above with a forward link to our typeclasses chapter,
+  once we have one? -/
 
 -- Some simple facts about appending lists
 theorem nil_append (l : NatList) : [] ++ l = l := rfl
@@ -570,9 +572,8 @@ example : included [1, 2, 2] [2, 1, 4, 1] = false := by rfl  -- ADMITTED
 -- Adding a value to a bag should increase the value's count by one.
 -- State this as a theorem and prove it.
 -- QUIETSOLUTION
-theorem add_inc_count : ∀ (s : Bag) (v : Nat),
+theorem add_inc_count (s : Bag) (v : Nat) :
     count v (add v s) = (count v s) + 1 := by
-  intro s v
   dsimp [add, count, eqb_refl]
   rw [eqb_refl]
   dsimp
@@ -592,9 +593,7 @@ end Bag
 /- TERSE: As with numbers, some proofs about list functions need only
    simplification... -/
 
-theorem nil_app : ∀ (l : NatList), ([] : NatList) ++ l = l := by
-  intro l
-  rfl
+theorem nil_app (l : NatList) : ([] : NatList) ++ l = l := by rfl
 
 /- FULL: ...because the `[]` is substituted into the "scrutinee" (the
    expression whose value is being "scrutinized" by the match) in the
@@ -606,9 +605,8 @@ theorem nil_app : ∀ (l : NatList), ([] : NatList) ++ l = l := by
 -- TERSE: ***
 -- TERSE: ...and some need case analysis.
 
-theorem tl_length_pred : ∀ l : NatList,
+theorem tl_length_pred (l : NatList) :
     l.length.pred = l.tl.length := by
-  intro l
   cases l
   case nil => rfl
   case cons n l' => rfl
@@ -671,9 +669,8 @@ theorem tl_length_pred : ∀ l : NatList,
    definition, including lists.  We can use the `induction` tactic on
    lists to prove things like the associativity of list-append... -/
 
-theorem app_assoc : ∀ l1 l2 l3 : NatList,
+theorem app_assoc (l1 l2 l3 : NatList) :
     (l1 ++ l2) ++ l3 = l1 ++ (l2 ++ l3) := by
-  intro l1 l2 l3
   induction l1
   case nil => rfl
   case cons n l1' ih =>
@@ -712,13 +709,11 @@ theorem app_assoc : ∀ l1 l2 l3 : NatList,
 -- myRepeat_double_firsttry
 /-- warning: declaration uses `sorry` -/
 #guard_msgs in
-example : ∀ c n : Nat,
+example (c n : Nat) :
     myRepeat n c ++ myRepeat n c = myRepeat n (c + c) := by
-  intro c
   induction c
-  case zero => intro n; rfl
+  case zero => rfl
   case succ c' ih =>
-    intro n
     -- Now we seem to be stuck.  The IH only works for c' + c',
     -- but we need c' + (c' + 1).
     sorry
@@ -726,9 +721,8 @@ example : ∀ c n : Nat,
 -- FULL: To get a more general inductive hypothesis, we can generalize:
 -- TERSE: A generalization that gives a stronger inductive hypothesis:
 
-theorem myRepeat_plus : ∀ c1 c2 n : Nat,
+theorem myRepeat_plus (c1 c2 n : Nat) :
     myRepeat n c1 ++ myRepeat n c2 = myRepeat n (c1 + c2) := by
-  intro c1 c2 n
   induction c1
   case zero =>
     dsimp [myRepeat]
@@ -764,9 +758,8 @@ example : ([] : NatList).rev = [] := by rfl
 -- rev_length_firsttry
 /-- warning: declaration uses `sorry` -/
 #guard_msgs in
-example : ∀ l : NatList,
+example (l : NatList) :
     l.rev.length = l.length := by
-  intro l
   induction l
   case nil => rfl
   case cons n l' ih =>
@@ -783,9 +776,8 @@ example : ∀ l : NatList,
 -- app_rev_length_S_firsttry
 /-- warning: declaration uses `sorry` -/
 #guard_msgs in
-example : ∀ (l : NatList) n,
+example (l : NatList) n :
     (l.rev ++ [n]).length = .succ l.rev.length := by
-  intro l n
   induction l
   case nil =>
     dsimp [NatList.rev, NatList.length]
@@ -799,9 +791,8 @@ example : ∀ (l : NatList) n,
 /- FULL: It turns out that the above lemma is more specific than it
    needs to be. We can strengthen the lemma to work not only on reversed
    lists but on general lists. -/
-theorem app_length_succ : ∀ (l : NatList) (n : Nat),
+theorem app_length_succ (l : NatList) (n : Nat) :
     (l ++ [n]).length = l.length + 1 := by
-  intro l n
   induction l
   case nil => rfl
   case cons m l' ih =>
@@ -812,9 +803,8 @@ theorem app_length_succ : ∀ (l : NatList) (n : Nat),
 -- TERSE: ***
 -- Now we can prove the main theorem.
 
-theorem rev_length : ∀ l : NatList,
+theorem rev_length (l : NatList) :
     l.rev.length = l.length := by
-  intro l
   induction l
   case nil => rfl
   case cons n l' ih =>
@@ -826,10 +816,9 @@ theorem rev_length : ∀ l : NatList,
 -- length of any two appended lists.
 
 -- app_length
-theorem app_length : ∀ l1 l2 : List Nat,
+theorem app_length (l1 l2 : List Nat) :
     (l1 ++ l2).length = l1.length + l2.length := by
   -- WORKINCLASS
-  intro l1 l2
   induction l1
   case nil => dsimp; rw [zero_add]
   case cons n l1' ih => dsimp; rw [ih, succ_add]
@@ -847,10 +836,10 @@ theorem app_length : ∀ l1 l2 : List Nat,
         myRepeat n 0 = l -> l.length = 0 -/
 
 -- HIDE
-theorem foo1 : forall n : Nat, forall l : NatList,
+theorem foo1 (n : Nat) (l : NatList) :
     myRepeat n 0 = l -> l.length = 0 := by
-  intro n l H
-  rw [← H]
+  intro h
+  rw [←h]
   rfl
 -- /HIDE
 -- /QUIZ
@@ -868,9 +857,8 @@ theorem foo1 : forall n : Nat, forall l : NatList,
 -/
 
 -- HIDE
-theorem foo2 :  forall n m : Nat,
+theorem foo2 (n m : Nat) :
     (myRepeat n m).length = m := by
-  intro n m
   induction m
   case zero => rfl
   case succ m' ih =>
@@ -982,10 +970,9 @@ theorem foo2 :  forall n m : Nat,
 -- EX3 (list_exercises)
 -- More practice with lists:
 
-theorem app_nil_r : ∀ l : NatList,
+theorem app_nil_r (l : NatList) :
     l ++ ([] : NatList) = l := by
   -- ADMITTED
-  intro l
   induction l
   case nil => rfl
   case cons n l' ih =>
@@ -993,10 +980,9 @@ theorem app_nil_r : ∀ l : NatList,
 -- /ADMITTED
 -- GRADE_THEOREM 0.5: NatList.app_nil_r
 
-theorem rev_app_distr : ∀ l1 l2 : NatList,
+theorem rev_app_distr (l1 l2 : NatList) :
    (l1 ++ l2).rev = l2.rev ++ l1.rev := by
   -- ADMITTED
-  intro l1 l2
   induction l1
   case nil =>
     dsimp [NatList.rev]
@@ -1010,10 +996,9 @@ theorem rev_app_distr : ∀ l1 l2 : NatList,
 
 -- An _involution_ is a function that is its own inverse. That is,
 -- applying the function twice yields the original input.
-theorem rev_involutive : ∀ l : NatList,
+theorem rev_involutive (l : NatList) :
     l.rev.rev = l := by
   -- ADMITTED
-  intro l
   induction l
   case nil => rfl
   case cons n l' ih =>
@@ -1026,10 +1011,9 @@ theorem rev_involutive : ∀ l : NatList,
 -- There is a short solution to the next one.  If you find yourself
 -- getting tangled up, step back and try to look for a simpler way.
 
-theorem app_assoc4 : ∀ l1 l2 l3 l4 : NatList,
+theorem app_assoc4 (l1 l2 l3 l4 : NatList) :
     l1 ++ (l2 ++ (l3 ++ l4)) = ((l1 ++ l2) ++ l3) ++ l4 := by
   -- ADMITTED
-  intro l1 l2 l3 l4
   rw [app_assoc, app_assoc]
 -- /ADMITTED
 -- GRADE_THEOREM 0.5: NatList.app_assoc4
@@ -1037,10 +1021,9 @@ theorem app_assoc4 : ∀ l1 l2 l3 l4 : NatList,
 -- An exercise about your implementation of `nonzeros`:
 
 -- nonzeros_app
-theorem nonzeros_app : ∀ l1 l2 : NatList,
+theorem nonzeros_app (l1 l2 : NatList) :
     nonzeros (l1 ++ l2) = (nonzeros l1) ++ (nonzeros l2) := by
   -- ADMITTED
-  intro l1 l2
   induction l1
   case nil => rfl
   case cons n l1' ih =>
@@ -1075,10 +1058,9 @@ example : eqblist [1, 2, 3] [1, 2, 3] = true := by rfl  -- ADMITTED
 example : eqblist [1, 2, 3] [1, 2, 4] = false := by rfl  -- ADMITTED
 
 -- eqblist_refl
-theorem eqblist_refl : ∀ l : NatList,
+theorem eqblist_refl (l : NatList) :
     eqblist l l = true := by
   -- ADMITTED
-  intro l
   induction l
   case nil => rfl
   case cons n l' ih =>
@@ -1120,19 +1102,18 @@ open Bag
 
 -- EX1 (count_member_nonzero)
 -- count_member_nonzero
-theorem count_member_nonzero : ∀ s : Bag,
+theorem count_member_nonzero (s : Bag) :
     Nat.ble 1 (count 1 (1 :: s)) = true := by
   -- ADMITTED
-  intro s; rfl
+  rfl
 -- /ADMITTED
 -- []
 
 -- The following lemma about `Nat.ble` might help you in the next
 -- exercise (it will also be useful in later chapters).
 
-theorem leb_n_Sn : ∀ n : Nat,
+theorem leb_n_Sn (n : Nat) :
     Nat.ble n (n + 1) = true := by
-  intro n
   induction n
   case zero => rfl
   case succ n' ih => dsimp [Nat.ble]; exact ih
@@ -1147,9 +1128,8 @@ theorem leb_n_Sn : ∀ n : Nat,
      hack-free theorem looks like this: -/
 /- LATER: BCP 20: We'd need to find a way to get through the first
    lemma's proof without using features they don't know... -/
-theorem count_remove_one : forall v s,
+theorem count_remove_one v s :
   count v (remove_one v s) = (count v s).pred := by
-  intro v s
   induction s
   case nil => rfl
   case cons n l ih =>
@@ -1159,18 +1139,16 @@ theorem count_remove_one : forall v s,
     case false => dsimp [count]; rw [h]; dsimp; exact ih
     case true => dsimp
 
-theorem leb_pred_n_n : forall n,
+theorem leb_pred_n_n n :
     Nat.ble n.pred n = true := by
-  intro n
   induction n
   case zero => dsimp [Nat.ble]
   case succ n ih =>
     dsimp
     rw [leb_n_Sn]
 
-theorem remove_does_not_increase_count': forall (s : Bag) (n : Nat),
+theorem remove_does_not_increase_count' (s : Bag) (n : Nat) :
     Nat.ble (count n (remove_one n s)) (count n s) = true := by
-  intro s n
   induction s
   case nil => rfl
   case cons n' l ih =>
@@ -1179,10 +1157,9 @@ theorem remove_does_not_increase_count': forall (s : Bag) (n : Nat),
 
 -- EX3A (remove_does_not_increase_count)
 
-theorem remove_does_not_increase_count : ∀ s : Bag,
+theorem remove_does_not_increase_count (s : Bag) :
     Nat.ble (count 0 (remove_one 0 s)) (count 0 s) = true := by
   -- ADMITTED
-  intro s
   induction s
   case nil => rfl
   case cons n s' ih =>
@@ -1217,9 +1194,8 @@ theorem remove_does_not_increase_count : ∀ s : Bag,
    has rejected the proof in the exercise above for [count_remove_one]
    because it [destruct]s on a term rather than identifier. -/
 -- SOLUTION
-theorem bag_count_sum : ∀ (s1 s2 : Bag) (v : Nat),
+theorem bag_count_sum (s1 s2 : Bag) (v : Nat) :
     count v (sum s1 s2) = (count v s1) + (count v s2) := by
-  intro s1 s2 v
   unfold sum
   induction s1
   case nil =>
@@ -1243,11 +1219,11 @@ theorem bag_count_sum : ∀ (s1 s2 : Bag) (v : Nat),
 -- function is one-to-one: it maps distinct inputs to distinct
 -- outputs, without any collisions.
 
-theorem involution_injective : ∀ f : Nat → Nat,
+theorem involution_injective (f : Nat → Nat) :
     (∀ n : Nat, n = f (f n)) →
     (∀ n1 n2 : Nat, f n1 = f n2 → n1 = n2) := by
   -- ADMITTED
-  intro f hinv n1 n2 heq
+  intro hinv n1 n2 heq
   rw [hinv n1, hinv n2, heq]
 -- /ADMITTED
 -- []
@@ -1258,10 +1234,10 @@ theorem involution_injective : ∀ f : Nat → Nat,
 -- you used for `involution_injective`. (But: Don't try to use that
 -- exercise directly as a lemma: the types are not the same!)
 
-theorem rev_injective : ∀ l1 l2 : NatList,
+theorem rev_injective (l1 l2 : NatList) :
   l1.rev = l2.rev → l1 = l2 := by
   -- ADMITTED
-  intro l1 l2 heq
+  intro heq
   rw [← rev_involutive l1, ← rev_involutive l2, heq]
 -- /ADMITTED
 -- []
@@ -1354,10 +1330,9 @@ example : hd_error [5, 6] = .some 5 := by rfl  -- ADMITTED
 -- This exercise relates your new `hd_error` to the old `hd`.
 
 -- option_elim_hd
-theorem option_elim_hd : ∀ (l : NatList) (default : Nat),
+theorem option_elim_hd (l : NatList) (default : Nat) :
     NatList.hd default l = option_elim default (hd_error l) := by
   -- ADMITTED
-  intro l default
   cases l
   case nil => rfl
   case cons n l' => rfl
@@ -1400,8 +1375,7 @@ def size (t: BinTree): Nat :=
   | .leaf _ => 1
   | .fork l r => 1 + size l + size r
 
-theorem mirror_size: forall t, size t = size (mirror t) := by
-  intro t
+theorem mirror_size t : size t = size (mirror t) := by
   induction t
   case leaf => dsimp [size, mirror]
   case fork l r ihl ihr =>
@@ -1440,9 +1414,8 @@ def eqb_id (x1 x2 : MyId) : Bool :=
 -- EX1 (eqb_id_refl)
 -- GRADE_THEOREM 1: eqb_id_refl
 -- eqb_id_refl
-theorem eqb_id_refl : ∀ x : MyId, eqb_id x x = true := by
+theorem eqb_id_refl (x : MyId) : eqb_id x x = true := by
   -- ADMITTED
-  intro ⟨n⟩
   dsimp [eqb_id]
   rw [eqb_refl]
 -- /ADMITTED
@@ -1497,9 +1470,8 @@ def find (x : MyId) (d : PartialMap) : Option Nat :=
 -- Is the following claim true or false?
 
 -- quiz1
-theorem quiz1 : ∀ (d : PartialMap) (x : MyId) (v : Nat),
+theorem quiz1 (d : PartialMap) (x : MyId) (v : Nat) :
     find x (update d x v) = some v := by
-  intro d x v
   dsimp [update, find]
   rw [eqb_id_refl]
   dsimp
@@ -1513,10 +1485,10 @@ theorem quiz1 : ∀ (d : PartialMap) (x : MyId) (v : Nat),
 -- Is the following claim true or false?
 
 -- quiz2
-theorem quiz2 : ∀ (d : PartialMap) (x y : MyId) (o : Nat),
+theorem quiz2  (d : PartialMap) (x y : MyId) (o : Nat) :
     eqb_id x y = false →
     find x (update d y o) = find x d := by
-  intro d x y o h
+  intro h
   dsimp [update, find]
   rw [h]
   dsimp
@@ -1530,10 +1502,9 @@ theorem quiz2 : ∀ (d : PartialMap) (x y : MyId) (o : Nat),
 -- EX1 (update_eq)
 -- GRADE_THEOREM 1: PartialMap.update_eq
 -- update_eq
-theorem update_eq : ∀ (d : PartialMap) (x : MyId) (v : Nat),
+theorem update_eq (d : PartialMap) (x : MyId) (v : Nat) :
     find x (update d x v) = some v := by
   -- ADMITTED
-  intro d x v
   dsimp [update, find]
   rw [eqb_id_refl]
   dsimp
@@ -1543,10 +1514,10 @@ theorem update_eq : ∀ (d : PartialMap) (x : MyId) (v : Nat),
 -- EX1 (update_neq)
 -- GRADE_THEOREM 1: PartialMap.update_neq
 -- update_neq
-theorem update_neq : ∀ (d : PartialMap) (x y : MyId) (o : Nat),
+theorem update_neq (d : PartialMap) (x y : MyId) (o : Nat) :
     eqb_id x y = false → find x (update d y o) = find x d := by
   -- ADMITTED
-  intro d x y o h
+  intro h
   dsimp [update, find]
   rw [h]
   dsimp
