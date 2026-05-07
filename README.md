@@ -10,17 +10,20 @@ To this end, and to facilitate rapid development, we offer a list of tenets that
 
 We also offer some rules for distributed collaboration. We want to take input from as many people as possible but develop clear guidelines for taking contributions and resolving disagreements.
 
-**To do**: Explain the difference between SF and SFL, proper terminology and
+**To do**: Explain the difference between SF and SFL, official terminology and
 naming, ... 
 
 ## Tenets
 
-1. SF aims for exceptional pedagogy to advance human understanding
-2. SF is _exercise-based_: Every important concept has hands-on exercises to reinforce it
+1. SFL aims for exceptional pedagogy and presentational polish
+2. SFL is _exercise-based_: Every important concept has hands-on exercises to reinforce it
 3. Definitions and proofs are written in idiomatic Lean, only deviating (temporarily) for pedagogical reasons
-4. SF in Lean follows the path of topics of SF in Rocq unless there are specific reasons not to
+4. SFL follows the path of topics of SF in Rocq unless there are specific reasons not to
 
-**To do**: Complete these.
+**To do**: Complete these.  Including:
+  - Say something about starting with low-level tactics so that people can have
+    a consistent model of what tactics are doing
+  - Say something about "learning good proof engineering" as an explicit goal
 
 ## Rules for collaboration
 
