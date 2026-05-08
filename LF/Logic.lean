@@ -2388,15 +2388,79 @@ theorem not_exists_dist (α : Type) (P : α → Prop) :
 
 def peirce := ∀ P Q : Prop, ((P → Q) → P) → P
 
-def double_negation_elimination := ∀ P : Prop, ¬¬P → P
+def not_not := ∀ P : Prop, ¬ ¬ P → P
 
 def de_morgan_not_and_not := ∀ P Q : Prop, ¬ (¬ P ∧ ¬ Q) → P ∨ Q
 
 def imp_or := ∀ P Q : Prop, (P → Q) → (¬ P ∨ Q)
 
-def consequential_mirabilis := ∀ P : Prop, (¬ P → P) → P
+def consequentia_mirabilis := ∀ P : Prop, (¬ P → P) → P
 
 -- SOLUTION
+-- JC: If the hint suggests proving the implications in a loop,
+--     why do the solutions not do this?
+
+theorem imp_or_em : imp_or → excluded_middle := by
+  intro h P
+  obtain hnP | hP := h P P (fun hP => hP)
+  case inl => right; exact hnP
+  case inr => left; exact hP
+
+theorem em_imp_or : excluded_middle → imp_or := by
+  intro h P Q hPQ
+  obtain hP | hnP := h P
+  case inl => right; exact hPQ hP
+  case inr => left; exact hnP
+
+theorem em_demorgan : excluded_middle → de_morgan_not_and_not := by
+  intro h P Q hnn
+  obtain hP | hnP := h P
+  case inl => left; exact hP
+  case inr =>
+    obtain hQ | hnQ := h Q
+    case inl => right; exact hQ
+    case inr => exfalso; exact hnn ⟨hnP, hnQ⟩
+
+theorem demorgan_em : de_morgan_not_and_not → excluded_middle := by
+  intro h P; apply h P (¬ P)
+  intro ⟨hnP, hnnP⟩; exact hnnP hnP
+
+theorem em_not_not : excluded_middle → not_not := by
+  intro h P hnnP
+  obtain hP | hnP := h P
+  case inl => exact hP
+  case inr => exfalso; exact hnnP hnP
+
+theorem not_not_em' : not_not → excluded_middle := by
+  intro h P; exact h _ (excluded_middle_irrefutable P)
+
+theorem em_cm : excluded_middle → consequentia_mirabilis := by
+  intro h P hPnP
+  obtain hP | hnP := h P
+  case inl => exact hP
+  case inr => apply hPnP; intro hP; contradiction
+
+theorem cm_em : consequentia_mirabilis → excluded_middle := by
+  intro h P; apply h
+  intro hQ; right
+  intro hP; apply hQ
+  left; exact hP
+
+theorem cm_not_not : consequentia_mirabilis → not_not := by
+  intro h P hnnP; apply h
+  intro hnP; exfalso; exact hnnP hnP
+
+theorem not_not_cm : not_not → consequentia_mirabilis := by
+  intro h P hnPP; apply h
+  intro hnP; exact hnP (hnPP hnP)
+
+theorem cm_peirce : consequentia_mirabilis → peirce := by
+  intro h P Q hPQP; apply h
+  intro hnP; apply hPQP
+  intro hP; contradiction
+
+theorem peirce_cm : peirce → consequentia_mirabilis := by
+  intro h P; exact h P False
 
 -- /SOLUTION
 -- []
