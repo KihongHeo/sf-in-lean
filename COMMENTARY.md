@@ -92,11 +92,11 @@ Tactics to consider introducing:
 * `Basics.lean`: `rfl`, `intro`, `rewrite`, `rw`, `cases`, `dsimp`, `exact`, `contradiction`
 * `Induction.lean`: `induction`, `have`
 * `Arithmetic.lean`: TBA
-* `Lists.lean`: `unfold`
+* `Lists.lean`: `unfold`, `⟨...⟩`
 * `Poly.lean`: N/A
 * `Tactics.lean`: `apply`, `apply at`, `replace`, `symm`, `calc`, `cases h : ...`,
   `induction generalizing`, `injection with`, `injections`, `congr`, `assumption`, `let ⟨...⟩ := ...`
-* `Logic.lean`: `constructor`, `⟨...⟩`, `obtain`, `left`, `right`, `.left`, `.right`, `.mp`, `.mpr`, `ext`, `rw` by `↔`, `by_cases`
+* `Logic.lean`: `constructor`, `obtain`, `left`, `right`, `.left`, `.right`, `.mp`, `.mpr`, `ext`, `rw` by `↔`, `by_cases`
 
 ### `rewrite` vs `rw`
 

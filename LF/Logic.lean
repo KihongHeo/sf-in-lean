@@ -244,9 +244,8 @@ example : 3 + 4 = 7 ∧ 2 * 2 = 4 := by
 example : 3 + 4 = 7 ∧ 2 * 2 = 4 := by
   exact And.intro rfl rfl
 
-/- Lean also has notation for _anonymous constructors_ ⟨arg₁, ..., argₙ⟩,
-    which deduces the correct constructor that is needed,
-    and applies a list of arguments to that constructor. -/
+/- We can also use Lean's anonymous constructor notation ⟨..., ...⟩,
+    which works on constructors for proofs as well. -/
 example : 3 + 4 = 7 ∧ 2 * 2 = 4 := by
   exact ⟨rfl, rfl⟩
 
