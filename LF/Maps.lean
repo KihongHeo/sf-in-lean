@@ -51,14 +51,14 @@ def TotalMap (α : Type u) (β : Type v) := α → β
     it is just function application!"
 
   In idiomatic Lean it is considered "definitional equality abuse" (often shortened to "defeq abuse") to
-  look through the definition of a type like `TotalMap` in this way. It's become more common In
+  look through the definition of a type like `TotalMap` in this way. It's become more common in
   recent years to actually make types like this a one-field structure to strongly enforce this, but
-  I though that would be confusing here.
+  I thought that would be confusing here.
 
   What I do is make a `GetElem` instance, which is how the `m[a]` notation is managed for containers
-  in Lean. Once we define some basic operations on this, we should never have to unfold this. This may
+  in Lean. Once we define some basic theorems we should never have to unfold this. This may
   seem a bit silly for such a simple example, but I think it is valuble to teach this sort of design
-  from the beggining.
+  from the beginning.
 -/
 
 instance : GetElem (TotalMap α β) α β (fun _ _ => True) where
