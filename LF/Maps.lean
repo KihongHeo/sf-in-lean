@@ -1,374 +1,227 @@
--- Maps: Total and Partial Maps
-
--- _Maps_ (or _dictionaries_) are ubiquitous data structures both in
--- ordinary programming and in the theory of programming languages;
--- we're going to need them in many places in the coming chapters.
---
--- They also make a nice case study using ideas we've seen in
--- previous chapters, including building data structures out of
--- higher-order functions (from `Basics` and `Poly`) and the use of
--- reflection to streamline proofs (from `IndProp`).
---
--- We'll define two flavors of maps: _total_ maps, which include a
--- "default" element to be returned when a key being looked up
--- doesn't exist, and _partial_ maps, which instead return an
--- `Option` to indicate success or failure.  Partial maps are defined
--- in terms of total maps, using `none` as the default element.
-
--- ######################################################################
--- * The Standard Library
-
--- FULL: One small digression before we begin...
---
--- Unlike the chapters we have seen so far, this one does not
--- import the chapter before it (or, transitively, all the
--- earlier chapters).  Instead, in this chapter and from now on,
--- we're going to import the definitions and theorems we need
--- directly from Lean's standard library.  You should not notice much
--- difference, though, because we've been careful to name our own
--- definitions and theorems the same as their counterparts in the
--- standard library, wherever they overlap.
-
--- TERSE: We'll import things from the standard library from now on...
-
-import LF.Logic
-
--- FULL: Documentation for the Lean standard library can be found at
--- https://leanprover-community.github.io/mathlib4_docs/
---
--- The `#check` command is a good way to look for theorems involving
--- objects of specific types. See the `Lists` chapter for a reminder
--- of how to use it.
-
--- ######################################################################
--- * Identifiers
-
--- To define maps, we first need a type for the keys that we will use
--- to index into our maps.  Here and for the rest of _Software
--- Foundations_ we will use the `String` type from Lean's standard
--- library.
-
--- To compare strings, we can use decidable equality on `String`.
--- In Lean, `String` has a `DecidableEq` instance, so we can use
--- `if x = y then ... else ...` directly.
-
-#check @decEq String
-#check (inferInstance : DecidableEq String)
-
--- TERSE: ***
--- We will often use a few basic properties of string equality...
-
--- In Lean, decidable equality gives us what we need automatically.
--- For any `x y : String`, `if x = y then ... else ...` works, and
--- `simp` can reason about these conditions.
-
--- ######################################################################
--- * Total Maps
-
--- Our main job in this chapter will be to build a definition of
--- partial maps that is similar in behavior to the one we saw in the
--- `Lists` chapter, plus accompanying lemmas about its behavior.
---
--- This time around, though, we're going to use _functions_, rather
--- than lists of key-value pairs, to build maps.  The advantage of
--- this representation is that it offers a more "extensional" view of
--- maps: two maps that respond to queries in the same way will be
--- represented as exactly the same function, rather than just as
--- "equivalent" list structures.  This simplifies proofs that use
--- maps.
-
--- TERSE: ***
--- We build up to partial maps in two steps.  First, we define a type
--- of _total maps_ that return a default value when we look up a key
--- that is not present in the map.
-
-def TotalMap (α : Type) := String → α
-
--- Intuitively, a total map over an element type `α` is just a
--- function that can be used to look up `String`s, yielding `α`s.
-
--- TERSE: ***
--- The function `tEmpty` yields an empty total map, given a default
--- element; this map always returns the default element when applied
--- to any string.
-
-def tEmpty {α : Type} (v : α) : TotalMap α :=
-  fun _ => v
-
--- TERSE: ***
--- More interesting is the map-updating function, which (as always)
--- takes a map `m`, a key `x`, and a value `v` and returns a new map
--- that takes `x` to `v` and takes every other key to whatever `m`
--- does.  The novelty here is that we achieve this effect by wrapping
--- a new function around the old one.
-
-def tUpdate {α : Type} (m : TotalMap α)
-    (x : String) (v : α) : TotalMap α :=
-  fun x' => if x = x' then v else m x'
-
--- This definition is a nice example of higher-order programming:
--- `tUpdate` takes a _function_ `m` and yields a new function
--- `fun x' => ...` that behaves like the desired map.
-
--- TERSE: ***
--- For example, we can build a map taking `String`s to `Bool`s, where
--- `"foo"` and `"bar"` are mapped to `true` and every other key is
--- mapped to `false`, like this:
-
-def examplemap : TotalMap Bool :=
-  tUpdate (tUpdate (tEmpty false) "foo" true)
-          "bar" true
-
--- TERSE: ***
--- Next, let's introduce some notations to facilitate working with
--- maps.
-
--- In Lean, we define notation for map update. For empty maps, we
--- simply use `tEmpty` directly.
-
-notation:100 x " !-> " v " ; " m => tUpdate m x v
-
--- example_empty
-example := tEmpty false
-
--- TERSE: ***
--- The `examplemap` above can now be defined as follows:
-
-def examplemap' : TotalMap Bool :=
-  "bar" !-> true ;
-  "foo" !-> true ;
-  tEmpty false
-
--- FULL: This completes the definition of total maps.  Note that we
--- don't need to define a `find` operation on this representation of
--- maps because it is just function application!
-
--- HIDEFROMHTML
--- update_example1
-example : examplemap' "baz" = false := by rfl
-
--- update_example2
-example : examplemap' "foo" = true := by rfl
-
--- update_example3
-example : examplemap' "quux" = false := by rfl
-
--- update_example4
-example : examplemap' "bar" = true := by rfl
--- /HIDEFROMHTML
-
--- TERSE: ***
--- When we use maps in later chapters, we'll need several fundamental
--- facts about how they behave.
-
--- FULL: Even if you don't work the following exercises, make sure
--- you thoroughly understand the statements of the lemmas!
-
--- FULL: (Some of the proofs require functional extensionality,
--- which in Lean is built-in as `funext`.)
--- TERSE: HIDEFROMHTML
-
--- EX1? (t_apply_empty)
--- First, the empty map returns its default element for all keys:
--- TERSE: /HIDEFROMHTML
-
--- t_apply_empty
-theorem t_apply_empty {α : Type} (x : String) (v : α) :
-    tEmpty v x = v := by
-  -- ADMITTED
-  rfl
-  -- /ADMITTED
-
--- TERSE: HIDEFROMHTML
-
--- EX2? (t_update_eq)
--- Next, if we update a map `m` at a key `x` with a new value `v`
--- and then look up `x` in the map resulting from the `update`, we
--- get back `v`:
--- TERSE: /HIDEFROMHTML
-
--- t_update_eq
-theorem t_update_eq {α : Type} (m : TotalMap α) (x : String) (v : α) :
-    tUpdate m x v x = v := by
-  -- ADMITTED
-  simp [tUpdate]
-  -- /ADMITTED
-
--- TERSE: HIDEFROMHTML
-
--- EX2? (t_update_neq)
--- On the other hand, if we update a map `m` at a key `x1` and then
--- look up a _different_ key `x2` in the resulting map, we get the
--- same result that `m` would have given:
--- TERSE: /HIDEFROMHTML
-
--- t_update_neq
-theorem t_update_neq {α : Type} (m : TotalMap α) (x1 x2 : String) (v : α)
-    (h : x1 ≠ x2) :
-    tUpdate m x1 v x2 = m x2 := by
-  -- ADMITTED
-  simp [tUpdate, h]
-  -- /ADMITTED
-
--- TERSE: HIDEFROMHTML
-
--- EX2? (t_update_shadow)
--- If we update a map `m` at a key `x` with a value `v1` and then
--- update again with the same key `x` and another value `v2`, the
--- resulting map behaves the same (gives the same result when applied
--- to any key) as the simpler map obtained by performing just
--- the second `update` on `m`:
--- TERSE: /HIDEFROMHTML
-
--- t_update_shadow
-theorem t_update_shadow {α : Type} (m : TotalMap α) (x : String) (v1 v2 : α) :
-    tUpdate (tUpdate m x v1) x v2 = tUpdate m x v2 := by
-  -- ADMITTED
-  funext x'
-  simp only [tUpdate]
-  exact if h : x = x' then by simp [h] else by simp [h]
-  -- /ADMITTED
-
--- TERSE: ***
-
--- TERSE: HIDEFROMHTML
--- EX2 (t_update_same)
--- Given strings `x1` and `x2`, we can use `if h : x1 = x2` to
--- simultaneously perform case analysis on whether `x1 = x2` and
--- generate a hypothesis about the equality. Use this to prove the
--- following theorem, which states that if we update a map to assign
--- key `x` the same value as it already has in `m`, then the result
--- is equal to `m`:
--- TERSE: /HIDEFROMHTML
-
--- t_update_same
-theorem t_update_same {α : Type} (m : TotalMap α) (x : String) :
-    tUpdate m x (m x) = m := by
-  -- ADMITTED
-  funext x'
-  simp only [tUpdate]
-  exact if h : x = x' then by simp [h] else by simp [h]
-  -- /ADMITTED
-
--- TERSE: HIDEFROMHTML
--- EX3! (t_update_permute)
--- Similarly, prove one final property of the `update` function:
--- If we update a map `m` at two distinct keys, it doesn't matter
--- in which order we do the updates.
--- TERSE: /HIDEFROMHTML
-
--- t_update_permute
-theorem t_update_permute {α : Type} (m : TotalMap α)
-    (v1 v2 : α) (x1 x2 : String)
-    (h : x2 ≠ x1) :
-    tUpdate (tUpdate m x2 v2) x1 v1 = tUpdate (tUpdate m x1 v1) x2 v2 := by
-  -- ADMITTED
-  funext x'
-  simp only [tUpdate]
-  exact if h1 : x1 = x' then
-    if h2 : x2 = x' then by subst h1; subst h2; exact absurd rfl h
-    else by simp [h1, h2]
-  else by simp [h1]
-  -- /ADMITTED
--- TERSE: HIDEFROMHTML
--- GRADE_THEOREM 3: t_update_permute
--- TERSE: /HIDEFROMHTML
-
--- ######################################################################
--- * Partial maps
-
--- Lastly, we define _partial maps_ on top of total maps.  A partial
--- map with elements of type `α` is simply a total map with elements
--- of type `Option α` and default element `none`.
-
-def PartialMap (α : Type) := TotalMap (Option α)
-
-def emptyMap {α : Type} : PartialMap α :=
-  tEmpty none
-
-def pmUpdate {α : Type} (m : PartialMap α)
-    (x : String) (v : α) : PartialMap α :=
-  tUpdate m x (some v)
-
--- TERSE: ***
--- We introduce a similar notation for partial maps:
-
-notation:100 x " ↦ " v " ; " m => pmUpdate m x v
-
--- We can also hide the last case when it is empty.
-
-notation:100 x " ↦ " v => pmUpdate emptyMap x v
-
-def examplepmap : PartialMap Bool :=
-  "Church" ↦ true ; "Turing" ↦ false
-
--- TERSE: ***
--- We now straightforwardly lift all of the basic lemmas about total
--- maps to partial maps.
-
--- apply_empty
-theorem apply_empty {α : Type} (x : String) :
-    @emptyMap α x = none := by
+import LF.CustomTactics
+
+/- CH: This is just the code with the prose left out, but I've left comments mentioning
+  various issues and my thought processes -/
+
+/-
+  CH: First a general comment that I found even this simple file very annoying to write
+  without a minimal Mathlib/batteries dependency. I want to clarify again that I completely understand
+  hiding most of this, but there are some simple syntax extentions that are ubiqutous in the ecosystem
+  that I think omitteing is distracting. Some examples:
+
+  - `#check` only has its command syntax. With Mathlib imported it allows doing this within a proof,
+    which I think can be very nice and prevent confusing errors
+
+  - there are places where I was explicit about universes because the `Type*` syntax for
+    fresh universes is missing. I'd much rather write `α β : Type*` versus ever needing to write
+    `universe u v`
+
+  - some basic code actions are missing
+-/
+
+set_option autoImplicit false
+set_option linter.unusedSectionVars false
+
+universe u v
+
+/- CH: Daniel suggested this being a good place to introduce some simple typeclasses.
+  Given all the discussion about `if` versus `bif`, I concluded that it is simplest to
+  present this using booleans, essentially because they have simpler typeclasses and
+  the student will have maybe a less confusing time without needing to use simprocs
+
+  These are the equivalents of the string theorems mentioned, though I naturally used a few others
+  while writing proofs that we might want to present too
+-/
+
+#check ReflBEq.rfl
+#check beq_iff_eq
+#check beq_eq_false_iff_ne
+
+/- CH: I made a slight design departure by using `Inhabited`, so that each type has a global
+  default as opposed to passing this around. I find it idiomatic, but feel free to rework as this
+  is not crucial.
+-/
+variable {α : Type u} {β : Type v} [BEq α] [ReflBEq α] [LawfulBEq α] [Inhabited β]
+
+def TotalMap (α : Type u) (β : Type v) := α → β
+
+/-
+  CH: The biggest thing that I think is essential to depart from SF on is this line:
+    "Note that we don't need to define a find operation on this representation of maps because
+    it is just function application!"
+
+  In idiomatic Lean it is considered "definitional equality abuse" (often shortened to "defeq abuse") to
+  look through the definition of a type like `TotalMap` in this way. It's become more common In
+  recent years to actually make types like this a one-field structure to strongly enforce this, but
+  I though that would be confusing here.
+
+  What I do is make a `GetElem` instance, which is how the `m[a]` notation is managed for containers
+  in Lean. Once we define some basic operations on this, we should never have to unfold this. This may
+  seem a bit silly for such a simple example, but I think it is valuble to teach this sort of design
+  from the beggining.
+-/
+
+instance : GetElem (TotalMap α β) α β (fun _ _ => True) where
+  getElem m a _ := m a
+
+-- CH: for the `∅` notation, relying on `[Inhabited β]`
+instance : EmptyCollection (TotalMap α β) where
+  emptyCollection _ := default
+
+namespace TotalMap
+
+-- CH: These are the sort of "API" lemmas that we always define to accompany a notation
+theorem getElem_def (m : TotalMap α β) (a : α) : m[a] = m a :=
   rfl
 
--- update_eq
-theorem update_eq {α : Type} (m : PartialMap α) (x : String) (v : α) :
-    (x ↦ v ; m) x = some v := by
-  exact t_update_eq m x (some v)
+def update (m : TotalMap α β) (a : α) (b : β) : TotalMap α β :=
+  fun a' => bif a == a' then b else m[a']
 
--- TERSE: HIDEFROMHTML
--- The `update_eq` lemma is used very often in proofs. We mark it
--- with `@[simp]` so that `simp` can find it automatically.
-attribute [simp] update_eq
--- TERSE: /HIDEFROMHTML
+-- CH: Note the `|>.` syntax. This is a pipe that then uses dot notation to access the namespace
+-- of the preceding type
 
--- update_neq
-theorem update_neq {α : Type} (m : PartialMap α) (x1 x2 : String) (v : α)
-    (h : x2 ≠ x1) :
-    (x2 ↦ v ; m) x1 = m x1 := by
-  exact t_update_neq m x2 x1 v h
+def example_map :=
+  (∅ : TotalMap String Bool)
+    |>.update "foo" true
+    |>.update "bar" true
 
--- update_shadow
-theorem update_shadow {α : Type} (m : PartialMap α) (x : String) (v1 v2 : α) :
-    (x ↦ v2 ; x ↦ v1 ; m) = (x ↦ v2 ; m) := by
-  exact t_update_shadow m x (some v1) (some v2)
+notation a " →ₜ " b " ; " m => TotalMap.update m a b
 
--- update_same
-theorem update_same {α : Type} (m : PartialMap α) (x : String) (v : α)
-    (h : m x = some v) :
-    (x ↦ v ; m) = m := by
-  simp only [pmUpdate]
-  rw [← h]
-  exact t_update_same m x
+example : example_map = "bar" →ₜ true; "foo" →ₜ true ; ∅ := rfl
 
--- update_permute
-theorem update_permute {α : Type} (m : PartialMap α)
-    (x1 x2 : String) (v1 v2 : α)
-    (h : x2 ≠ x1) :
-    (x1 ↦ v1 ; x2 ↦ v2 ; m) = (x2 ↦ v2 ; x1 ↦ v1 ; m) := by
-  exact t_update_permute m (some v1) (some v2) x1 x2 h
+example : example_map["baz"] = false := rfl
 
--- TERSE: ***
--- One last thing: For partial maps, it's convenient to introduce a
--- notion of map inclusion, stating that all the entries in one map
--- are also present in another:
+example : example_map["foo"] = true := rfl
 
-def includedin {α : Type} (m m' : PartialMap α) : Prop :=
-  ∀ (x : String) (v : α), m x = some v → m' x = some v
+example : example_map["quux"] = false := rfl
 
--- We can then show that map update preserves map inclusion, that is:
+example : example_map["bar"] = true := rfl
 
--- includedin_update
-theorem includedin_update {α : Type} (m m' : PartialMap α)
-    (x : String) (vx : α)
-    (h : includedin m m') :
-    includedin (x ↦ vx ; m) (x ↦ vx ; m') := by
-  intro y vy
-  simp only [pmUpdate, tUpdate]
-  exact if heq : x = y then by simp [heq] else by simp [heq]; exact h y vy
+theorem apply_empty (a : α) : (∅ : TotalMap α β)[a] = default := rfl
 
--- This property is quite useful for reasoning about languages with
--- variable binding -- e.g., the Simply Typed Lambda Calculus, which
--- we will see in _Programming Language Foundations_, where maps are
--- used to keep track of which program variables are defined in a
--- given scope.
+/-
+  CH: Note that I am using `rewrite` here. The difference is that the more common `rw` is
+  essentially `rewrite [...]; rfl`, which I think is confusing for teaching. Some existing
+  learning materials redefine `rw` so you can use the short and familiar name without this problem.
+-/
+
+theorem update_eq (m : TotalMap α β) (a : α) (b : β) : (a →ₜ b; m)[a] = b := by
+  unfold update
+  rewrite [getElem_def, ReflBEq.rfl, cond_true]
+  rfl
+
+theorem update_neq (m : TotalMap α β) (a₁ a₂ : α) (h : a₁ ≠ a₂) (b : β) :
+    (a₁ →ₜ b; m)[a₂] = m[a₂] := by
+  by_cases h' : a₁ = a₂
+  · contradiction
+  · unfold update
+    rewrite [getElem_def, beq_false_of_ne h, cond_false]
+    rfl
+
+-- CH: presumably `ext` will have been explained before this when introducing `funext`
+
+@[ext]
+theorem ext (m₁ m₂ : TotalMap α β) (h : ∀ a : α, m₁[a] = m₂[a]) : m₁ = m₂ := funext h
+
+theorem update_shadow (m : TotalMap α β) (a : α) (b₁ b₂ : β) :
+    (a →ₜ b₂; a →ₜ b₁; m) = (a →ₜ b₂ ; m) := by
+  ext a'
+  by_cases h : a = a'
+  · subst h
+    rewrite [update_eq, update_eq]
+    rfl
+  · rewrite [update_neq _ _ _ h, update_neq _ _ _ h, update_neq _ _ _ h]
+    rfl
+
+theorem update_same (m : TotalMap α β) (a : α) : (a →ₜ m[a]; m) = m := by
+  ext a'
+  by_cases h : a = a'
+  · subst h
+    rw [update_eq]
+  · rw [update_neq _ _ _ h]
+
+theorem update_permute (m : TotalMap α β) (a₁ a₂ : α) (b₁ b₂ : β) (h : a₁ ≠ a₂) :
+    (a₁ →ₜ b₁; a₂ →ₜ b₂; m) = (a₂ →ₜ b₂; a₁ →ₜ b₁; m) := by
+  ext a'
+  by_cases h₁ : a₁ = a'
+  · subst h₁
+    rw [update_eq, update_neq _ _ _ h.symm, update_eq]
+  · rw [update_neq _ _ _ h₁]
+    by_cases h₂ : a₂ = a'
+    · subst h₂
+      rw [update_eq, update_eq]
+    · rw [update_neq _ _ _ h₂, update_neq _ _ _ h₂, update_neq _ _ _ h₁]
+
+end TotalMap
+
+/-
+  CH: This being a `abbrev` is a design decision of not having to duplicate all the typeclasses, but
+  if this is confusing for any reason, feel free to change.
+-/
+
+abbrev PartialMap (α : Type u) (β : Type v) := TotalMap α (Option β)
+
+-- CH: This instance might be confusing at this point
+attribute [-instance] optionCoe
+
+namespace PartialMap
+
+def update (m : PartialMap α β) (a : α) (b : β) : PartialMap α β := (a →ₜ some b; m)
+
+notation a " →ₚ " b " ; " m => PartialMap.update m a b
+
+/- CH: Again, more "API lemmas". The cannonical way to switch between the different
+  maps should be this theorem relating their notations. -/
+theorem totalMap_eq {m} (a : α) (b : β) : (a →ₚ b ; m) = (a →ₜ some b ; m) := rfl
+
+@[ext]
+theorem ext (m₁ m₂ : PartialMap α β) (h : ∀ a : α, m₁[a] = m₂[a]) : m₁ = m₂ := funext h
+
+theorem apply_empty (a : α) : (∅ : PartialMap α β)[a] = none := rfl
+
+theorem update_eq (m : PartialMap α β) (a : α) (b : β) : (a →ₚ b; m)[a] = some b := by
+  rw [totalMap_eq, TotalMap.update_eq]
+
+-- CH: `auto` mentioned here, what do we want??
+
+theorem update_neq (m : PartialMap α β) (a₁ a₂ : α) (h : a₁ ≠ a₂) (b : β) :
+    (a₁ →ₚ b; m)[a₂] = m[a₂] := by
+  rw [totalMap_eq, TotalMap.update_neq _ _ _  h]
+
+theorem update_shadow (m : PartialMap α β) (a : α) (b₁ b₂ : β) :
+    (a →ₚ b₂; a →ₚ b₁; m) = (a →ₚ b₂ ; m) := by
+  simp [totalMap_eq]
+  exact TotalMap.update_shadow m a (some b₁) (some b₂)
+
+theorem update_same (m : PartialMap α β) (a : α) (b : β) (h : m[a] = some b) :
+    (a →ₚ b; m) = m := by
+  rw [totalMap_eq, ← h, TotalMap.update_same]
+
+theorem update_permute (m : PartialMap α β) (a₁ a₂ : α) (b₁ b₂ : β) (h : a₁ ≠ a₂) :
+    (a₁ →ₚ b₁; a₂ →ₚ b₂; m) = (a₂ →ₚ b₂; a₁ →ₚ b₁; m) := by
+simp only [totalMap_eq]
+exact TotalMap.update_permute m a₁ a₂ (some b₁) (some b₂) h
+
+def Subset (m₁ m₂ : PartialMap α β) : Prop :=
+  ∀ (a : α) (b : β), m₁[a] = some b → m₂[a] = some b
+
+instance : HasSubset (PartialMap α β) where
+  Subset := PartialMap.Subset
+
+def subset_def (m₁ m₂ : PartialMap α β) :
+    m₁ ⊆ m₂ ↔ (∀ (a : α) (b : β), m₁[a] = some b → m₂[a] = some b) := .rfl
+
+theorem update_subset (m₁ m₂ : PartialMap α β) (a : α) (b : β) (h : m₁ ⊆ m₂) :
+    (a →ₚ b; m₁) ⊆ (a →ₚ b; m₂) := by
+  rw [subset_def]
+  intro a' b' eq
+  rw [← eq]
+  by_cases eq : a = a'
+  · subst eq
+    simp [update_eq]
+  · simp only [update_neq _ _ _ eq] at *
+    rw [h a' b' eq]
+    symm
+    assumption
+
+end PartialMap
