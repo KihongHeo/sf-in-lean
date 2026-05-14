@@ -7,7 +7,7 @@ import LF.CustomTactics
   CH: First a general comment that I found even this simple file very annoying to write
   without a minimal Mathlib/batteries dependency. I want to clarify again that I completely understand
   hiding most of this, but there are some simple syntax extentions that are ubiqutous in the ecosystem
-  that I think omitteing is distracting. Some examples:
+  that I think omitting is distracting. Some examples:
 
   - `#check` only has its command syntax. With Mathlib imported it allows doing this within a proof,
     which I think can be very nice and prevent confusing errors
