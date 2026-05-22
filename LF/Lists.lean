@@ -260,6 +260,7 @@ def myRepeat (n count : Nat) : NatList :=
 
 -- FULL: The `length` function calculates the length of a list.
 
+@[irreducible]
 def NatList.length (l : NatList) : Nat :=
   match l with
   | [] => 0
@@ -268,11 +269,12 @@ def NatList.length (l : NatList) : Nat :=
 -- *** Append
 
 -- FULL: The `app` function appends (concatenates) two lists.
-
+@[irreducible]
 def NatList.app (l1 l2 : NatList) : NatList :=
   match l1 with
   | [] => l2
   | h :: t => h :: app t l2
+
 
 -- *** Type Classes and Overloading
 
@@ -292,13 +294,21 @@ instance : HAppend NatList NatList NatList where
 
 -- Now `l1 ++ l2` means `app l1 l2` within `NatList`.
 
+-- Some simple facts about appending lists
+unseal NatList.app in
+theorem nil_append (l : NatList) : [] ++ l = l := rfl
+
+unseal NatList.app in
+theorem cons_append (n : Nat) (l1 l2 : NatList) : (n::l1) ++ l2 = n :: (l1 ++ l2) := rfl
+
 -- test_app1
+unseal NatList.app
 example : [1, 2, 3] ++ [4, 5] = [1, 2, 3, 4, 5] := by rfl
 -- test_app2
 example : ([] : NatList) ++ [4, 5] = [4, 5] := by rfl
 -- test_app3
 example : [1, 2, 3] ++ ([] : NatList) = [1, 2, 3] := by rfl
-
+seal NatList.app
 /- FULL: We'll learn more about type classes as we go.  For now, the
    key idea is: a type class is an interface, and an instance is an
    implementation of that interface for a particular type.
@@ -308,33 +318,42 @@ example : [1, 2, 3] ++ ([] : NatList) = [1, 2, 3] := by rfl
 /- TODO (DHS) : Should we replace the above with a forward link to our typeclasses chapter,
   once we have one? -/
 
--- Some simple facts about appending lists
-theorem nil_append (l : NatList) : [] ++ l = l := rfl
-theorem cons_append (n : Nat) (l1 l2 : NatList) : (n::l1) ++ l2 = n::(l1 ++ l2) := rfl
-
 -- *** Head and Tail
 
 /- FULL: The `hd` function returns the first element (the "head") of
    the list, while `tl` returns everything but the first element (the
    "tail").  Since the empty list has no first element, we pass
    a default value to be returned in that case. -/
-
+@[irreducible]
 def NatList.hd (default : Nat) (l : NatList) : Nat :=
   match l with
   | [] => default
   | h :: _ => h
 
+-- Basic theorems about how `hd` behaves:
+unseal NatList.hd in
+theorem hd_cons h x (t : NatList) : (h :: t).hd x = h := by rfl
+unseal NatList.hd in
+theorem hd_nil x : [].hd x = x := by rfl
+
+@[irreducible]
 def NatList.tl (l : NatList) : NatList :=
   match l with
   | [] => []
   | _ :: t => t
 
+-- Basic theorems about how `tl` behaves:
+unseal NatList.tl in
+theorem tl_cons h (t : NatList) : (h :: t).tl = t := by rfl
+unseal NatList.tl in
+theorem tl_nil : [].tl = [] := by rfl
+
 -- test_hd1
-example : NatList.hd 0 [1, 2, 3] = 1 := by rfl
+example : NatList.hd 0 [1, 2, 3] = 1 := by rw [hd_cons]
 -- test_hd2
-example : NatList.hd 0 [] = 0 := by rfl
+example : NatList.hd 0 [] = 0 := by rw [hd_nil]
 -- test_tl
-example : [1, 2, 3].tl = [2, 3] := by rfl
+example : [1, 2, 3].tl = [2, 3] := by rw [tl_cons]
 
 -- QUIZ
 -- What does the following function do?
@@ -353,6 +372,7 @@ def foo (n : Nat) : NatList :=
 -- `countoddmembers` below. Have a look at the tests to understand
 -- what these functions should do.
 
+@[irreducible]
 def nonzeros (l : NatList) : NatList :=
   -- ADMITDEF
   match l with
@@ -364,9 +384,21 @@ def nonzeros (l : NatList) : NatList :=
   -- /ADMITDEF
 
 -- test_nonzeros
+unseal nonzeros in
 example : nonzeros [0, 1, 0, 2, 3, 0, 0] = [1, 2, 3] := by rfl  -- ADMITTED
 -- GRADE_THEOREM 0.5: NatList.test_nonzeros
 
+-- the following lemmas should hold about your definition
+unseal nonzeros
+theorem nonzeros_cons_zero (t : NatList) :
+  nonzeros (0 :: t) = nonzeros t := by rfl
+theorem nonzeros_nil :
+  nonzeros [] = [] := by rfl
+theorem nonzeros_cons_nonzero h (t : NatList) :
+  nonzeros ((h + 1) :: t) = (h + 1) :: nonzeros t := by rfl
+seal nonzeros
+
+@[irreducible]
 def oddmembers (l : NatList) : NatList :=
   -- ADMITDEF
   match l with
@@ -375,23 +407,26 @@ def oddmembers (l : NatList) : NatList :=
   -- /ADMITDEF
 
 -- test_oddmembers
+unseal oddmembers in
 example : oddmembers [0, 1, 0, 2, 3, 0, 0] = [1, 3] := by rfl  -- ADMITTED
 -- GRADE_THEOREM 0.5: NatList.test_oddmembers
 
 -- For the next problem, `countoddmembers`, we encourage you to implement it using
 -- already-defined functions, rather than recursion.
-
+@[irreducible]
 def countoddmembers (l : NatList) : Nat :=
   -- ADMITDEF
   (oddmembers l).length
   -- /ADMITDEF
 
 -- test_countoddmembers1
+unseal countoddmembers oddmembers NatList.length
 example : countoddmembers [1, 0, 3, 1, 4, 5] = 4 := by rfl  -- ADMITTED
 -- test_countoddmembers2
 example : countoddmembers [0, 2, 4] = 0 := by rfl  -- ADMITTED
 -- test_countoddmembers3
 example : countoddmembers [] = 0 := by rfl  -- ADMITTED
+seal countoddmembers oddmembers NatList.length
 -- GRADE_THEOREM 0.5: NatList.test_countoddmembers2
 -- GRADE_THEOREM 0.5: NatList.test_countoddmembers3
 -- []
@@ -406,7 +441,7 @@ example : countoddmembers [] = 0 := by rfl  -- ADMITTED
   _structurally recursive_, as mentioned in `"Basics"`.
   If you encounter this difficulty,
   consider pattern matching against both lists at the same time. -/
-
+@[irreducible]
 def alternate (l1 l2 : NatList) : NatList :=
   -- ADMITDEF
   match l1, l2 with
@@ -415,6 +450,7 @@ def alternate (l1 l2 : NatList) : NatList :=
   | h1 :: t1, h2 :: t2 => h1 :: h2 :: alternate t1 t2
   -- /ADMITDEF
 
+unseal alternate
 -- test_alternate1
 example : alternate [1, 2, 3] [4, 5, 6] = [1, 4, 2, 5, 3, 6] := by rfl  -- ADMITTED
 -- GRADE_THEOREM 1: NatList.test_alternate1
@@ -425,6 +461,7 @@ example : alternate [1] [4, 5, 6] = [1, 4, 5, 6] := by rfl  -- ADMITTED
 example : alternate [1, 2, 3] [4] = [1, 4, 2, 3] := by rfl  -- ADMITTED
 -- test_alternate4
 example : alternate ([] : NatList) [20, 30] = [20, 30] := by rfl  -- ADMITTED
+seal alternate
 -- GRADE_THEOREM 1: NatList.test_alternate4
 -- []
 
@@ -593,7 +630,7 @@ end Bag
 /- TERSE: As with numbers, some proofs about list functions need only
    simplification... -/
 
-theorem nil_app (l : NatList) : ([] : NatList) ++ l = l := by rfl
+theorem nil_app (l : NatList) : ([] : NatList) ++ l = l := by rw [NatList.nil_append]
 
 /- FULL: ...because the `[]` is substituted into the "scrutinee" (the
    expression whose value is being "scrutinized" by the match) in the
@@ -1025,11 +1062,13 @@ theorem nonzeros_app (l1 l2 : NatList) :
     nonzeros (l1 ++ l2) = (nonzeros l1) ++ (nonzeros l2) := by
   -- ADMITTED
   induction l1
-  case nil => rfl
+  case nil => rw [nil_app, nonzeros_nil, nil_app]
   case cons n l1' ih =>
     cases n
-    case zero => dsimp [nonzeros, cons_append]; rw [ih]
-    case succ n' => dsimp [nonzeros, cons_append]; rw [ih]
+    case zero =>
+      rw [nonzeros_cons_zero, ←ih, cons_append, nonzeros_cons_zero]
+    case succ n' =>
+      rw [cons_append, nonzeros_cons_nonzero, nonzeros_cons_nonzero, ih, cons_append]
 
 
 -- /ADMITTED
