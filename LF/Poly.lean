@@ -155,10 +155,18 @@ inductive MyList (α : Type) : Type where
    TERSE: We can now define polymorphic versions of the functions
        we've already seen... -/
 
+@[irreducible]
 def myRepeat (α : Type) (x : α) (count : Nat) : MyList α :=
   match count with
   | 0 => .nil
   | count' + 1 => .cons x (myRepeat α x count')
+
+-- Some simple facts about list lengths
+unseal myRepeat in
+theorem repeat_zero α v : myRepeat α v 0 = MyList.nil := rfl
+
+unseal myRepeat in
+theorem repeat_succ α v count : myRepeat α v (count + 1) = MyList.cons v (myRepeat α v count) := rfl
 
 /- HIDEFROMADVANCED -/
 
@@ -166,12 +174,14 @@ def myRepeat (α : Type) (x : α) (count : Nat) : MyList α :=
     first to a type and then to an element of this type (and a number): -/
 
 /- test_repeat1 -/
+unseal myRepeat in
 example : myRepeat Nat 4 2 = .cons 4 (.cons 4 .nil) := by rfl
 
 /- FULL: To use `myRepeat` to build other kinds of lists, we simply
    pass an element of the appropriate type: -/
 
 /- test_repeat2 -/
+unseal myRepeat in
 example : myRepeat Bool false 1 = .cons false .nil := by rfl
 
 /- QUIZ
@@ -245,6 +255,7 @@ def list123 : List Nat := [1, 2, 3]
 /- Let's write the definition of `repeat` again, but this time we won't specify
     the type of the parameter `α`. Will Lean still accept it? -/
 
+@[irreducible]
 def repeat' α (x : α) (count : Nat) : List α :=
   match count with
   | 0 => .nil
@@ -536,16 +547,32 @@ end MumbleGrumble
 /- ######################################################
    ### Exercises -/
 
+seal List.append
+seal List.length
+
+@[irreducible]
 def List.rev {α:Type} (l:List α) : List α :=
   match l with
   | .nil => .nil
   | .cons h t => rev t ++ (.cons h .nil)
 
+unseal List.rev in
+theorem rev_nil α : ([] : List α).rev = [] := by rfl
+
+unseal List.rev in
+theorem rev_cons α h (t : List α) : (h :: t).rev = t.rev ++ [h] := by rfl
+
 /- TERSE: HIDEFROMHTML -/
 
 /- EX2 (poly_exercises)
    Here are a few simple exercises, just like ones in the `Lists`
-   chapter, for practice with polymorphism. Complete the proofs below. -/
+   chapter, for practice with polymorphism. Complete the proofs below.
+   You will likely find useful the following lemmas about append and length
+   from Lean's standard library:
+
+      `List.nil_append {α} (as : List α) : [] ++ as = as`
+      `List.cons_append {α} {a : α} {as bs : List α} : a :: as ++ bs = a :: (as ++ bs)`
+   -/
 
 /- INSTRUCTORS: There's a little inconsistency between this definition
    and the standard library one: in the library, the type argument is
@@ -558,8 +585,9 @@ theorem app_nil_r {α : Type} : ∀ (l : List α),
     l ++ [] = l := by
   /- ADMITTED -/
   intro l; induction l
-  case nil => rfl
-  case cons h t ih => dsimp; rw [ih]
+  case nil => rw [List.nil_append]
+  case cons h t ih =>
+   rw [List.cons_append, ih]
 /- /ADMITTED -/
 
 /- app_assoc -/
@@ -567,8 +595,10 @@ theorem app_assoc {α : Type} : ∀ (l m n : List α),
     l ++ m ++ n = l ++ (m ++ n) := by
   /- ADMITTED -/
   intro l m n; induction l
-  case nil => rfl
-  case cons h t ih => dsimp; rw [ih]
+  case nil => rw [List.nil_append, List.nil_append]
+  case cons h t ih =>
+   dsimp [List.cons_append]
+   rw [ih]
 /- /ADMITTED -/
 
 /- app_length -/
@@ -576,8 +606,10 @@ theorem app_length {α : Type} : ∀ (l1 l2 : List α),
     (l1 ++ l2).length = l1.length + l2.length := by
   /- ADMITTED -/
   intro l1 l2; induction l1
-  case nil => dsimp; rw [zero_add]
-  case cons h t ih => dsimp; rw [succ_add, ih]
+  case nil => dsimp [List.nil_append, app_nil_r]; rw [zero_add]
+  case cons h t ih =>
+   dsimp [List.cons_append, List.length_cons]
+   rw [succ_add, ih]
 /- /ADMITTED
    GRADE_THEOREM 0.5: app_nil_r
    GRADE_THEOREM 1: app_assoc
@@ -592,8 +624,12 @@ theorem rev_app_distr {α : Type} : ∀ (l1 l2 : List α),
     (l1 ++ l2).rev = l2.rev ++ l1.rev := by
   /- ADMITTED -/
   intro l1 l2; induction l1
-  case nil => dsimp [List.rev]; rw [app_nil_r]
-  case cons h t ih => dsimp [List.rev]; rw [ih]; rw [app_assoc]
+  case nil =>
+   dsimp [List.nil_append]
+   rw [rev_nil, app_nil_r]
+  case cons h t ih =>
+   dsimp [List.cons_append]
+   rw [rev_cons, rev_cons, ih, app_assoc]
 /- /ADMITTED -/
 
 /- rev_involutive -/
@@ -601,11 +637,11 @@ theorem rev_involutive {α : Type} : ∀ (l : List α),
     l.rev.rev = l := by
   /- ADMITTED -/
   intro l; induction l
-  case nil => rfl
+  case nil =>
+   rw [rev_nil, rev_nil]
   case cons h t ih =>
-    dsimp [List.rev]
-    rw [rev_app_distr, ih]
-    dsimp [List.rev]
+   rw [rev_cons, rev_app_distr, ih, rev_cons, rev_nil]
+   dsimp only [List.nil_append, List.cons_append]
 /- /ADMITTED
    GRADE_THEOREM 1: rev_app_distr
    GRADE_THEOREM 1: rev_involutive
@@ -661,11 +697,25 @@ example : (3, 5).2 = 5 := by rfl
    TERSE: ***
    TERSE: What does this function do? -/
 
+@[irreducible]
 def zip {α : Type} {β : Type} (lx : List α) (ly : List β) : List (α × β) :=
   match lx, ly with
   | [], _ => []
   | _, [] => []
   | x :: tx, y :: ty => (x, y) :: zip tx ty
+
+unseal zip in
+theorem zip_nil_r α β ly : zip [] ly = ([] : List (α × β)) := by rfl
+
+unseal zip in
+theorem zip_nil_l α β lx : zip lx [] = ([] : List (α × β)) := by
+   cases lx
+   . rfl
+   . rfl
+
+unseal zip in
+theorem zip_cons α β lx ly (x : α) (y : β) :
+   zip (x :: lx) (y :: ly) = (x, y) :: zip lx ly := by rfl
 
 /- FULL
    EX1M? (zip_checks)
@@ -683,8 +733,9 @@ def zip {α : Type} {β : Type} (lx : List α) (ly : List β) : List (α × β) 
    list of pairs and returns a pair of lists.
 
    Fill in the definition of `unzip` below. Make sure it passes the
-   given unit test. -/
+   given unit test, and you can prove the simplification lemmas about it -/
 
+@[irreducible]
 def unzip {α : Type} {β : Type} (l : List (α × β)) : List α × List β :=
   /- ADMITDEF -/
   match l with
@@ -694,7 +745,20 @@ def unzip {α : Type} {β : Type} (l : List (α × β)) : List α × List β :=
     (x :: lx, y :: ly)
   /- /ADMITDEF -/
 
+
+unseal unzip in
+theorem unzip_nil α β : unzip [] = (([], []) : List α × List β) := by rfl /- ADMITTED -/
+
+unseal unzip in
+theorem unzip_cons_fst α β l (x : α) (y : β) :
+   (unzip ((x, y) :: l)).fst = x :: (unzip l).fst := by dsimp [unzip] /- ADMITTED -/
+
+unseal unzip in
+theorem unzip_cons_snd α β l (x : α) (y : β) :
+   (unzip ((x, y) :: l)).snd = y :: (unzip l).snd := by dsimp [unzip] /- ADMITTED -/
+
 /- test_split -/
+unseal unzip in
 example : unzip [(1, false), (2, false)] = ([1, 2], [false, false]) := by rfl  /- ADMITTED -/
 /- GRADE_THEOREM 1: split
    GRADE_THEOREM 1: test_split
@@ -707,16 +771,18 @@ example : unzip [(1, false), (2, false)] = ([1, 2], [false, false]) := by rfl  /
 /- FULL: Our last polymorphic type for now is _polymorphic options_.
    Lean's standard library provides `Option α`, with constructors
    `none` and `some x`. (We already saw `Option Nat` in the
-   previous chapter.)  Let's briefly look at the definition: -/
+   previous chapter.)  Let's briefly look at the definition:
 
-inductive MyOption (α : Type) : Type where
-  | none : MyOption α
-  | some (x : α) : MyOption α
+   inductive Option (α : Type) : Type where
+      | none : Option α
+      | some (x : α) : Option α
 
+-/
 /- TERSE: ***
    FULL: We can now rewrite the `nth_error` function so that it works
    with any type of list. -/
 
+@[irreducible]
 def nthError {α : Type} (l : List α) (n : Nat) : Option α :=
   match l with
   | [] => none
@@ -726,11 +792,13 @@ def nthError {α : Type} (l : List α) (n : Nat) : Option α :=
 
 /- HIDEFROMADVANCED
    test_nth_error1 -/
+unseal nthError
 example : nthError [4, 5, 6, 7] 0 = some 4 := by rfl
 /- test_nth_error2 -/
 example : nthError [[1], [2]] 1 = some [2] := by rfl
 /- test_nth_error3 -/
 example : nthError [true] 2 = none := by rfl
+seal nthError
 
 /- /HIDEFROMADVANCED
    FULL
@@ -739,6 +807,7 @@ example : nthError [true] 2 = none := by rfl
    `hd_error` function from the last chapter. Be sure that it
    passes the unit tests below. -/
 
+@[irreducible]
 def hdError {α : Type} (l : List α) : Option α :=
   /- ADMITDEF -/
   match l with
@@ -748,10 +817,18 @@ def hdError {α : Type} (l : List α) : Option α :=
 
 #check hdError  /- hdError : {α : Type} → List α → Option α -/
 
+unseal hdError in
+theorem hd_error_nil α : hdError ([] : List α) = none := by rfl -- ADMITTED
+
+unseal hdError in
+theorem hd_error_cons α (h : α) t : hdError (h :: t) = some h := by rfl -- ADMITTED
+
 /- test_hd_error1 -/
+unseal hdError in
 example : hdError [1, 2] = some 1 := by rfl  /- ADMITTED -/
 /- GRADE_THEOREM 0.5: test_hd_error1
    test_hd_error2 -/
+unseal hdError in
 example : hdError [[1], [2]] = some [1] := by rfl  /- ADMITTED -/
 /- GRADE_THEOREM 0.5: test_hd_error2
    []
@@ -808,12 +885,12 @@ example : doit3times not true = false := by rfl
    and "filtering" the list to yield a new list containing just
    those elements for which the predicate returns `true`. -/
 
-
+@[irreducible]
 def filter {α : Type} (test : α → Bool) (l : List α) : List α :=
   match l with
   | [] => []
   | h :: t =>
-    if test h then h :: filter test t
+    bif test h then h :: filter test t
     else filter test t
 
 /- FULL: For example, if we apply `filter` to the predicate `Nat.even`
@@ -821,6 +898,7 @@ def filter {α : Type} (test : α → Bool) (l : List α) : List α :=
    even members. -/
 
 /- test_filter1 -/
+unseal filter in
 example : filter even [1, 2, 3, 4] = [2, 4] := by rfl
 
 /- TERSE: *** -/
@@ -828,9 +906,30 @@ def lengthIs1 {α : Type} (l : List α) : Bool :=
   l.length == 1
 
 /- test_filter2 -/
+unseal filter in
 example : filter lengthIs1
     [[1, 2], [3], [4], [5, 6, 7], [], [8]]
-  = [[3], [4], [8]] := by rfl
+  = [[3], [4], [8]] := by dsimp [filter, lengthIs1]
+
+unseal filter in
+theorem filter_nil {α : Type} {test : α → Bool} : filter test [] = [] := by rfl
+
+unseal filter in
+theorem filter_cons_success {α : Type} {test : α → Bool} h t :
+   test h -> filter test (h :: t) = h :: filter test t := by
+   intro htest
+   dsimp [filter]
+   rw [htest]
+   dsimp
+
+unseal filter in
+theorem filter_cons_fail {α : Type} {test : α → Bool} h t :
+   test h = false -> filter test (h :: t) = filter test t := by
+   intro htest
+   dsimp [filter]
+   rw [htest]
+   dsimp
+
 
 -- TERSE:
 /- LATER: This material would sink in better if it were made clearer
@@ -847,11 +946,15 @@ def countoddmembers' (l : List Nat) : Nat :=
   (filter odd l).length
 
 /- test_countoddmembers'1 -/
+unseal filter
+unseal List.length
 example : countoddmembers' [1, 0, 3, 1, 4, 5] = 4 := by rfl
 /- test_countoddmembers'2 -/
 example : countoddmembers' [0, 2, 4] = 0 := by rfl
 /- test_countoddmembers'3 -/
 example : countoddmembers' [] = 0 := by rfl
+seal filter
+seal List.length
 
 /- /HIDEFROMADVANCED -/
 
@@ -903,6 +1006,8 @@ example : doit3times (· + 1) 0 = 3 := by rfl
    function. -/
 
 /- test_filter2' -/
+unseal filter
+unseal List.length
 example : filter (fun l => l.length == 1)
     [[1, 2], [3], [4], [5, 6, 7], [], [8]]
   = [[3], [4], [8]] := by rfl
@@ -910,6 +1015,8 @@ example : filter (fun l => l.length == 1)
 example : filter (·.length == 1)
     [[1, 2], [3], [4], [5, 6, 7], [], [8]]
   = [[3], [4], [8]] := by rfl
+seal filter
+seal List.length
 
 /- FULL
    EX2 (filter_even_gt7)
@@ -923,6 +1030,8 @@ def filterEvenGt7 (l : List Nat) : List Nat :=
   /- /ADMITDEF -/
 
 /- test_filter_even_gt7_1 -/
+unseal filter
+unseal List.length
 example : filterEvenGt7 [1, 2, 6, 9, 10, 3, 12, 8] = [10, 12, 8] := by rfl  /- ADMITTED -/
 
 /- test_filter_even_gt7_2 -/
@@ -930,6 +1039,9 @@ example : filterEvenGt7 [5, 2, 6, 19, 129] = [] := by rfl  /- ADMITTED -/
 /- GRADE_THEOREM 1: test_filter_even_gt7_1
    GRADE_THEOREM 1: test_filter_even_gt7_2
    [] -/
+seal filter
+seal List.length
+
 
 /- EX3 (partition)
    Use `filter` to write a Lean function `partition` that, given a
@@ -945,10 +1057,14 @@ def partition {α : Type} (test : α → Bool) (l : List α) : List α × List �
   (filter test l, filter (!test ·) l)
   /- /ADMITDEF -/
 
+unseal filter
+unseal List.length
 /- test_partition1 -/
 example : partition (· % 2 != 0) [1, 2, 3, 4, 5] = ([1, 3, 5], [2, 4]) := by rfl  /- ADMITTED -/
 /- test_partition2 -/
 example : partition (fun _ => false) [5, 9, 0] = ([], [5, 9, 0]) := by rfl  /- ADMITTED -/
+seal filter
+seal List.length
 /- GRADE_THEOREM 1: partition
    GRADE_THEOREM 1: test_partition1
    GRADE_THEOREM 1: test_partition2
@@ -960,6 +1076,7 @@ example : partition (fun _ => false) [5, 9, 0] = ([], [5, 9, 0]) := by rfl  /- A
 
 /- FULL: Another handy higher-order function is called `map`. -/
 
+@[irreducible]
 def map {α : Type} {β : Type} (f : α → β) (l : List α) : List β :=
   match l with
   | [] => []
@@ -970,6 +1087,7 @@ def map {α : Type} {β : Type} (f : α → β) (l : List α) : List β :=
    been applied to each element of `l` in turn. For example: -/
 
 /- test_map1 -/
+unseal map in
 example : map (· + 3) [2, 0, 2] = [5, 3, 5] := by rfl
 
 /- HIDEFROMADVANCED
@@ -979,6 +1097,7 @@ example : map (· + 3) [2, 0, 2] = [5, 3, 5] := by rfl
    numbers to booleans to yield a list of booleans: -/
 
 /- test_map2 -/
+unseal map in
 example : map odd [2, 1, 2, 5] = [false, true, false, true] := by rfl
 
 /- FULL: It can even be applied to a list of numbers and
@@ -986,6 +1105,7 @@ example : map odd [2, 1, 2, 5] = [false, true, false, true] := by rfl
    yield a _list of lists_ of booleans: -/
 
 /- test_map3 -/
+unseal map in
 example : map (fun n => [even n, odd n]) [2, 1, 2, 5]
   = [[true, false], [false, true], [true, false], [false, true]] := by rfl
 
@@ -1036,6 +1156,12 @@ example : map (fun n => [even n, odd n]) [2, 1, 2, 5]
 /- TERSE: ***
    FULL: *** Exercises -/
 
+unseal map in
+theorem map_nil {α : Type} {β : Type} (f : α → β) : map f [] = [] := by rfl
+
+unseal map in
+theorem map_cons {α : Type} {β : Type} (f : α → β) h t : map f (h :: t) = f h :: map f t := by rfl
+
 /- FULL
    EX3 (map_rev)
    Show that `map` and `reverse` commute. (Hint: You may need to
@@ -1046,8 +1172,9 @@ theorem map_app {α : Type} {β : Type} : ∀ (f : α → β) (l l' : List α),
     map f (l ++ l') = map f l ++ map f l' := by
   intro f l l'
   induction l
-  case nil => rfl
-  case cons h t ih => dsimp [map]; rw [ih]
+  case nil => rw [map_nil, List.nil_append, List.nil_append]
+  case cons h t ih =>
+   rw [List.cons_append, map_cons, map_cons, ih, List.cons_append]
 
 /- /QUIETSOLUTION -/
 
@@ -1057,8 +1184,10 @@ theorem map_rev {α : Type} {β : Type} : ∀ (f : α → β) (l : List α),
   /- ADMITTED -/
   intro f l
   induction l
-  case nil => rfl
-  case cons h t ih => dsimp [map, List.rev]; rw [map_app, ih]; dsimp [map]
+  case nil =>
+   rw [rev_nil, map_nil, rev_nil]
+  case cons h t ih =>
+   rw [rev_cons, map_cons, map_app, rev_cons, ih, map_cons, map_nil]
 /- /ADMITTED
    GRADE_THEOREM 3: map_rev
    [] -/
@@ -1073,6 +1202,7 @@ theorem map_rev {α : Type} {β : Type} : ∀ (f : α → β) (l : List α),
        flatMap (fun n => [n, n + 1, n + 2]) [1, 5, 10]
          = [1, 2, 3, 5, 6, 7, 10, 11, 12] -/
 
+@[irreducible]
 def flatMap {α : Type} {β : Type} (f : α → List β) (l : List α) : List β :=
   /- ADMITDEF -/
   match l with
@@ -1081,6 +1211,8 @@ def flatMap {α : Type} {β : Type} (f : α → List β) (l : List α) : List β
   /- /ADMITDEF -/
 
 /- test_flat_map1 -/
+unseal flatMap in
+unseal List.append in
 example : flatMap (fun n => [n, n, n]) [1, 5, 4]
   = [1, 1, 1, 5, 5, 5, 4, 4, 4] := by rfl  /- ADMITTED -/
 /- GRADE_THEOREM 1: flatMap
@@ -1089,9 +1221,18 @@ example : flatMap (fun n => [n, n, n]) [1, 5, 4]
    /FULL
    HIDEFROMADVANCED -/
 
+unseal flatMap in
+theorem flatMap_nil {α : Type} {β : Type} (f : α → List β) : flatMap f [] = [] :=
+   by rfl -- ADMITTED
+
+unseal flatMap in
+theorem flatMap_cons {α : Type} {β : Type} (f : α → List β) h t :
+   flatMap f (h :: t) = f h ++ flatMap f t := by rfl -- ADMITTED
+
 /- Lists are not the only inductive type for which `map` makes sense.
    Here is a `map` for the `Option` type: -/
 
+@[irreducible]
 def optionMap {α : Type} {β : Type} (f : α → β) (x? : Option α) : Option β :=
   match x? with
   | none => none
@@ -1119,6 +1260,7 @@ def optionMap {α : Type} {β : Type} (f : α → β) (x? : Option α) : Option 
    operation that lies at the heart of Google's map/reduce
    distributed programming framework. -/
 
+@[irreducible]
 def fold {α : Type} {β : Type} (f : α → β → β) (l : List α) (b : β) : β :=
   match l with
   | [] => b
@@ -1143,16 +1285,27 @@ def fold {α : Type} {β : Type} (f : α → β → β) (l : List α) (b : β) :
        1 + (2 + (3 + (4 + 0))). -/
 
 /- fold_example1 -/
+unseal fold
 example : fold (· && ·) [true, true, false, true] true = false := by rfl
 
 /- fold_example2 -/
 example : fold (· * ·) [1, 2, 3, 4] 1 = 24 := by rfl
 
 /- fold_example3 -/
+unseal List.append in
 example : fold (· ++ ·) [[1], [], [2, 3], [4]] [] = [1, 2, 3, 4] := by rfl
 
 /- fold_example4 -/
+unseal List.length in
 example : fold (fun l n => l.length + n) [[1], [], [2, 3, 2], [4]] 0 = 5 := by rfl
+seal fold
+
+unseal fold in
+theorem fold_nil {α : Type} {β : Type} (f : α → β → β) (b : β) : fold f [] b = b := by rfl
+
+unseal fold in
+theorem fold_cons {α : Type} {β : Type} (f : α → β → β) h t (b : β) :
+   fold f (h :: t) b = f h (fold f t b) := by rfl
 
 /- TERSE
    QUIZ
@@ -1282,6 +1435,8 @@ def foldLength {α : Type} (l : List α) : Nat :=
   fold (fun _ n => n + 1) l 0
 
 /- test_fold_length1 -/
+unseal fold in
+unseal List.length in
 example : foldLength [4, 7, 0] = 3 := by rfl
 
 /- Prove the correctness of `foldLength`.
@@ -1294,10 +1449,12 @@ theorem fold_length_correct {α : Type} (l : List α) :
     foldLength l = l.length := by
   /- ADMITTED -/
   induction l
-  case nil => rfl
+  case nil =>
+   dsimp only [foldLength]
+   rw [fold_nil, List.length_nil]
   case cons h t ih =>
-    dsimp [foldLength, fold] at *
-    rw [ih]
+    dsimp only [foldLength] at *
+    rw [List.length_cons, fold_cons, ih]
 /- /ADMITTED
    GRADE_THEOREM 2: Exercises.fold_length_correct
    [] -/
@@ -1319,10 +1476,10 @@ def foldMap {α : Type} {β : Type} (f : α → β) (l : List α) : List β :=
 theorem fold_map_correct {α : Type} {β : Type} (f : α → β) (l : List α) :
     foldMap f l = map f l := by
   induction l
-  case nil => rfl
+  case nil => dsimp [foldMap]; rw [fold_nil, map_nil]
   case cons h t ih =>
-    dsimp [foldMap, fold, map] at *
-    rw [ih]
+    dsimp [foldMap] at *
+    rw [fold_cons, map_cons, ih]
 /- /SOLUTION -/
 
 /- GRADE_MANUAL 3: fold_map
@@ -1367,6 +1524,7 @@ def prodUncurry {α β γ : Type} (f : α → β → γ) (p : α × β) : γ :=
    to shorten one of the examples that we saw above: -/
 
 /- test_map1' -/
+unseal map in
 example : map (Nat.add 3) [2, 0, 2] = [5, 3, 5] := by rfl
 
 /- Thought exercise: before running the following commands, can you
