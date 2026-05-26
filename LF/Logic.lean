@@ -67,7 +67,7 @@ open Nat hiding add_succ mul_succ beq beq_eq
 /- So far, we've seen one primary place where propositions can appear:
     in `theorem` declarations. -/
 
-theorem plus_2_2_is_4 : 2 + 2 = 4 := by rfl
+theorem plus_2_2_is_4 : 2 + 2 = 4 := rfl
 
 /- FULL: But propositions can be used in other ways.  For example, we
     can give a name to a proposition using a `def`, just as we
@@ -83,7 +83,7 @@ def plus_claim : Prop := 2 + 2 = 4
 /- FULL: We can later use this name in any situation where a proposition is
     expected -- for example, as the claim in a `theorem` declaration. -/
 
-theorem plus_claim_is_true : plus_claim := by rfl
+theorem plus_claim_is_true : plus_claim := rfl
 
 /- We can also write _parameterized_ propositions -- that is,
     functions that take arguments of some type and return a
@@ -432,7 +432,7 @@ theorem zero_or_succ (n : Nat) : n = 0 ∨ n = pred (succ n) := by
   -- WORKINCLASS
   cases n
   case zero => left; rfl
-  case succ n => right; dsimp [pred]
+  case succ n => right; rw [Nat.pred_succ]
   -- /WORKINCLASS
 
 -- TERSE: HIDEFROMHTML
@@ -502,7 +502,6 @@ theorem not_implies_other_not (P : Prop) (h : ¬ P) :
     (∀ Q : Prop, P → Q) := by
   -- ADMITTED
   intro Q hP
-  unfold Not at h
   apply ex_falso_quodlibet
   apply h
   exact hP
@@ -517,10 +516,7 @@ theorem not_implies_other_not (P : Prop) (h : ¬ P) :
 
 theorem zero_not_one : 0 ≠ 1 := by
   /- FULL: The proposition `0 ≠ 1` is exactly the same as `¬ (0 = 1)`
-      -- that is, `Not (0 = 1)` -- which unfolds to `(0 = 1) → False`.
-      (We use `unfold Ne Not` explicitly here to illustrate that point,
-      but generally it can be omitted.) -/
-  unfold Ne Not
+      -- that is, `Not (0 = 1)` -- which unfolds to `(0 = 1) → False`. -/
   /- FULL: To prove an inequality, we may assume the opposite equality... -/
   intro contra
   /- FULL: ...and deduce a contradiction from it. Here, the equality
@@ -539,18 +535,16 @@ theorem zero_not_one : 0 ≠ 1 := by
     Here are proofs of a few familiar facts to help get you warmed up. -/
 
 theorem not_False : ¬ False := by
-  unfold Not; intro h; exact h
+  intro h; exact h
 
 theorem contradiction_implies_anything (P Q : Prop) (h : P ∧ ¬ P) : Q := by
   -- WORKINCLASS
-  unfold Not at h
   let ⟨hP, hnP⟩ := h
   apply hnP at hP; cases hP
   -- /WORKINCLASS
 
 theorem double_neg (P : Prop) (hP : P) : ¬ ¬ P := by
   -- WORKINCLASS
-  unfold Not
   intro h; apply h; exact hP
   -- /WORKINCLASS
 
@@ -613,7 +607,7 @@ theorem not_succ_pred_n : ¬ (∀ n : Nat, succ (pred n) = n) := by
   -- ADMITTED
   intro h
   replace h := h 0
-  dsimp [pred] at h
+  rw [Nat.pred_zero] at h
   contradiction
   -- /ADMITTED
 -- []
@@ -795,16 +789,22 @@ example : True := by constructor
     to convert an unprovable statement (like `False`) to one that is
     provable (like `True`). -/
 
+@[irreducible]
 def discr_fun (n : Nat) : Prop :=
   match n with
-  | zero => True
-  | succ _ => False
+  | 0 => True
+  | _ + 1 => False
 
-theorem discr_example (n : Nat) : ¬ (zero = succ n) := by
+unseal discr_fun in
+theorem discr_fun_zero : discr_fun 0 = True := rfl
+
+unseal discr_fun in
+theorem discr_fun_succ n : discr_fun (n + 1) = False := rfl
+
+theorem discr_example (n : Nat) : ¬ (0 = n + 1) := by
   intro h
-  have hd : discr_fun zero := ⟨⟩
-  rw [h] at hd
-  dsimp [discr_fun] at hd
+  have hd : discr_fun 0 := by rw [discr_fun_zero]; exact ⟨⟩
+  rw [h, discr_fun_succ] at hd; exact hd
 
 /- To generalize this to other constructors, we simply have to provide
     an appropriate variant of `discr_fun`. To generalize it to other
@@ -816,19 +816,25 @@ theorem discr_example (n : Nat) : ¬ (zero = succ n) := by
     Do not use the `contradiction` tactic. -/
 
 -- QUIETSOLUTION
-def is_nil {X : Type} (xs : List X) : Prop :=
+@[irreducible]
+def is_nil {α : Type} (xs : List α) : Prop :=
   match xs with
   | [] => True
   | _ :: _ => False
+
+unseal is_nil in
+theorem is_nil_nil {α} : @is_nil α [] = True := rfl
+
+unseal is_nil in
+theorem is_nil_cons {α} (x : α) (xs : List α) : is_nil (x :: xs) = False := rfl
 -- /QUIETSOLUTION
 
 theorem nil_is_not_cons {α : Type} (x : α) (xs : List α) :
     ¬ ([] = x :: xs) := by
   -- ADMITTED
   intro h
-  have hn : @is_nil α [] := ⟨⟩
-  rw [h] at hn
-  dsimp [is_nil] at hn
+  have hn : @is_nil α [] := by rw [is_nil_nil]; exact ⟨⟩
+  rw [h, is_nil_cons] at hn; exact hn
   -- /ADMITTED
 -- []
 -- /FULL
@@ -959,8 +965,8 @@ def Even x := ∃ n : Nat, x = double n
 
 #check (Even : Nat → Prop)
 
-example : Even 4 := by
-  unfold Even; exists 2
+unseal double in
+example : Even 4 := by exists 2
   -- `4 = double 2` holds by `rfl`,
   -- but is proven automatically by `exists`
 
@@ -1018,7 +1024,7 @@ theorem leb_plus_exists : ∀ n m : Nat, (n ≤? m = true) → ∃ x, m = x + n 
     case zero => intro h; contradiction
     case succ m' =>
       intro h
-      dsimp [leb] at h
+      rw [succ_leb_succ] at h
       apply ih at h
       let ⟨x, hx⟩ := h
       exists x
@@ -1029,7 +1035,7 @@ theorem leb_plus_exists : ∀ n m : Nat, (n ≤? m = true) → ∃ x, m = x + n 
 theorem leb_plus (n m : Nat) : (n ≤? (m + n)) = true := by
   induction n
   case zero => rfl
-  case succ n' ih => dsimp [leb]; exact ih
+  case succ n' ih => rw [add_succ m, succ_leb_succ]; exact ih
 -- /QUIETSOLUTION
 
 theorem add_exists_leb (n m : Nat) (h : ∃ x, m = x + n) : n ≤? m = true := by
@@ -1044,7 +1050,10 @@ theorem add_exists_leb (n m : Nat) (h : ∃ x, m = x + n) : n ≤? m = true := b
 theorem add_exists_leb' : ∀ n m, (∃ x, m = x + n) → n ≤? m = true := by
   intro n; induction n
   case zero => intro m H; rfl
-  case succ n' ih => intro m ⟨x, hx⟩; rw [hx]; dsimp [leb]; apply ih; exists x
+  case succ n' ih =>
+    intro m ⟨x, hx⟩
+    rw [hx, add_succ x, succ_leb_succ]
+    apply ih; exists x
 -- /HIDE
 -- []
 -- /FULL
@@ -1097,19 +1106,28 @@ theorem add_exists_leb' : ∀ n m, (∃ x, m = x + n) → n ≤? m = true := by
 /- We can translate this directly into a straightforward recursive function
     taken an element and a list and returning... a proposition! -/
 
+@[irreducible]
 def In {α : Type} (x : α) (xs : List α) : Prop :=
   match xs with
   | [] => False
   | x' :: xs' => x = x' ∨ In x xs'
 
+unseal In in
+theorem In_nil {α} (x : α) : In x [] = False := rfl
+
+unseal In in
+theorem In_cons {α} (x x' : α) (xs : List α) : In x (x' :: xs) = (x = x' ∨ In x xs) := rfl
+
 /- When `In` is applied to a concrete list, it exapnds into a concrete sequence
    of nested disjunctions. -/
 
+unseal In in
 example : In 4 [1, 2, 3, 4, 5] := by
   -- WORKINCLASS
   dsimp [In]; right; right; right; left; rfl
   -- /WORKINCLASS
 
+unseal In in
 example (n : Nat) (h : In n [2, 4]) : ∃ n' : Nat, n = 2 * n' := by
   -- WORKINCLASS
   dsimp [In] at h
@@ -1125,12 +1143,12 @@ theorem In_map (α β : Type) (f : α → β) (xs : List α) (x : α) (h : In x 
     In (f x) (List.map f xs) := by
   -- TERSE: FOLD
   induction xs
-  case nil => contradiction
+  case nil => rw [In_nil] at h; contradiction
   case cons x' xs' ih =>
-    dsimp [In] at *
+    rw [In_cons] at h
     obtain h | h := h
-    case inl => rw [h]; left; rfl
-    case inr => right; exact ih h
+    case inl => rw [h, List.map_cons, In_cons]; left; rfl
+    case inr => rw [List.map_cons, In_cons]; right; exact ih h
   -- TERSE: /FOLD
 
 -- FULL
@@ -1150,20 +1168,20 @@ theorem In_map_iff (α β : Type) (f : α → β) (xs : List α) (y : β) :
   case mp =>
     induction xs
     -- ADMITTED
-    case nil => intro h; contradiction
+    case nil => intro h; rw [List.map_nil, In_nil] at h; contradiction
     case cons x' xs' ih =>
-      dsimp [In]
       intro h
+      rw [List.map_cons, In_cons] at h
       obtain h | h := h
       case inl =>
         rw [h]; exists x'; constructor
         case left => rfl
-        case right => left; rfl
+        case right => rw [In_cons]; left; rfl
       case inr =>
         let ⟨x', h1, h2⟩ := ih h
         exists x'; constructor
         case left => exact h1
-        case right => right; exact h2
+        case right => rw [In_cons]; right; exact h2
     -- /ADMITTED
   case mpr =>
     -- ADMITTED
@@ -1185,6 +1203,7 @@ theorem In_map_iff (α β : Type) (f : α → β) (xs : List α) (y : β) :
     lemma below.  (Of course, your definition should _not_ just
     restate the left-hand side of `All_In`.) -/
 
+@[irreducible]
 def All {α : Type} (P : α → Prop) (xs : List α) : Prop :=
   -- ADMITDEF
   match xs with
@@ -1192,28 +1211,35 @@ def All {α : Type} (P : α → Prop) (xs : List α) : Prop :=
   | x :: xs' => P x ∧ All P xs'
   -- /ADMITDEF
 
+unseal All in
+theorem All_nil {α} (P : α → Prop) : All P [] = True := rfl
+
+unseal All in
+theorem All_cons {α} (P : α → Prop) x xs : All P (x :: xs) = (P x ∧ All P xs) := rfl
+
 theorem All_In α (P : α → Prop) (xs : List α) :
     (∀ x, In x xs → P x) ↔ All P xs := by
   -- ADMITTED
   induction xs
   case nil =>
-    dsimp [In, All]
     constructor
-    case mp => intros; exact ⟨⟩
-    case mpr => intros; contradiction
+    case mp => intros; rw [All_nil]; exact ⟨⟩
+    case mpr => intro _ _ h; rw [In_nil] at h; contradiction
   case cons x' xs' ih =>
     dsimp [In, All]
     let ⟨ih1, ih2⟩ := ih
     constructor
     case mp =>
-      intro h; constructor
-      case left => apply h; left; rfl
+      intro h; rw [All_cons]; constructor
+      case left => apply h; rw [In_cons]; left; rfl
       case right =>
         apply ih1
         intro x' hx'; apply h
-        right; exact hx'
+        rw [In_cons]; right; exact hx'
     case mpr =>
+      rw [All_cons]
       intro ⟨hx, hP⟩ x' h
+      rw [In_cons] at h
       obtain h1 | h2 := h
       case inl => rw [h1]; exact hx
       case inr => apply ih2; apply hP; exact h2
@@ -1227,6 +1253,7 @@ theorem All_In α (P : α → Prop) (xs : List α) :
     a property `P` such that `P n` is equivalent to `Podd n` when `n` is odd
     and equivalent to `Peven n` otherwise. -/
 
+@[irreducible]
 def combine_odd_even (Podd Peven : Nat → Prop) : Nat → Prop :=
   -- ADMITDEF
   fun n => bif odd n then Podd n else Peven n
@@ -1234,33 +1261,37 @@ def combine_odd_even (Podd Peven : Nat → Prop) : Nat → Prop :=
 
 /- To test your definition, prove the following facts: -/
 
+unseal combine_odd_even in
 theorem combined_odd_even_intro Podd Peven n
     (hodd : odd n = true → Podd n)
     (heven : odd n = false → Peven n) :
     combine_odd_even Podd Peven n := by
   -- ADMITTED
-  unfold combine_odd_even
   cases h : odd n
   case false =>
-    dsimp; apply heven; exact h
+    dsimp [combine_odd_even]; rw [h]; dsimp
+    apply heven; exact h
   case true =>
-    dsimp; apply hodd; exact h
+    dsimp [combine_odd_even]; rw [h]; dsimp
+    apply hodd; exact h
   -- /ADMITTED
 
+unseal combine_odd_even in
 theorem combined_odd_even_elim_odd Podd Peven n
     (h : combine_odd_even Podd Peven n)
     (hodd : odd n = true) : Podd n := by
   -- ADMITTED
-  unfold combine_odd_even at h
+  dsimp [combine_odd_even] at h
   rw [hodd] at h
   dsimp at h; exact h
   -- /ADMITTED
 
+unseal combine_odd_even in
 theorem combined_odd_even_elim_even Podd Peven n
     (h : combine_odd_even Podd Peven n)
     (hodd : odd n = false) : Peven n := by
   -- ADMITTED
-  unfold combine_odd_even at h
+  dsimp [combine_odd_even] at h
   rw [hodd] at h
   dsimp at h; exact h
   -- /ADMITTED
@@ -1615,9 +1646,10 @@ end FunctionTheoremQuiz
 
 /- For instance, to claim that a number `n` is even,
     we can say either that `even n` evaluates to `true`... -/
-example : even 42 = true := by rfl
+example : even 42 = true := rfl
 
 /- ... or that there exists some `k` such that `n = double k`. -/
+unseal double in
 example : Even 42 := by exists 21
 
 /- Of course, it would be deeply strange if these two characterizations
@@ -1632,8 +1664,8 @@ theorem even_double (k : Nat) :
     even (double k) = true := by
   -- FOLD
   induction k
-  case zero => rfl
-  case succ k' ih => dsimp [even, double]; exact ih
+  case zero => rw [double_zero]; rfl
+  case succ k' ih => rw [double_succ]; exact ih
   -- /FOLD
 
 -- FULL
@@ -1642,16 +1674,18 @@ theorem even_double_conv (n : Nat) : ∃ k : Nat,
     n = bif even n then double k else succ (double k) := by
   -- ADMITTED
   induction n
-  case zero => exists 0
+  case zero =>
+    rw [even_zero]; dsimp
+    exists 0; rw [double_zero]
   case succ n' ihn =>
     let ⟨k', ihk⟩ := ihn
     rw [even_succ]
     cases h : even n'
     case false =>
-      rw [h] at ihk; dsimp [not] at *
-      exists (k' + 1); rw [ihk]; rfl
+      rw [h] at ihk; rw [not] at *; dsimp at *
+      exists (k' + 1); rw [ihk, double_succ]
     case true =>
-      rw [h] at ihk; dsimp [not] at *
+      rw [h] at ihk; rw [not] at *; dsimp at *
       exists k'; congr
   -- /ADMITTED
 -- []
@@ -1665,8 +1699,7 @@ theorem even_bool_prop (n : Nat) : even n = true ↔ Even n := by
   case mp =>
     intro h
     let ⟨k, hk⟩ := even_double_conv n
-    rw [h] at hk; dsimp at hk
-    unfold Even; exists k
+    rw [h] at hk; dsimp at hk; exists k
   case mpr =>
     intro ⟨k, hk⟩; rw [hk]; apply even_double
   -- /FOLD
@@ -1688,7 +1721,7 @@ theorem nonzero_bool_prop (n : Nat) :
   unfold Nonzero nonzero; constructor
   case mp =>
     intro h; cases n
-    case zero => dsimp [not] at h; contradiction
+    case zero => rw [eqb_refl, not] at h; contradiction
     case succ n' => exists n'
   case mpr =>
     intro ⟨m, hm⟩; rw [hm]; rfl
@@ -1743,15 +1776,16 @@ def is_even_prime (n : Nat) : Bool :=
 
 -- JC: This was originally 1000 but Lean's default recursion depth
 --     is not large enough to reduce `double 50` lol
+unseal double in
 example : Even 100 := by
 /- The most direct way to prove this is to give the value of `k` explicitly. -/
-  unfold Even; exists 50
+  exists 50
 
 /- The proof of the corresponding boolean statement is simpler,
     because we don't have to invent the witness `50`:
     computation does it for us! -/
 
-example : even 100 := by rfl
+example : even 100 := rfl
 
 /- Now, the useful observation is that, since the two notions are equivalent,
     we can use the boolean formulation to prove the other one
@@ -1774,11 +1808,12 @@ example : Even 100 := by
     booleans is straightforward to state and (when true) to prove:
     simply slip the expected boolean result. -/
 
-example : even 101 = false := by rfl
+example : even 101 = false := rfl
 
 /- In contrast, propositional negation can be difficult to work with directly.
     For example, suppose we state the nonevenness of `101` propositionally: -/
 
+-- unseal even in -- JC (TODO): mark `even` as irreducible
 example : ¬ Even 101 := by
 /- Proving this directly -- by assuming that there is some `n` such that
     `101 = double n` and then somehow reasoning to a contradiction --
@@ -1822,12 +1857,12 @@ theorem andb_true_iff (b1 b2 : Bool) :
   constructor
   case mp =>
     intro h; cases b1
-    case false => dsimp [and] at h; contradiction
-    case true => dsimp [and] at h; exact ⟨rfl, h⟩
+    case false => rw [and] at h; contradiction
+    case true => rw [and] at h; exact ⟨rfl, h⟩
   case mpr =>
     intro h; cases b1
     case false => exfalso; cases h.left
-    case true => dsimp [and]; exact h.right
+    case true => rw [and]; exact h.right
   -- /ADMITTED
 
 theorem orb_true_iff (b1 b2 : Bool) :
@@ -1836,15 +1871,15 @@ theorem orb_true_iff (b1 b2 : Bool) :
   constructor
   case mp =>
     intro h; cases b1
-    case false => dsimp [or] at h; right; exact h
-    case true => dsimp [or] at h; left; rfl
+    case false => rw [or] at h; right; exact h
+    case true => rw [or] at h; left; rfl
   case mpr =>
     intro h; cases b1
     case false =>
       obtain h | h := h
       case inl => contradiction
-      case inr => dsimp [or]; exact h
-    case true => dsimp [or]
+      case inr => rw [or]; exact h
+    case true => rw [or]
   -- /ADMITTED
 -- GRADE_THEOREM 1: andb_true_iff
 -- GRADE_THEOREM 2: orb_true_iff
@@ -1857,6 +1892,7 @@ theorem orb_true_iff (b1 b2 : Bool) :
     of the `beq_list` function below. to make sure that your definition
     is correct, prove the lemma `beq_list_true_iff`. -/
 
+@[irreducible]
 def beq_list {α : Type} (beq : α → α → Bool) (xs1 xs2 : List α) : Bool :=
   -- ADMITDEF
   match xs1, xs2 with
@@ -1864,6 +1900,23 @@ def beq_list {α : Type} (beq : α → α → Bool) (xs1 xs2 : List α) : Bool :
   | x1 :: xs1, x2 :: xs2 => beq x1 x2 && beq_list beq xs1 xs2
   | _, _ => false
   -- /ADMITDEF
+
+unseal beq_list in
+theorem beq_list_nil_nil {α} (beq : α → α → Bool) :
+    beq_list beq [] [] = true := rfl
+
+unseal beq_list in
+theorem beq_list_cons_cons {α} (beq : α → α → Bool) x1 x2 xs1 xs2 :
+    beq_list beq (x1 :: xs1) (x2 :: xs2) =
+    (beq x1 x2 && beq_list beq xs1 xs2) := rfl
+
+unseal beq_list in
+theorem beq_list_nil_cons {α} (beq : α → α → Bool) x xs :
+    beq_list beq [] (x :: xs) = false := rfl
+
+unseal beq_list in
+theorem beq_list_cons_nil {α} (beq : α → α → Bool) x xs :
+    beq_list beq (x :: xs) [] = false := rfl
 
 -- JC: Should this also go after `propext` to use rewriting by `↔`?j
 theorem beq_list_true_iff α (beq : α → α → Bool)
@@ -1874,21 +1927,21 @@ theorem beq_list_true_iff α (beq : α → α → Bool)
   case nil =>
     intro xs2; cases xs2
     case nil =>
-      dsimp [beq_list]; constructor
+      rw [beq_list_nil_nil]; constructor
       case mp => intro; rfl
       case mpr => intro; rfl
     case cons x2 xs2' =>
-      dsimp [beq_list]; constructor
+      rw [beq_list_nil_cons]; constructor
       case mp => intro; contradiction
       case mpr => intro; contradiction
   case cons x1 xs1' ih =>
     intro xs2; cases xs2
     case nil =>
-      dsimp [beq_list]; constructor
+      rw [beq_list_cons_nil]; constructor
       case mp => intro; contradiction
       case mpr => intro; contradiction
     case cons x2 xs2' =>
-      dsimp [beq_list]
+      rw [beq_list_cons_cons]
       let ⟨h1, h2⟩ := andb_true_iff (beq x1 x2) (beq_list beq xs1' xs2')
       let ⟨hx1, hx2⟩ := h x1 x2
       let ⟨ih1, ih2⟩ := ih xs2'
@@ -1912,6 +1965,7 @@ theorem beq_list_true_iff α (beq : α → α → Bool)
 
 /- Copy the definition of `forallb` from Tactics here so that this file can be
     graded on its own. -/
+@[irreducible]
 def Logic.forallb {α : Type} (test : α → Bool) (xs : List α) : Bool :=
   -- ADMITDEF
   match xs with
@@ -1919,17 +1973,24 @@ def Logic.forallb {α : Type} (test : α → Bool) (xs : List α) : Bool :=
   | x :: xs' => test x && forallb test xs'
   -- /ADMITDEF
 
+unseal Logic.forallb in
+theorem forallb_nil {α} (test : α → Bool) : Logic.forallb test [] = true := rfl
+
+unseal Logic.forallb in
+theorem forallb_cons {α} (test : α → Bool) x xs :
+    Logic.forallb test (x :: xs) = (test x && Logic.forallb test xs) := rfl
+
 theorem forallb_true_iff α (test : α → Bool) (xs : List α) :
     Logic.forallb test xs = true ↔ All (fun x => test x = true) xs := by
   -- ADMITTED
   induction xs
   case nil =>
-    dsimp [Logic.forallb, All]
+    rw [forallb_nil, All_nil]
     exact ⟨fun _ => ⟨⟩, fun _ => rfl⟩
   case cons x xs' ih =>
     let ⟨h1, h2⟩ := andb_true_iff (test x) (Logic.forallb test xs')
     let ⟨ih1, ih2⟩ := ih
-    dsimp [Logic.forallb, All]
+    rw [forallb_cons, All_cons]
     constructor
     case mp => intro h; exact ⟨(h1 h).left, ih1 (h1 h).right⟩
     case mpr => intro ⟨h1', h2'⟩; exact h2 ⟨h1', ih2 h2'⟩
@@ -2078,8 +2139,8 @@ theorem In_app_iff (α : Type) (xs xs' : List α) (x : α) :
   case nil =>
     constructor
     case mp => intro h; right; exact h
-    case mpr => dsimp [In]; intro h; obtain ⟨⟨⟩⟩ | h := h; exact h
-  case cons y ys ih => dsimp [In]; rw [ih, or_assoc]
+    case mpr => rw [In_nil]; intro h; obtain ⟨⟨⟩⟩ | h := h; exact h
+  case cons y ys ih => rw [List.cons_append, In_cons, In_cons, ih, or_assoc]
   -- /ADMITTED
 -- []
 
@@ -2101,7 +2162,7 @@ theorem beq_neq_false (n m : Nat) : (n == m) = false ↔ n ≠ m := by
     to each other. In some cases, we can also prove that two functions are
     equal by reflexivity when both reduce to the same expression: -/
 
-example : (fun x => x + 2) = (fun x => x + (pred 3)) := by rfl
+example : (fun x => x + 2) = (fun x => x + (pred 3)) := rfl
 
 /- In general, functions can be equal for more interesting reasons.
     In common mathematical practice, two functions `f` and `g` are considered
@@ -2155,7 +2216,7 @@ theorem add_comm_fun' : (fun (n m : Nat) => n + m) = (fun (n m : Nat) => m + n) 
     1. Yes
     2. No -/
 -- FOLD
-example : (fun xs => 1 :: xs) = (fun xs => [1] ++ xs) := by rfl
+example : (fun xs => 1 :: xs) = (fun xs => [1] ++ xs) := rfl
 -- /FOLD
 -- /HIDE
 
@@ -2168,11 +2229,20 @@ example : (fun xs => 1 :: xs) = (fun xs => [1] ++ xs) := by rfl
 
     We can improve this with the following two-argument definition: -/
 
+@[irreducible]
 def rev_append {α} (xs1 xs2 : List α) : List α :=
   match xs1 with
   | [] => xs2
   | x1 :: xs1' => rev_append xs1' (x1 :: xs2)
 
+unseal rev_append in
+theorem rev_append_nil {α} (xs : List α) : rev_append [] xs = xs := rfl
+
+unseal rev_append in
+theorem rev_append_cons {α} (x : α) xs1 xs2 :
+    rev_append (x :: xs1) xs2 = rev_append xs1 (x :: xs2) := rfl
+
+@[irreducible]
 def tr_rev {α} (xs : List α) : List α := rev_append xs []
 
 /- This version of `rev` is said to be _tail recursive_, because the recursive
@@ -2186,17 +2256,17 @@ def tr_rev {α} (xs : List α) : List α := rev_append xs []
 theorem rev_append_rev {α} : ∀ xs1 xs2 : List α,
     rev_append xs1 xs2 = xs1.rev ++ xs2 := by
   intro xs1; induction xs1
-  case nil => intro; rfl
+  case nil => intro; rw [rev_append_nil]; rfl
   case cons x1 xs1' ih =>
     intro xs2
-    dsimp [rev_append, List.rev]
-    rw [← List.append_cons]
+    rw [rev_append_cons, List.rev, ← List.append_cons]
     apply ih
 -- /QUIETSOLUTION
 
+unseal tr_rev in
 theorem tr_rev_correct {α} : @tr_rev α = @List.rev α := by
   -- ADMITTED
-  ext1 xs; unfold tr_rev
+  ext1 xs; dsimp [tr_rev]
   rw [rev_append_rev, List.append_nil]
   -- /ADMITTED
 -- []
