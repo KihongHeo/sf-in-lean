@@ -857,7 +857,7 @@ example : hdError [[1], [2]] = some [1] := by rfl  /- ADMITTED -/
    _higher-order_ functions. Here's a simple one:
    TERSE: Functions in Lean are _first class_. -/
 
-def doit3times {α : Type} (f : α → α) (n : α) : α :=
+abbrev doit3times {α : Type} (f : α → α) (n : α) : α :=
   f (f (f n))
 
 /- FULL: The argument `f` here is itself a function (from `α` to
@@ -902,7 +902,7 @@ unseal filter in
 example : filter even [1, 2, 3, 4] = [2, 4] := by rfl
 
 /- TERSE: *** -/
-def lengthIs1 {α : Type} (l : List α) : Bool :=
+abbrev lengthIs1 {α : Type} (l : List α) : Bool :=
   l.length == 1
 
 /- test_filter2 -/
@@ -942,7 +942,7 @@ theorem filter_cons_fail {α : Type} {test : α → Bool} h t :
 /- FULL: We can use `filter` to give a concise version of the
     `countoddmembers` function from the `Lists` chapter. -/
 
-def countoddmembers' (l : List Nat) : Nat :=
+abbrev countoddmembers' (l : List Nat) : Nat :=
   (filter odd l).length
 
 /- test_countoddmembers'1 -/
@@ -1024,7 +1024,7 @@ seal List.length
    `filterEvenGt7` that takes a list of natural numbers as input
    and returns a list of just those that are even and greater than 7. -/
 
-def filterEvenGt7 (l : List Nat) : List Nat :=
+abbrev filterEvenGt7 (l : List Nat) : List Nat :=
   /- ADMITDEF -/
   filter (fun n => even n && n > 7) l
   /- /ADMITDEF -/
@@ -1052,7 +1052,7 @@ seal List.length
    The order of elements in the two sublists should be the same as
    their order in the original list. -/
 
-def partition {α : Type} (test : α → Bool) (l : List α) : List α × List α :=
+abbrev partition {α : Type} (test : α → Bool) (l : List α) : List α × List α :=
   /- ADMITDEF -/
   (filter test l, filter (!test ·) l)
   /- /ADMITDEF -/
@@ -1369,10 +1369,10 @@ theorem fold_cons {α : Type} {β : Type} (f : α → β → β) h t (b : β) :
    yields `x` whenever it is called, ignoring its `Nat` argument.
    TERSE: Here are two functions that _return_ functions as results. -/
 
-def constfun {α : Type} (x : α) : Nat → α :=
+abbrev constfun {α : Type} (x : α) : Nat → α :=
   fun _ => x
 
-def ftrue := constfun true
+abbrev ftrue := constfun true
 
 /- constfun_example1 -/
 example : ftrue 0 = true := by rfl
@@ -1389,7 +1389,7 @@ example : constfun 5 99 = 5 := by rfl
 
 #check (Nat.add : Nat → Nat → Nat)
 
-def plus3 := Nat.add 3
+abbrev plus3 := Nat.add 3
 #check (plus3 : Nat → Nat)
 
 /- test_plus3 -/
@@ -1400,7 +1400,7 @@ example : doit3times plus3 0 = 9 := by rfl
 example : doit3times (Nat.add 3) 0 = 9 := by rfl
 
 /- Similarly, we can write: -/
-def fold_plus : List Nat → Nat → Nat :=
+abbrev fold_plus : List Nat → Nat → Nat :=
   fold (· + ·)
 
 #check (fold_plus : List Nat → Nat → Nat)
@@ -1431,7 +1431,7 @@ namespace Exercises
    Many common functions on lists can be implemented in terms of
    `fold`. For example, here is an alternative definition of `length`: -/
 
-def foldLength {α : Type} (l : List α) : Nat :=
+abbrev foldLength {α : Type} (l : List α) : Nat :=
   fold (fun _ n => n + 1) l 0
 
 /- test_fold_length1 -/
@@ -1463,7 +1463,7 @@ theorem fold_length_correct {α : Type} (l : List α) :
    We can also define `map` in terms of `fold`. Finish `foldMap`
    below. -/
 
-def foldMap {α : Type} {β : Type} (f : α → β) (l : List α) : List β :=
+abbrev foldMap {α : Type} {β : Type} (f : α → β) (l : List α) : List β :=
   /- ADMITDEF -/
   fold (fun x l' => f x :: l') l []
   /- /ADMITDEF -/
@@ -1476,9 +1476,9 @@ def foldMap {α : Type} {β : Type} (f : α → β) (l : List α) : List β :=
 theorem fold_map_correct {α : Type} {β : Type} (f : α → β) (l : List α) :
     foldMap f l = map f l := by
   induction l
-  case nil => dsimp [foldMap]; rw [fold_nil, map_nil]
+  case nil => dsimp only [foldMap]; rw [fold_nil, map_nil]
   case cons h t ih =>
-    dsimp [foldMap] at *
+    dsimp only [foldMap] at *
     rw [fold_cons, map_cons, ih]
 /- /SOLUTION -/
 
@@ -1510,12 +1510,12 @@ theorem fold_map_correct {α : Type} {β : Type} (f : α → β) (l : List α) :
 
 /- We can define currying as follows: -/
 
-def prodCurry {α β γ : Type} (f : α × β → γ) (x : α) (y : β) : γ := f (x, y)
+abbrev prodCurry {α β γ : Type} (f : α × β → γ) (x : α) (y : β) : γ := f (x, y)
 
 /- As an exercise, define its inverse, `prodUncurry`. Then prove
    the theorems below to show that the two are really inverses. -/
 
-def prodUncurry {α β γ : Type} (f : α → β → γ) (p : α × β) : γ :=
+abbrev prodUncurry {α β γ : Type} (f : α → β → γ) (p : α × β) : γ :=
   /- ADMITDEF -/
   f p.fst p.snd
   /- /ADMITDEF -/

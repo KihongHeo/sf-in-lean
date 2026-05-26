@@ -428,20 +428,19 @@ example : oddmembers [0, 1, 0, 2, 3, 0, 0] = [1, 3] := by rfl  -- ADMITTED
 
 -- For the next problem, `countoddmembers`, we encourage you to implement it using
 -- already-defined functions, rather than recursion.
-@[irreducible]
-def countoddmembers (l : NatList) : Nat :=
+abbrev countoddmembers (l : NatList) : Nat :=
   -- ADMITDEF
   (oddmembers l).length
   -- /ADMITDEF
 
 -- test_countoddmembers1
-unseal countoddmembers oddmembers NatList.length
+unseal oddmembers NatList.length
 example : countoddmembers [1, 0, 3, 1, 4, 5] = 4 := by rfl  -- ADMITTED
 -- test_countoddmembers2
 example : countoddmembers [0, 2, 4] = 0 := by rfl  -- ADMITTED
 -- test_countoddmembers3
 example : countoddmembers [] = 0 := by rfl  -- ADMITTED
-seal countoddmembers oddmembers NatList.length
+seal oddmembers NatList.length
 -- GRADE_THEOREM 0.5: NatList.test_countoddmembers2
 -- GRADE_THEOREM 0.5: NatList.test_countoddmembers3
 -- []
@@ -545,28 +544,24 @@ seal count
    names to the arguments.  Implement [sum] in terms of an
    already-defined function, without changing the header. -/
 
-@[irreducible]
-def sum : Bag → Bag → Bag :=
+abbrev sum : Bag → Bag → Bag :=
   -- ADMITDEF
   NatList.app
   -- /ADMITDEF
 
 -- test_sum1
-unseal sum in
 unseal count in
 unseal NatList.app in
 example : count 1 (sum [1, 2, 3] [1, 4, 1]) = 3 := by rfl -- ADMITTED
 -- GRADE_THEOREM 0.5: NatList.test_sum1
 
 unseal NatList.app in
-unseal sum in
 theorem nil_sum (l : NatList) : sum [] l = l := rfl
 
 unseal NatList.app in
-unseal sum in
 theorem cons_sum (n : Nat) (l1 l2 : Bag) : sum (n::l1) l2 = n :: (sum l1 l2) := rfl
 
-def add (v : Nat) (s : Bag) : Bag :=
+abbrev add (v : Nat) (s : Bag) : Bag :=
   -- ADMITDEF
   v :: s
   -- /ADMITDEF
@@ -666,19 +661,19 @@ unseal remove_one in
 theorem remove_one_nil v : remove_one v [] = [] := by rfl -- ADMITTED
 
 unseal remove_one in
-theorem remove_one_add_same v1 v2 t : (v2 == v1) = true -> remove_one v1 (v2 :: t) = t := by
+theorem remove_one_add_same v1 v2 t : (v2 == v1) = true -> remove_one v1 (add v2 t) = t := by
   -- ADMITTED
   intro h
-  dsimp [add, remove_one]
+  dsimp [remove_one]
   rw [h]
   dsimp
   -- /ADMITTED
 
 unseal remove_one in
-theorem remove_one_add_diff v1 v2 t : (v2 == v1) = false -> remove_one v1 (v2 :: t) = v2 :: (remove_one v1 t) := by
+theorem remove_one_add_diff v1 v2 t : (v2 == v1) = false -> remove_one v1 (add v2 t) = add v2 (remove_one v1 t) := by
   -- ADMITTED
   intro h
-  dsimp [add, remove_one]
+  dsimp [remove_one]
   rw [h]
   dsimp
   -- /ADMITTED
@@ -710,7 +705,7 @@ unseal remove_all in
 theorem remove_all_nil v : remove_all v [] = [] := by rfl -- ADMITTED
 
 unseal remove_all in
-theorem remove_all_add_same v t : remove_all v (v :: t) = remove_all v t := by
+theorem remove_all_add_same v t : remove_all v (add v t) = remove_all v t := by
   -- ADMITTED
   dsimp [add, remove_all]
   rw [eqb_refl]
@@ -718,7 +713,7 @@ theorem remove_all_add_same v t : remove_all v (v :: t) = remove_all v t := by
   -- /ADMITTED
 
 unseal remove_all in
-theorem remove_all_add_diff v1 v2 t : (v2 == v1) = false -> remove_all v1 (v2 :: t) = v2 :: (remove_all v1 t) := by
+theorem remove_all_add_diff v1 v2 t : (v2 == v1) = false -> remove_all v1 (add v2 t) = add v2 (remove_all v1 t) := by
   -- ADMITTED
   intro h
   dsimp [add, remove_all]
@@ -752,7 +747,7 @@ unseal included in
 theorem included_nil s : included [] s = true := by rfl -- ADMITTED
 
 unseal included in
-theorem included_add_member v s1 s2 : member v s2 = true -> included (v :: s1) s2 = included s1 (remove_one v s2) := by
+theorem included_add_member v s1 s2 : member v s2 = true -> included (add v s1) s2 = included s1 (remove_one v s2) := by
   -- ADMITTED
   intro h
   dsimp [add, included]
@@ -761,7 +756,7 @@ theorem included_add_member v s1 s2 : member v s2 = true -> included (v :: s1) s
   -- /ADMITTED
 
 unseal included in
-theorem included_add_nonmember v s1 s2 : member v s2 = false -> included (v :: s1) s2 = false := by
+theorem included_add_nonmember v s1 s2 : member v s2 = false -> included (add v s1) s2 = false := by
   -- ADMITTED
   intro h
   dsimp [add, included]
