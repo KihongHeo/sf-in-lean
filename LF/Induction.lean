@@ -427,10 +427,17 @@ theorem add_assoc : ∀ n m p : Nat,
 -- EX2 (double_plus)
 /- Consider the following function, which doubles its argument: -/
 
+@[irreducible]
 def double (n : Nat) : Nat :=
   match n with
   | 0 => 0
-  | .succ n' => (double n') + 2
+  | n' + 1 => (double n') + 2
+
+unseal double in
+theorem double_zero : double 0 = 0 := by rfl
+
+unseal double in
+theorem double_succ n : double (n + 1) = double n + 2 := by rfl
 
 /- Use induction to prove this simple fact about `double`: -/
 
@@ -438,9 +445,9 @@ theorem double_add : ∀ n, double n = n + n := by
   -- ADMITTED
   intro n
   induction n
-  case zero => rfl
+  case zero => rw [double_zero]
   case succ n' ih =>
-    dsimp [double]; rw [ih, add_succ (n' + 1), succ_add]
+    rw [double_succ, ih, add_succ (n' + 1), succ_add]
 -- /ADMITTED
 -- []
 
@@ -1142,7 +1149,7 @@ example : ∀ b, natToBin (binToNat b) = b := by sorry
 theorem double_incr : ∀ n : Nat,
     double (n + 1) = (double n) + 2 := by
   -- ADMITTED
-  intro n; rfl
+  intro n; rw [double_succ]
 -- /ADMITTED
 -- GRADE_THEOREM 0.5: double_incr
 

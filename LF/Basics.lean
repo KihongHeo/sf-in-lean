@@ -896,6 +896,10 @@ def even (n : Nat) : Bool :=
   | 1                => false
   | .succ (.succ n') => even n'
 
+theorem even_zero : even 0 = true := rfl
+theorem even_one : even 1 = false := rfl
+theorem even_succ_succ n : even (.succ (.succ n)) = even n := rfl
+
 -- TERSE: /- *** -/
 /-
   We could define `odd` by a similar recursive declaration, but
@@ -1075,6 +1079,10 @@ def leb (n m : Nat) : Bool :=
       match m with
       | 0 => false
       | m' + 1 => leb n' m'
+
+theorem zero_leb (n : Nat) : leb 0 n = true := by rfl
+theorem succ_leb_zero (n : Nat) : leb (n + 1) 0 = false := by rfl
+theorem succ_leb_succ (n m : Nat) : leb (n + 1) (m + 1) = leb n m := by rfl
 
 /- test_leb1 -/
 example : leb 2 2 = true  := by rfl
