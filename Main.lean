@@ -13,4 +13,4 @@ def config : Config where
   --extraFiles := [("assets", "assets")]
 
 def main := manualMain (%doc LF) (config := { config with })
-  (extraSteps := [PLF.Meta.emitSaved])
+  (extraSteps := [LF.Meta.emitSaved])

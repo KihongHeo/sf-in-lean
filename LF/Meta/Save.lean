@@ -26,7 +26,7 @@ register_option sf.showSolutions : Bool := {
   descr := "When true, show the teacher (solution-filled) version of `lean` code blocks in the rendered HTML output."
 }
 
-namespace PLF.Meta
+namespace LF.Meta
 
 /-! ## Block extensions used by the saver -/
 
@@ -64,7 +64,7 @@ text fallback. Use it to attach an ASCII alt that ends up in the generated
 def diagramWithAlt : DirectiveExpanderOf Unit
   | (), contents => do
     let blocks ← contents.mapM elabBlock
-    ``(Verso.Doc.Block.other PLF.Meta.Block.diagramWithAlt #[$blocks,*])
+    ``(Verso.Doc.Block.other LF.Meta.Block.diagramWithAlt #[$blocks,*])
 
 /-! ## Inline-to-text pretty printer -/
 
@@ -97,9 +97,9 @@ def inlinesToText (inls : Array (Verso.Doc.Inline Manual)) : String :=
 private def lakefileTemplate : String :=
   "name = \"plf-extracted\"\n" ++
   "version = \"0.1.0\"\n" ++
-  "defaultTargets = [\"PLF\"]\n\n" ++
+  "defaultTargets = [\"LF\"]\n\n" ++
   "[[lean_lib]]\n" ++
-  "name = \"PLF\"\n"
+  "name = \"LF\"\n"
 
 /-! ## ExtraStep walker -/
 
@@ -153,7 +153,7 @@ private def decodeLeanSaved? (data : Json) : Option (String × String) :=
 
 /-! ## Syntactic rewriting of `solution!` markers
 
-The `solution!` term and tactic elaborators (declared in `PLF.Meta.Exercise`)
+The `solution!` term and tactic elaborators (declared in `LF.Meta.Exercise`)
 register the source range of each invocation into `solutionEditsRef` as they
 run. The project-local `lean` code-block expander (below) snapshots that ref
 around its call to the upstream Lean elaborator, then uses the freshly added
@@ -315,8 +315,8 @@ Wraps each ` ```lean … ``` ` code block. The pipeline is:
 @[code_block]
 def lean : CodeBlockExpanderOf Verso.Genre.Manual.InlineLean.LeanBlockConfig
   | config, str => do
-    PLF.Meta.studentEditRef.set #[]
-    PLF.Meta.teacherEditRef.set #[]
+    LF.Meta.studentEditRef.set #[]
+    LF.Meta.teacherEditRef.set #[]
     let preEnv ← getEnv
     let preScopes ← getScopes
     let underlying ← Verso.Genre.Manual.InlineLean.lean config str
@@ -342,14 +342,14 @@ def lean : CodeBlockExpanderOf Verso.Genre.Manual.InlineLean.LeanBlockConfig
     let student := applyFillInForStudent (applyEdits src studentRanges)
     if sf.showSolutions.get (← getOptions) then
       ``(Verso.Doc.Block.other
-          (PLF.Meta.Block.leanSaved $(quote teacher) $(quote student))
+          (LF.Meta.Block.leanSaved $(quote teacher) $(quote student))
           #[$underlying])
     else
       let studentHls ← elabAndHighlightStudent preEnv preScopes student
       let range := Syntax.getRange? str
       let lspRange := range.map (← getFileMap).utf8RangeToLspRange
       ``(Verso.Doc.Block.other
-          (PLF.Meta.Block.leanSaved $(quote teacher) $(quote student))
+          (LF.Meta.Block.leanSaved $(quote teacher) $(quote student))
           #[Verso.Doc.Block.other
               (Verso.Genre.Manual.InlineLean.Block.lean
                 $(quote studentHls)
@@ -400,7 +400,7 @@ partial def walkBlock (file : String) (b : Verso.Doc.Block Manual)
         for c in contents do buf := walkBlock file c buf
         return buf
       return buf
-    if name == ``PLF.Meta.Block.bnf then
+    if name == ``LF.Meta.Block.bnf then
       if let some src := decodeBnfSource? which.data then
         return appendBoth buf file (asModuleDoc src.trimAscii.toString)
     if name == ``Block.diagramWithAlt then
@@ -451,13 +451,13 @@ private def chapterFileBase (p : Part Manual) : String :=
 
 /-- Generated Lean file path for a chapter Part. -/
 private def chapterPath (p : Part Manual) : String :=
-  "PLF/" ++ chapterFileBase p ++ ".lean"
+  "LF/" ++ chapterFileBase p ++ ".lean"
 
 /-- Generated Lean module name for a chapter Part. The slug is wrapped in
 French-quote brackets so titles whose slugs contain characters that aren't
 valid Lean identifier letters (hyphens, spaces, …) still parse. -/
 private def chapterModule (p : Part Manual) : String :=
-  "PLF.«" ++ chapterFileBase p ++ "»"
+  "LF.«" ++ chapterFileBase p ++ "»"
 
 /--
 Walk a section (a Part at depth ≥ 1, inside a chapter). The section's title is
@@ -479,7 +479,7 @@ partial def walkSection (depth : Nat) (file : String) (part : Part Manual)
 /--
 The root of the walker. The outermost Part is treated as a single chapter:
 all of its content (intro plus every nested sub-section, at any depth) flows
-into one chapter file. The root file (`PLF.lean`) is just an `import`
+into one chapter file. The root file (`LF.lean`) is just an `import`
 statement pointing at the chapter module. -/
 def walkOuter (rootFile : String) (text : Part Manual) (buf : SaveBuffers) :
     SaveBuffers := Id.run do
@@ -495,21 +495,21 @@ def walkOuter (rootFile : String) (text : Part Manual) (buf : SaveBuffers) :
 
 /--
 Write a complete generated Lake project at `dest`: the per-file buffer
-contents under `dest/`, plus `lakefile.toml`, `lean-toolchain`, and a `PLF.lean`
-that imports `PLF.STLC`. -/
+contents under `dest/`, plus `lakefile.toml`, `lean-toolchain`, and a `LF.lean`
+that imports `LF.STLC`. -/
 private def writeProject (dest : System.FilePath) (toolchain : String)
     (kind : String) (files : Array (String × String)) : IO Unit := do
   IO.FS.createDirAll dest
-  -- Clear the PLF/ source tree so chapter files that have since been renamed
+  -- Clear the LF/ source tree so chapter files that have since been renamed
   -- or removed don't linger as stale orphans. Other artifacts (`.lake`,
   -- `lakefile.toml`, `lean-toolchain`, `README.md`) are left alone.
-  let chapterRoot := dest / "PLF"
+  let chapterRoot := dest / "LF"
   if ← chapterRoot.pathExists then
     IO.FS.removeDirAll chapterRoot
   IO.FS.writeFile (dest / "lakefile.toml") lakefileTemplate
   IO.FS.writeFile (dest / "lean-toolchain") toolchain
   IO.FS.writeFile (dest / "README.md")
-    s!"# PLF — {kind} version\n\nGenerated from the Verso source.\n"
+    s!"# LF — {kind} version\n\nGenerated from the Verso source.\n"
   for (relPath, body) in files do
     let target := dest / relPath
     target.parent.forM IO.FS.createDirAll
@@ -543,7 +543,7 @@ content, write two complete projects under
 each to verify they compile. -/
 def emitSaved : Mode → (String → IO Unit) → Config → TraverseState → Part Manual → IO Unit :=
   fun _mode logError cfg _state text => do
-    let buf : SaveBuffers := walkOuter "PLF.lean" text ({} : SaveBuffers)
+    let buf : SaveBuffers := walkOuter "LF.lean" text ({} : SaveBuffers)
     let toolchain ← (IO.FS.readFile "lean-toolchain").toBaseIO >>= fun
       | .ok s => pure s
       | .error _ => pure "leanprover/lean4:v4.30.0-rc2\n"
@@ -560,4 +560,4 @@ def emitSaved : Mode → (String → IO Unit) → Config → TraverseState → P
     buildProject teacherDest "teacher" logError
     buildProject studentDest "student" logError
 
-end PLF.Meta
+end LF.Meta

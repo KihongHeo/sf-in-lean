@@ -29,7 +29,7 @@ def sfTheme : CSS where
 }
 
 body {
-  /* Software Foundations PLF background — same image and layout as the
+  /* Software Foundations LF background — same image and layout as the
      original site (no-repeat, full width, scrolls with the page so it
      fades off the top as you read down). The body color is plain white,
      matching the original SF site, so the area below the image (once it

@@ -5,7 +5,7 @@ open Verso ArgParse Doc Elab Genre.Manual
 open Verso.Output Verso.Output.Html
 open Verso.Doc.Html
 
-namespace PLF.Meta
+namespace LF.Meta
 
 /-! ## Exercise directive -/
 
@@ -102,7 +102,7 @@ def exercise : DirectiveExpanderOf ExerciseConfig
   | cfg, contents => do
     let blocks ← contents.mapM elabBlock
     ``(Verso.Doc.Block.other
-        (PLF.Meta.Block.exercise $(quote cfg.rating) $(quote cfg.name))
+        (LF.Meta.Block.exercise $(quote cfg.rating) $(quote cfg.name))
         #[$blocks,*])
 
 /-! ## `solution!` marker macros and source-range registry

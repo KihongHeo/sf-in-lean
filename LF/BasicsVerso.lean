@@ -9,8 +9,8 @@ import LF.Meta.Exercise
 
 open Verso.Genre Manual
 --open Illuminate.Diagram
-open PLF.Meta
-open PLF
+open LF.Meta
+open LF
 
 /-
 INSTRUCTORS: This file and Induction.lean each take about an hour to

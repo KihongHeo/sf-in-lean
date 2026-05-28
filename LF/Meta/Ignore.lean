@@ -3,7 +3,7 @@ import VersoManual
 open Lean Elab
 open Verso ArgParse Doc Elab Genre.Manual
 
-namespace PLF.Meta
+namespace LF.Meta
 
 /-!
 `Block.ignore` marks content that the saver should skip when emitting the generated
@@ -23,6 +23,6 @@ in the generated `.lean` files. -/
 def ignore : DirectiveExpanderOf Unit
   | (), contents => do
     let blocks ← contents.mapM elabBlock
-    ``(Verso.Doc.Block.other PLF.Meta.Block.ignore #[$blocks,*])
+    ``(Verso.Doc.Block.other LF.Meta.Block.ignore #[$blocks,*])
 
-end PLF.Meta
+end LF.Meta
