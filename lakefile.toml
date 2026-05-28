@@ -1,0 +1,23 @@
+name = "SFL"
+version = "0.1.0"
+defaultTargets = ["LF"]
+
+# [[require]]
+# name = "mathlib"
+# scope = "leanprover-community"
+# rev = "v4.30.0"
+
+[[require]]
+name = "verso"
+git = "https://github.com/leanprover/verso"
+ref = "main"
+
+[[lean_lib]]
+name = "LF"
+# CGH: I'm disabling globs because we need a successful build for Verso,
+# which is not the case for current `main`
+# globs = ["LF.+"]
+
+[[lean_exe]]
+name = "lf_verso"
+root = "Main"

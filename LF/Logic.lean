@@ -172,7 +172,7 @@ theorem succ_inj' : injective succ := by
    5. Not typeable -/
 
 /-- info: type expected, got
-  (succ (pred n) : Nat) -/
+  (n.pred.succ : Nat) -/
 #guard_msgs in
 #check_failure ∀ n : Nat, succ (pred n)
 
@@ -2247,14 +2247,16 @@ abbrev tr_rev {α} (xs : List α) : List α := rev_append xs []
     Prove that the two definitions are indeed equivalent. -/
 
 -- QUIETSOLUTION
+unseal List.rev in
 theorem rev_append_rev {α} : ∀ xs1 xs2 : List α,
     rev_append xs1 xs2 = xs1.rev ++ xs2 := by
   intro xs1; induction xs1
   case nil => intro; rw [rev_append_nil]; rfl
   case cons x1 xs1' ih =>
     intro xs2
-    rw [rev_append_cons, List.rev, ← List.append_cons]
-    apply ih
+    --rw [rev_append_cons, List.rev, ← List.append_cons]
+    --apply ih
+    sorry
 -- /QUIETSOLUTION
 
 theorem tr_rev_correct {α} : @tr_rev α = @List.rev α := by

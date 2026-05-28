@@ -34,3 +34,9 @@ We should be following the [style guide](https://leanprover-community.github.io/
 ## Rules for collaboration
 
 **To do**: take inspiration from Jimmy Wales' [Seven Rules of Trust](https://en.wikipedia.org/wiki/The_Seven_Rules_of_Trust), which underpin Wikipedia's distributed development.
+
+## Building the Verso Documentation
+
+1. Build the volume modules: `lake build LF`
+1. Build the verso docs: `lake exe lf_verso`
+1. Run a local server: `python3 -m http.server 8000 -d _out/`

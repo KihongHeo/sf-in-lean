@@ -872,6 +872,8 @@ theorem replace_example m :
 -- FULL
 -- EX3 (nth_error_always_none)
 
+-- TODO:CGH  temporary unseal so we can test the Verso build!
+unseal nthError in
 /- Use `have` or `replace` to prove the the following lemma, following the
     model of the examples above. Do not use `induction`. -/
 theorem nth_error_always_none (l : List Nat) :
@@ -1406,6 +1408,8 @@ theorem sub_add_leb : ∀ (n m : Nat),
 -- EX3! (gen_dep_practice)
 -- Prove this by induction on `l`.
 
+-- TODO:CGH  temporary unseal so we can test the Verso build!
+unseal nthError in
 theorem nth_error_after_last {α : Type} (n : Nat) (l : List α) :
     l.length = n →
     nthError l n = none := by
@@ -1717,6 +1721,8 @@ def split {α β : Type} (l : List (α × β)) : (List α) × (List β) :=
     match split t with
     | (lx, ly) => (x :: lx, y :: ly)
 
+-- TODO:CGH  temporary unseal so we can test the Verso build!
+unseal zip in
 /- Prove that `split` and `zip` are inverses in the following sense: -/
 theorem split_zip {α β : Type} (l : List (α × β)) l1 l2 :
     split l = (l1, l2) →
@@ -2028,6 +2034,8 @@ def split_combine_statement : Prop :=
     split (zip l1 l2) = (l1, l2)
 -- /ADMITDEF
 
+-- TODO:CGH  temporary unseal so we can test the Verso build!
+unseal zip in
 theorem split_combine : split_combine_statement := by
 -- ADMITTED
   intros α β l1 l2 h
@@ -2048,6 +2056,8 @@ theorem split_combine : split_combine_statement := by
 
 /- Here are more approaches -/
 
+-- TODO:CGH  temporary unseal so we can test the Verso build!
+unseal zip in
 theorem split_combine' (α β :Type) l (l1 : List α) (l2 : List β) :
     (l1, l2) = split l → split (zip l1 l2) = (l1, l2) := by
   intro h
@@ -2101,6 +2111,8 @@ Proof.
 
 -- FULL
 -- EX3A (filter_exercise)
+-- TODO:CGH  temporary unseal so we can test the Verso build!
+unseal filter in
 theorem filter_exercise {α : Type} (test : α → Bool) (a : α) (l lf : List α) :
     filter test l = a :: lf →
     test a = true := by
@@ -2211,6 +2223,8 @@ def forallbF {X : Type} (test : X → Bool) (l : List X) : Bool :=
 def existsbF {X : Type} (test : X → Bool) (l : List X) : Bool :=
   fold (fun x b => (test x) || b) l false
 
+-- TODO:CGH  temporary unseal so we can test the Verso build!
+unseal fold in
 theorem existsbF_existsb {α : Type} (test : α → Bool) (l : List α) :
     existsbF test l = existsb test l := by
   unfold existsbF
