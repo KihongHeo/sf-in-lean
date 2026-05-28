@@ -198,3 +198,17 @@ JC: Classical axioms are more pervasive in Lean and the section from Rocq needs 
 to acknowledge this and teach idiomatic style.
 
 CH: There's several style things to mention here like `classical` vs. `open Classical`.
+
+
+## Book Structure
+
+The Structure of SFL will differ from Rocq SF in that the LF/PLF books will be
+divided into three books: Logical Foundations, something about Hoare Logic and imperative PL, 
+and something about types and functional PL. The contents will also be somewhat different:
+
+* Volume 1 will go until the Automation chapter; the Imp chapter will be moved to the Hoare Logic volume.
+  * This will also mean that the automation material in `Imp` should be moved to the Volume 1 automation chapter, which has the benefit of separating the concerns of learning about automation from learning about operational semantics. 
+  * The automation chapter will focus on `simp` and other tactics of similar power level to `lia` or `auto` (i.e., `tauto`, `omega`, etc), but not `grind` or `aesop` or `try`, which probably make sense to delay until a future volume about AI use for Lean. The `RegExp` example which was previously a large chunk of the `IndProp` chapter will be moved from that chapter to the automation chapter, and retooled to have a smoother on-ramp but also focus on teaching automation and how to use `simp`. 
+* Volume 2 will be the Type Systems and Lambda Calculus book
+* Volume 3 will be the Imperative Languages and Hoare Logic book
+  * Moving this to after the Type Systems book should make a smoother transition to later material about specification and imperative proofs, rather than having it come before the Type Systems work. 
