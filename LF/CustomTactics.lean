@@ -3,6 +3,7 @@ module
 public meta import Lean.Elab.Tactic.ElabTerm
 public meta import Lean.Meta.Tactic.Generalize
 public meta import Lean.Meta.Tactic.Cases
+public meta import Lean.Meta.Tactic.Injection
 public meta import Lean.Meta.Tactic.Contradiction
 
 namespace Lean.Meta
@@ -92,6 +93,11 @@ elab "inversion " targetName:term : tactic => withMainContext do
         let subgoals ← mvarId.cases newTarget.fvarId!
         let subgoals := subgoals.map (·.mvarId)
         let subgoals ← subgoals.filterM (not <$> ·.contradictionCore {})
+        -- remove any subgoals closed by `injections`
+        /- let subgoals ← subgoals.filterM (do
+          match ← injections · with
+          | InjectionsResult.solved => pure false
+          | _ => pure true) -/
         replaceMainGoal $ subgoals.toList
     | none =>
       throwTacticEx `inversion mvarId

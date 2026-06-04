@@ -218,6 +218,7 @@
 
 -- HIDEFROMHTML
 import LF.Logic
+import LF.CustomTactics
 -- /HIDEFROMHTML
 
 -- ######################################################################
@@ -805,13 +806,13 @@ inductive Perm3 {α : Type} : List α -> List α -> Prop where
 
                           ev n
                       ------------ (ev_succ_succ)
-                      ev ((n + 1) + 1)
+                      ev (n + 2)
 ]]]
 -/
 
 /- FULL: Intuitively these rules say that:
        - The number `0` is even.
-       - If `n` is even, then `(n + 1) + 1` is even. -/
+       - If `n` is even, then `n + 2` is even. -/
 
 /- FULL: (Defining evenness in this way may seem a bit confusing,
     since we have already seen two perfectly good ways of doing
@@ -844,7 +845,7 @@ inductive Perm3 {α : Type} : List α -> List α -> Prop where
 
 inductive Ev : Nat -> Prop where
   | ev_0                       : Ev 0
-  | ev_succ_succ (n : Nat) (H : Ev n) : Ev ((n + 1) + 1)
+  | ev_succ_succ (n : Nat) (H : Ev n) : Ev (n + 2)
 
 
 /- TERSE: There are both similarities and a few differences between
@@ -856,7 +857,7 @@ inductive Ev : Nat -> Prop where
       | cons (x : α) (l : list α) : list α.
 ]]]
     The most important difference is that the constructors of `Ev`,
-    `ev_0` and `ev_succ_succ`, yield different types (`Ev 0` and `Ev ((n + 1) + 1)`),
+    `ev_0` and `ev_succ_succ`, yield different types (`Ev 0` and `Ev (n + 2)`),
     whereas the `List` constructors both build `List α` values. -/
 
 -- FULL
@@ -868,7 +869,7 @@ inductive Ev : Nat -> Prop where
     is really new is that, because the `Nat` argument of `Ev` appears
     to the _right_ of the colon on the first line, it is allowed to
     take _different_ values in the types of different constructors:
-    `0` in the type of `ev_0` and `((n + 1) + 1)` in the type of `ev_succ_succ`.
+    `0` in the type of `ev_0` and `(n + 2)` in the type of `ev_succ_succ`.
     Accordingly, the type of each constructor must be specified
     explicitly (after a colon), and each constructor's type must have
     the form `Ev n` for some natural number `n`.
@@ -904,7 +905,7 @@ Note: The value of parameter `n` must be fixed throughout the inductive declarat
 #guard_msgs in
 inductive WrongEv (n : Nat) : Prop where
   | wrong_ev_0 : WrongEv 0
-  | wrong_ev_SS (H: WrongEv n) : WrongEv ((n + 1) + 1)
+  | wrong_ev_SS (H: WrongEv n) : WrongEv (n + 2)
 
 
 /- In an `inductive` definition, an argument to the type constructor
@@ -923,7 +924,7 @@ inductive WrongEv (n : Nat) : Prop where
     constructors": -/
 
 #check (Ev.ev_0) -- Ev 0
-#check Ev.ev_succ_succ -- forall (n : Nat) (H : Ev n) : Ev ((n + 1) + 1)
+#check Ev.ev_succ_succ -- forall (n : Nat) (H : Ev n) : Ev (n + 2)
 
 -- FULL
 /- Indeed, Lean also accepts the following equivalent definition of `Ev` -/
@@ -932,7 +933,7 @@ namespace EvPlayground
 
 inductive Ev : Nat -> Prop where
   | ev_0  : Ev 0
-  | ev_SS : forall (n : Nat), Ev n -> Ev ((n + 1) + 1)
+  | ev_SS : forall (n : Nat), Ev n -> Ev (n + 2)
 
 end EvPlayground
 -- /FULL
@@ -1101,6 +1102,248 @@ theorem le_inversion : forall (n m : Nat),
   case le_n => left; rfl
   case le_s m H => right; exists m
 /- /ADMITTED -/
-/-* [] -/
+/- [] -/
 end LePlayground
 /- /FULL -/
+
+/- HIDE -/
+    /- QUIZ -/
+    /- Which tactics are needed to prove this goal?
+    [[
+      n : nat
+      E : ev n
+      F : n = 1
+      ======================
+      true = false
+    ]]
+
+       (A) [cases]
+
+       (B) [contradiction]
+
+       (C) both [cases] and [contradiction]
+
+       (D) These tactics are not sufficient to solve the goal. -/
+    /- FOLD -/
+    theorem quiz_1_not_ev : forall n, Ev n -> n = 1 -> true = false := by
+    intro n E F
+    cases E
+    . contradiction
+    . injection F; contradiction
+    /- /FOLD -/
+    /- /QUIZ -/
+/- /HIDE -/
+
+/- HIDE -/
+   /- /-LATER: BCP 21: This part of the chapter has gotten way too dense.
+       To streamline it, I am experimentally deleting the whole discussion
+       from here... -/
+    /- Similarly, the following theorem can easily be proved using
+        [destruct] on evidence. -/
+
+    Theorem ev_minus2 : forall n,
+      ev n -> ev (pred (pred n)).
+    Proof.
+      intros n E.  destruct E as [| n' E'] eqn:EE.
+      - /-E = ev_0 -/
+        simpl. apply ev_0.
+      - /-E = ev_SS n' E' -/
+        simpl. apply E'.
+    Qed.
+
+    /- TERSE: *** -/
+    /- However, the following simple variation shows that [destruct] can
+        sometimes throw away critical information: -/
+
+    Theorem evSS_ev : forall n,
+      ev (S (S n)) -> ev n.
+    /- FULL: Intuitively, we know that evidence for the hypothesis cannot
+        consist just of the [ev_0] constructor, since [O] and [S] are
+        different constructors of the type [nat]; hence, [ev_SS] is the
+        only case that applies.  Unfortunately, [destruct] is not smart
+        enough to realize this, and it still generates two subgoals.  Even
+        worse, in doing so, it keeps the final goal unchanged, failing to
+        provide any useful information for completing the proof.  -/
+    Proof.
+      intros n E.  destruct E as [| n' E'] eqn:EE.
+      - /-E = ev_0. -/
+        /-Looks like we must prove that [n] is even... but there are no
+           useful assumptions! -/
+    Abort.
+
+    /- TERSE: Tactic [destruct] replaced [S (S n)] with [0] in [E],
+        because that's what [ev_0] proves. -/
+
+    /- FULL: What happened here, exactly?  Calling [destruct] has the effect
+        of replacing all occurrences of the property argument by the
+        values that correspond to each constructor.  This is enough in the
+        case of [ev_minus2] because that argument [n] is mentioned
+        directly in the final goal. However, it doesn't help in the case
+        of [evSS_ev] since the term that gets replaced -- [S (S n)] -- is
+        not mentioned anywhere! -/
+
+    /-LATER: BCP 21: That whole explanation is pretty thick... Could we
+       streamline it?  E.g., do students really need to know all these
+       details about how destruct works -- and are they likely to retain
+       them anyway, from this discussion?  Maybe we could just get to
+       inversion more directly.  I'm going to leave it alone for now, but
+       I think it is a candidate for radical simplification. -/
+    /-HIDE: MRC: I found it helpful (2/19/19) in class to introduce
+       [remember] just a little early here. -/
+
+    /- TERSE: *** -/
+    /- FULL: We can fix this by [remember]ing that term [S (S n)], the
+        proof goes through.  (We'll discuss [remember] in more detail
+        below.) -/
+
+    /- TERSE: So let's [remember] that term [S (S n)]. -/
+
+    Theorem evSS_ev_remember : forall n,
+      ev (S (S n)) -> ev n.
+    Proof.
+      intros n E. remember (S (S n)) as k eqn:Hk.
+      destruct E as [|n' E'] eqn:EE.
+      - /-E = ev_0 -/
+        /-Now we do have an assumption, in which [k = S (S n)] has been
+           rewritten as [0 = S (S n)] by [destruct]. That assumption
+           gives us a contradiction. -/
+        discriminate Hk.
+      - /-E = ev_S n' E' -/
+        /-This time [k = S (S n)] has been rewritten as [S (S n') = S (S n)]. -/
+        injection Hk as Heq. rewrite <- Heq. apply E'.
+    Qed.
+
+    /- TERSE: *** -/
+    /- Alternatively, the proof is straightforward using the inversion
+        lemma that we proved above. -/
+/-LATER: BCP 21: ... to here -- i.e., now we go straight to inversion
+   without all this noodling around about destruct. -/
+/-HIDE: MRC 3/22: Yes, I favor going straight to inversion. -/ -/
+/-/HIDE -/
+/- We can use the inversion lemma that we proved above to help
+    structure proofs: -/
+
+theorem Ev_succ_succ_Ev : forall n, Ev (n + 2) -> Ev n := by
+  intro n H
+  apply ev_inversion at H
+  cases H
+  case inl _ => contradiction
+  case inr h =>
+    let ⟨n', ⟨h1, h2⟩⟩ := h
+    injections h1 heq
+    subst heq
+    exact h2
+
+/- HIDE -/
+/- HIDE: CH: Tried, but there is no similarly simple lemma for le? -/
+/-Theorem leS_le : forall n m, le n (S m) -> le n m.
+Proof.
+  intros n m H. apply le_inversion in H. destruct H as [H0|H1].
+  - rewrite H0. Abort. /- This one is false! -/
+
+Theorem leS_le : forall n m, le (S n) (S m) -> le n m.
+Proof.
+  intros n m H. apply le_inversion in H. destruct H as [Hn|HS].
+  - injection Hn as Hnm. rewrite Hnm. apply le_n.
+  - destruct HS as [m' [Hmm' Hle]]. injection Hmm' as Hmm'.
+    rewrite Hmm' in *. /- This one seems true, but needs more work -/
+Abort.-/
+/- /HIDE -/
+
+
+/- FULL: Note how the inversion lemma produces two subgoals, which
+    correspond to the two ways of proving `Ev`.  The first subgoal is
+    a contradiction that is discharged with `contradiction`.  The
+    second subgoal makes use of `injections` and `subst`.
+
+    We've defined a handy tactic called `inversion` that factors out
+    this common pattern, saving us the trouble of explicitly stating
+    and proving an inversion lemma for every `inductive` definition we
+    make.
+
+    Here, the `inversion` tactic can detect (1) that the first case,
+    where `n = 0`, does not apply and (2) that the `n'` that appears
+    in the `ev_succ_succ` case must be the same as `n`.
+
+    The details of how `inversion` are implemented are beyond the scope
+    of this course, but suffice to say Lean's metaprogramming capabilities
+    are such that almost any sequence of reasoning steps can be implemented
+    as a new tactic.
+    -/
+-- TERSE: ***
+/- TERSE: We've provided a handy tactic called `inversion` that does
+    the work of our inversion lemma and more besides. -/
+
+theorem evSS_ev' : forall n, Ev (n + 2) -> Ev n := by
+  intro n H
+  inversion H
+  case ev_succ_succ n' H heq =>
+    injections heq heq
+    subst heq
+    exact H
+
+/- HIDE -/
+    /- PR: The following dialogue used to be between two versions of
+        Theorem ev_minus2' (using [inversion] and [destruct]). The
+        concerns are affected by but not made obsolete by the new
+        treatment of [inversion] here. I think more work is needed. -/
+    /- AAA: I'm finding it a bit awkward to discuss [inversion] here
+       instead of [destruct], especially given that we are using
+       [destruct] to talk about [reflect] below... Would it be too crazy
+       to use [inversion] only where it is actually needed? -/
+    /- BCP: I have never been satisfied with our discussion of destruct
+        vs. inversion.  What's here now is much better than we've ever had
+        before.  But if you have a clear idea for how to clean it up
+        further, I'm all ears.  One possibility -- perhaps easy enough to
+        do now -- would be to replace inversion by destruct in this
+        discussion and move the inversion vs. destruct discussion into the
+        following subsection.  (In fact, I favor trying this.  The next
+        section also needs some help, and consolidating the discussion
+        would be a good beginning.) -/
+    /- AAA: I'm in favor of trying this too, but I'm afraid that it might
+        have significant impact on other sections. Let's leave it like
+        this for now -- at least it's better than what we had before. -/
+/- /HIDE -/
+
+/- FULL -/
+/- The `inversion` tactic can apply the principle of explosion to
+    "obviously contradictory" hypotheses involving inductively defined
+    properties, something that takes a bit more work using our
+    inversion lemma. Compare: -/
+
+theorem one_not_even : ¬ Ev 1 := by
+  intro H; apply ev_inversion at H; cases H
+  /- HIDE: OL20: Someone asked here before "Why doesn't eqn:EE work
+         here??".  It has to do with the use of _ in the pattern.
+         Anyway when destructing \/,/\, or exists, what we get from
+         eqn:EE is only confusing for students. I think that we should
+         remove all "eqn"s in these cases. I did it in this file. -/
+  case inl _ => contradiction
+  case inr h =>
+    let ⟨n', ⟨h1, h2⟩⟩ := h
+    injections
+
+theorem one_not_even' : ¬ Ev 1 := by
+  intro h; inversion h; injections
+-- /FULL
+
+
+-- FULL
+-- EX1 (inversion_practice)
+/- Prove the following result using `inversion`.  (For extra
+    practice, you can also prove it using the inversion lemma.) -/
+
+theorem ev_4_ev_n : forall n,
+  Ev (n + 4) -> Ev n := by
+  -- ADMITTED -/
+  intros n h
+  inversion h
+  rename_i n' hev h
+  injections h
+  rename_i h'
+  subst h'
+  apply evSS_ev'
+  exact hev
+/- /ADMITTED -/
+/- GRADE_THEOREM 1: ev_4_ev_n -/
+/-* [] -/
