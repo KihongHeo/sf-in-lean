@@ -182,7 +182,7 @@
   unnecessarily messy) and the class produced the following proof:
 
     theorem evSS_ev : forall n,
-      Ev (S (S n)) -> Ev n.
+      Ev (S (S n)) → Ev n.
     Proof.
       intros n E.
       remember (S (S n)) as m.
@@ -507,11 +507,11 @@ def collatz := ∀ n, n ≠ 0 → CollatzHoldsFor n
    → Nat → Prop`, the less-than-or-equal-to relation, which can be
    inductively defined by the following two rules:
 
-                            ─────── (le_n)
+                            ─────── (le_refl)
                             Le n n
 
                              Le n m
-                          ───────────── (le_s)
+                          ───────────── (le_step)
                           Le n (m + 1) -/
 
 /- FULL: These rules say that there are two ways to show that a
@@ -525,8 +525,8 @@ namespace LePlayground
 -- /HIDEFROMHTML
 
 inductive Le : Nat → Nat → Prop where
-  | le_n (n : Nat)              : Le n n
-  | le_s (n m : Nat) : Le n m → Le n (m + 1)
+  | refl (n : Nat)              : Le n n
+  | step (n m : Nat) : Le n m → Le n (m + 1)
 
 infix:50 " ⊑ " => Le
 
@@ -536,7 +536,7 @@ infix:50 " ⊑ " => Le
    later. -/
 
 example : 3 ⊑ 5 := by
-  apply Le.le_s; apply Le.le_s; exact Le.le_n 3
+  apply Le.step; apply Le.step; exact Le.refl 3
 
 -- HIDEFROMHTML
 end LePlayground
@@ -562,13 +562,13 @@ end LePlayground
     In Lean this looks as follows:
 -/
 
-inductive ClosTrans {α: Type} (R: α->α->Prop) : α → α → Prop where
+inductive ClosTrans {α: Type} (R: α→α→Prop) : α → α → Prop where
   | t_step (x y : α) :
-      R x y ->
+      R x y →
       ClosTrans R x y
   | t_trans (x y z : α) :
-      ClosTrans R x y ->
-      ClosTrans R y z ->
+      ClosTrans R x y →
+      ClosTrans R y z →
       ClosTrans R x z
 
 -- TERSE:
@@ -582,7 +582,7 @@ inductive Person : Type where
   | ridley
   | moss
 
-inductive ParentOf : Person -> Person -> Prop where
+inductive ParentOf : Person → Person → Prop where
   | po_SC : ParentOf .sage .cleo
   | po_SR : ParentOf .sage .ridley
   | po_CM : ParentOf .cleo .moss
@@ -593,7 +593,7 @@ inductive ParentOf : Person -> Person -> Prop where
 /- The [parent_of] relation is not transitive, but we can define
    an "ancestor of" relation as its transitive closure: -/
 
-def AncestorOf : Person -> Person -> Prop := ClosTrans ParentOf
+def AncestorOf : Person → Person → Prop := ClosTrans ParentOf
 
 
 /- Here is a derivation showing that Sage is an ancestor of Moss:
@@ -650,15 +650,15 @@ example : AncestorOf .sage .moss := by
 -/
 
 -- TERSE: HIDEFROMHTML
-inductive ClosReflTrans {α: Type} (R: α -> α -> Prop) : α -> α -> Prop where
+inductive ClosReflTrans {α: Type} (R: α → α → Prop) : α → α → Prop where
   | rt_step (x y : α) :
-      R x y ->
+      R x y →
       ClosReflTrans R x y
   | rt_refl (x : α) :
       ClosReflTrans R x x
   | rt_trans (x y z : α) :
-      ClosReflTrans R x y ->
-      ClosReflTrans R y z ->
+      ClosReflTrans R x y →
+      ClosReflTrans R y z →
       ClosReflTrans R x z
 -- TERSE: /HIDEFROMHTML
 
@@ -677,7 +677,7 @@ def cs (n m : Nat) : Prop := csf n = m
     reaches another number `m` in zero or more Collatz steps: -/
 
 def cms (n m : Nat) : Prop := ClosReflTrans cs n m
-def collatz' : Prop := forall (n : Nat), n ≠ 0 -> cms n 1
+def collatz' : Prop := forall (n : Nat), n ≠ 0 → cms n 1
 
 
 /- FULL: This `cms` relation defined in terms of
@@ -704,18 +704,18 @@ cms 16 8           cms 8 4           cms 4 2           cms 2 1
     to define the reflexive, symmetric, and transitive closure? -/
 
 -- SOLUTION
-inductive ClosReflTransSym {α: Type} (R: α->α->Prop) : α->α->Prop where
+inductive ClosReflTransSym {α: Type} (R: α→α→Prop) : α→α→Prop where
   | srt_refl (x : α) :
       ClosReflTransSym R x x
   | srt_step (x y : α) :
-      R x y ->
+      R x y →
       ClosReflTransSym R x y
   | srt_sym (x y : α) :
-      ClosReflTransSym R y x ->
+      ClosReflTransSym R y x →
       ClosReflTransSym R x y
   | srt_trans (x y z : α) :
-      ClosReflTransSym R x y ->
-      ClosReflTransSym R y z ->
+      ClosReflTransSym R x y →
+      ClosReflTransSym R y z →
       ClosReflTransSym R x z
 -- /SOLUTION
 -- []
@@ -765,13 +765,13 @@ inductive ClosReflTransSym {α: Type} (R: α->α->Prop) : α->α->Prop where
 
 /- In Lean, we can define `Perm3` as follows: -/
 
-inductive Perm3 {α : Type} : List α -> List α -> Prop where
+inductive Perm3 {α : Type} : List α → List α → Prop where
   | perm3_swap12 (a b c : α) :
       Perm3 [a, b, c] [b, a, c]
   | perm3_swap23 (a b c : α) :
       Perm3 [a, b, c] [a, c, b]
   | perm3_trans (l1 l2 l3 : List α) :
-      Perm3 l1 l2 -> Perm3 l2 l3 -> Perm3 l1 l3
+      Perm3 l1 l2 → Perm3 l2 l3 → Perm3 l1 l3
 
 
 -- FULL
@@ -843,7 +843,7 @@ inductive Perm3 {α : Type} : List α -> List α -> Prop where
     into a formal `inductive` declaration, where each "way that a
     number can be even" corresponds to a separate constructor: -/
 
-inductive Ev : Nat -> Prop where
+inductive Ev : Nat → Prop where
   | ev_0                       : Ev 0
   | ev_succ_succ (n : Nat) (H : Ev n) : Ev (n + 2)
 
@@ -913,14 +913,14 @@ inductive WrongEv (n : Nat) : Prop where
     argument on the right is called an "index" or "annotation."
 
     For example, in `inductive List (α : Type) := ...`, the `α` is a
-    parameter, while in `inductive Ev : nat -> Prop := ...`, the
+    parameter, while in `inductive Ev : nat → Prop := ...`, the
     unnamed `Nat` argument is an index. -/
 -- /FULL
 
 -- TERSE: ***
 
 /- We can think of the inductive definition of `Ev` as defining a
-    Lean property `Ev : nat -> Prop`, together with two "evidence
+    Lean property `Ev : nat → Prop`, together with two "evidence
     constructors": -/
 
 #check (Ev.ev_0) -- Ev 0
@@ -931,9 +931,9 @@ inductive WrongEv (n : Nat) : Prop where
 
 namespace EvPlayground
 
-inductive Ev : Nat -> Prop where
+inductive Ev : Nat → Prop where
   | ev_0  : Ev 0
-  | ev_succ_succ : forall (n : Nat), Ev n -> Ev (n + 2)
+  | ev_succ_succ : forall (n : Nat), Ev n → Ev (n + 2)
 
 end EvPlayground
 -- /FULL
@@ -963,7 +963,7 @@ theorem ev_4'' : Ev 4 := by
 /- In this way, we can also prove theorems that have hypotheses
     involving `Ev`. -/
 
-theorem ev_plus4 : forall n, Ev n -> Ev (4 + n) := by
+theorem ev_plus4 : forall n, Ev n → Ev (4 + n) := by
   intro n Hn
   rw [Nat.add_comm]
   exact (Ev.ev_succ_succ _ (Ev.ev_succ_succ _ Hn))
@@ -1080,7 +1080,7 @@ theorem Perm3_refl : forall (α : Type) (a b c : α ), Perm3 [a, b, c] [a, b, c]
     using `cases`. -/
 
 theorem ev_inversion : forall (n : Nat),
-    Ev n ->
+    Ev n →
     (n = 0) ∨ exists n', n = n' + 2 ∧ Ev n' := by
     intro n H
     cases H
@@ -1100,13 +1100,13 @@ theorem ev_inversion : forall (n : Nat),
 -- Let's prove a similar inversion lemma for [le].
 namespace LePlayground
 theorem le_inversion : forall (n m : Nat),
-  Le n m ->
+  Le n m →
   (n = m) ∨ (exists m', m = m' + 1 ∧ Le n m') := by
   /- ADMITTED -/
   intros n m E
   cases E
-  case le_n => left; rfl
-  case le_s m H => right; exists m
+  case refl => left; rfl
+  case step m H => right; exists m
 /- /ADMITTED -/
 /- [] -/
 end LePlayground
@@ -1131,7 +1131,7 @@ end LePlayground
 
        (D) These tactics are not sufficient to solve the goal. -/
     /- FOLD -/
-    theorem quiz_1_not_ev : forall n, Ev n -> n = 1 -> true = false := by
+    theorem quiz_1_not_ev : forall n, Ev n → n = 1 → true = false := by
     intro n E F
     cases E
     . contradiction
@@ -1145,10 +1145,10 @@ end LePlayground
        To streamline it, I am experimentally deleting the whole discussion
        from here... -/
     /- Similarly, the following theorem can easily be proved using
-        [destruct] on evidence. -/
+        `cases` on evidence. -/
 
     theorem ev_minus2 : forall n,
-      Ev n -> Ev (pred (pred n)).
+      Ev n → Ev (pred (pred n)).
     Proof.
       intros n E.  destruct E as [| n' E'] eqn:EE.
       - /-E = ev_0 -/
@@ -1162,11 +1162,11 @@ end LePlayground
         sometimes throw away critical information: -/
 
     theorem evSS_ev : forall n,
-      Ev (S (S n)) -> Ev n.
+      Ev (S (S n)) → Ev n.
     /- FULL: Intuitively, we know that evidence for the hypothesis cannot
         consist just of the `ev_0` constructor, since `0` and `succ` are
         different constructors of the type `Nat`; hence, `ev_succ_succ` is the
-        only case that applies.  Unfortunately, [destruct] is not smart
+        only case that applies.  Unfortunately, `cases` is not smart
         enough to realize this, and it still generates two subgoals.  Even
         worse, in doing so, it keeps the final goal unchanged, failing to
         provide any useful information for completing the proof.  -/
@@ -1177,10 +1177,10 @@ end LePlayground
            useful assumptions! -/
     Abort.
 
-    /- TERSE: Tactic [destruct] replaced [S (S n)] with [0] in [E],
+    /- TERSE: Tactic `cases` replaced [S (S n)] with [0] in [E],
         because that's what `ev_0` proves. -/
 
-    /- FULL: What happened here, exactly?  Calling [destruct] has the effect
+    /- FULL: What happened here, exactly?  Calling `cases` has the effect
         of replacing all occurrences of the property argument by the
         values that correspond to each constructor.  This is enough in the
         case of [ev_minus2] because that argument [n] is mentioned
@@ -1205,13 +1205,13 @@ end LePlayground
     /- TERSE: So let's [remember] that term [S (S n)]. -/
 
     theorem evSS_ev_remember : forall n,
-      Ev (S (S n)) -> Ev n.
+      Ev (S (S n)) → Ev n.
     Proof.
       intros n E. remember (S (S n)) as k eqn:Hk.
       destruct E as [|n' E'] eqn:EE.
       - /-E = ev_0 -/
         /-Now we do have an assumption, in which [k = S (S n)] has been
-           rewritten as [0 = S (S n)] by [destruct]. That assumption
+           rewritten as [0 = S (S n)] by `cases`. That assumption
            gives us a contradiction. -/
         discriminate Hk.
       - /-E = ev_S n' E' -/
@@ -1229,28 +1229,28 @@ end LePlayground
 /- We can use the inversion lemma that we proved above to help
     structure proofs: -/
 
-theorem ev_succ_succ_ev : forall n, Ev (n + 2) -> Ev n := by
+theorem ev_succ_succ_ev : forall n, Ev (n + 2) → Ev n := by
   intro n H
   apply ev_inversion at H
   cases H
   case inl _ => contradiction
   case inr h =>
-    let ⟨n', ⟨h1, h2⟩⟩ := h
-    injections h1 heq
+    let ⟨n', ⟨h₁,  h₂⟩⟩ := h
+    injections h₁ heq
     subst heq
-    exact h2
+    exact  h₂
 
 /- HIDE -/
 /- HIDE: CH: Tried, but there is no similarly simple lemma for le? -/
-/-theorem leS_le : forall n m, le n (S m) -> le n m.
+/-theorem leS_le : forall n m, le n (S m) → le n m.
 Proof.
   intros n m H. apply le_inversion in H. destruct H as [H0|H1].
   - rewrite H0. Abort. /- This one is false! -/
 
-theorem leS_le : forall n m, le (S n) (S m) -> le n m.
+theorem leS_le : forall n m, le (S n) (S m) → le n m.
 Proof.
   intros n m H. apply le_inversion in H. destruct H as [Hn|HS].
-  - injection Hn as Hnm. rewrite Hnm. apply le_n.
+  - injection Hn as Hnm. rewrite Hnm. apply le_refl.
   - destruct HS as [m' [Hmm' Hle]]. injection Hmm' as Hmm'.
     rewrite Hmm' in *. /- This one seems true, but needs more work -/
 Abort.-/
@@ -1280,18 +1280,18 @@ Abort.-/
 /- TERSE: We've provided a handy tactic called `inversion` that does
     the work of our inversion lemma and more besides. -/
 
-theorem ev_succ_succ_ev' : forall n, Ev (n + 2) -> Ev n := by
+theorem ev_succ_succ_ev' : forall n, Ev (n + 2) → Ev n := by
   intro n h
   inversion h; assumption
 
 /- HIDE -/
     /- PR: The following dialogue used to be between two versions of
-        theorem ev_minus2' (using `inversion` and [destruct]). The
+        theorem ev_minus2' (using `inversion` and `cases`). The
         concerns are affected by but not made obsolete by the new
         treatment of `inversion` here. I think more work is needed. -/
     /- AAA: I'm finding it a bit awkward to discuss `inversion` here
-       instead of [destruct], especially given that we are using
-       [destruct] to talk about [reflect] below... Would it be too crazy
+       instead of `cases`, especially given that we are using
+       `cases` to talk about [reflect] below... Would it be too crazy
        to use `inversion` only where it is actually needed? -/
     /- BCP: I have never been satisfied with our discussion of destruct
         vs. inversion.  What's here now is much better than we've ever had
@@ -1322,7 +1322,7 @@ theorem one_not_even : ¬ Ev 1 := by
          remove all "eqn"s in these cases. I did it in this file. -/
   case inl _ => contradiction
   case inr h =>
-    let ⟨n', ⟨h1, h2⟩⟩ := h
+    let ⟨n', ⟨h₁,  h₂⟩⟩ := h
     injections
 
 theorem one_not_even' : ¬ Ev 1 := by
@@ -1336,7 +1336,7 @@ theorem one_not_even' : ¬ Ev 1 := by
     practice, you can also prove it using the inversion lemma.) -/
 
 theorem ev_4_ev_n : forall n,
-  Ev (n + 4) -> Ev n := by
+  Ev (n + 4) → Ev n := by
   -- ADMITTED -/
   intros n h
   inversion h
@@ -1348,7 +1348,7 @@ theorem ev_4_ev_n : forall n,
 -- EX1 (ev5_nonsense)
 /- Prove the following result using `inversion`. -/
 
-theorem ev5_nonsense : Ev 5 -> 2 + 2 = 9 := by
+theorem ev5_nonsense : Ev 5 → 2 + 2 = 9 := by
   /- ADMITTED -/
   intro h
   /- Contradiction, as neither constructor can possibly apply... -/
@@ -1367,12 +1367,12 @@ theorem ev5_nonsense : Ev 5 -> 2 + 2 = 9 := by
     Note that `inversion` also works on equality propositions. -/
 
 theorem inversion_ex1 : forall (n m o : Nat),
-  [n, m] = [o, o] -> [n] = [m] := by
+  [n, m] = [o, o] → [n] = [m] := by
   intro n m o h
   inversion h; rfl
 
 theorem inversion_ex2 : forall (n : Nat),
-  n + 1 = 0 -> 2 + 2 = 5 := by
+  n + 1 = 0 → 2 + 2 = 5 := by
   intro n h
   inversion h
 
@@ -1434,7 +1434,7 @@ theorem inversion_ex2 : forall (n : Nat),
 
      -/
     /- FOLD -/
-   /- Lemma quiz_ev_plus_2 : forall n, Ev (n + 2) -> Ev n.
+   /- Lemma quiz_ev_plus_2 : forall n, Ev (n + 2) → Ev n.
     Proof.
       intros n E.  rewrite add_comm in E.
       inversion E as [| n' E' Eq]. apply E'.
@@ -1458,7 +1458,7 @@ theorem inversion_ex2 : forall (n : Nat),
 
 /-- warning: declaration uses `sorry` -/
 #guard_msgs in
-example : forall n, Ev n -> Even n := by
+example : forall n, Ev n → Even n := by
   /- WORKINCLASS -/
 
 /- We could try to proceed by case analysis or induction on `n`.  But
@@ -1475,7 +1475,7 @@ example : forall n, Ev n -> Even n := by
   /- h = ev_succ_succ n' h' -/
   case ev_succ_succ n' h' =>
   /- Unfortunately, the second case is harder.  We need to show
-    `exists n0, n' + 2 = double n0`, but the only available assumption is
+    `exists n₀, n' + 2 = double n₀`, but the only available assumption is
     `h'`, which states that `Ev n'` holds.  Since this isn't directly
     useful, it seems that we are stuck and that performing case
     analysis on `h` was a waste of time.
@@ -1492,7 +1492,7 @@ example : forall n, Ev n -> Even n := by
     which is the same as the original statement, but with `n'` instead
     of `n`.  Indeed, it is not difficult to convince Lean that this
     intermediate result would suffice. -/
-    have he : (exists k', n' = double k') -> (exists n0, n' + 2 = double n0) := by
+    have he : (exists k', n' = double k') → (exists n₀, n' + 2 = double n₀) := by
       intro ⟨k, hk⟩; exists (k + 1); rw [double_succ, hk]
     apply he
     /- Unfortunately, now we are stuck: we are trying to prove another instance
@@ -1560,7 +1560,7 @@ theorem ev_Even : forall n, Ev n → Even n := by
 /- The equivalence between the second and third definitions of
     evenness now follows. -/
 
-theorem ev_Even_iff : forall n, Ev n <-> Even n := by
+theorem ev_Even_iff : forall n, Ev n ↔ Even n := by
   intro n; apply Iff.intro
   . intro h; exact ev_Even _ h
   . intro ⟨k, hk⟩; rw [hk]; exact ev_double k
@@ -1574,7 +1574,7 @@ theorem ev_Even_iff : forall n, Ev n <-> Even n := by
     technique, to help you familiarize yourself with it. -/
 
 /- EX2 (ev_sum) -/
-theorem ev_sum : forall n m, Ev n -> Ev m -> Ev (n + m) := by
+theorem ev_sum : forall n m, Ev n → Ev m → Ev (n + m) := by
   /- ADMITTED -/
   intro n m hn hm
   induction hn
@@ -1586,7 +1586,7 @@ theorem ev_sum : forall n m, Ev n -> Ev m -> Ev (n + m) := by
 /- [] -/
 
 /- EX3A! (ev_ev__ev) -/
-theorem ev_ev__ev : forall n m, Ev (n + m) -> Ev n -> Ev m := by
+theorem ev_ev__ev : forall n m, Ev (n + m) → Ev n → Ev m := by
   /- Hint: There are two pieces of evidence you could attempt to induct upon
       here. If one doesn't work, try the other. -/
   /- ADMITTED -/
@@ -1605,7 +1605,7 @@ theorem ev_ev__ev : forall n m, Ev (n + m) -> Ev n -> Ev m := by
     Hint: Is `(n+m) + (n+p)` even? -/
 
 theorem ev_plus_plus : forall n m p,
-  Ev (n+m) -> Ev (n+p) -> Ev (m+p) := by
+  Ev (n+m) → Ev (n+p) → Ev (m+p) := by
   /- ADMITTED -/
   intro n m p hnm hnp
   apply (ev_ev__ev (n+n))
@@ -1631,15 +1631,15 @@ theorem ev_plus_plus : forall n m p,
 /- HIDEFROMHTML -/
 namespace ClosReflTransRemainder
 /- /HIDEFROMHTML -/
-inductive ClosReflTrans {α: Type} (R: α -> α -> Prop) : α -> α -> Prop where
+inductive ClosReflTrans {α: Type} (R: α → α → Prop) : α → α → Prop where
   | rt_step (x y : α) :
-      R x y ->
+      R x y →
       ClosReflTrans R x y
   | rt_refl (x : α) :
       ClosReflTrans R x x
   | rt_trans (x y z : α) :
-      ClosReflTrans R x y ->
-      ClosReflTrans R y z ->
+      ClosReflTrans R x y →
+      ClosReflTrans R y z →
       ClosReflTrans R x z
 /- HIDEFROMHTML -/
 end ClosReflTransRemainder
@@ -1654,12 +1654,12 @@ end ClosReflTransRemainder
     surprising behavior of unhabitated types, which I don't think have
     been covered (yet?). Maybe they should be?  BCP 25: This one seems good. -/
 
-def isDiagonal {α : Type} (R: α -> α -> Prop) := forall x y, R x y -> x = y
+def isDiagonal {α : Type} (R: α → α → Prop) := forall x y, R x y → x = y
 
 /- Now consider the following lemma about diagonal relations: -/
 
-theorem closure_of_diagonal_is_diagonal : forall α (R: α -> α -> Prop),
-  isDiagonal R ->
+theorem closure_of_diagonal_is_diagonal : forall α (R: α → α → Prop),
+  isDiagonal R →
   isDiagonal (ClosReflTrans R) := by
 
   intro α R hDiag x y h
@@ -1706,7 +1706,7 @@ theorem closure_of_diagonal_is_diagonal : forall α (R: α -> α -> Prop),
     property inductively.  For example, here's a (slightly contrived)
     alternative definition for `Ev`: -/
 
-inductive Ev' : Nat -> Prop where
+inductive Ev' : Nat → Prop where
   | ev'_0 : Ev' 0
   | ev'_2 : Ev' 2
   | ev'_sum n m (Hn : Ev' n) (Hm : Ev' m) : Ev' (n + m)
@@ -1717,11 +1717,11 @@ inductive Ev' : Nat -> Prop where
     technique works with constructors of inductively defined
     propositions. -/
 
-theorem ev'_ev : forall n, Ev' n <-> Ev n := by
+theorem ev'_ev : forall n, Ev' n ↔ Ev n := by
  /- ADMITTED -/
   intro n
   apply Iff.intro
-  . /- -> -/
+  . /- → -/
     intro h; induction h
     . constructor
     . constructor; constructor
@@ -1738,18 +1738,18 @@ theorem ev'_ev : forall n, Ev' n <-> Ev n := by
 
 namespace Perm3Reminder
 
-inductive Perm3 {α : Type} : List α -> List α -> Prop where
+inductive Perm3 {α : Type} : List α → List α → Prop where
   | perm3_swap12 (a b c : α) :
       Perm3 [a, b, c] [b, a, c]
   | perm3_swap23 (a b c : α) :
       Perm3 [a, b, c] [a, c, b]
   | perm3_trans (l1 l2 l3 : List α) :
-      Perm3 l1 l2 -> Perm3 l2 l3 -> Perm3 l1 l3
+      Perm3 l1 l2 → Perm3 l2 l3 → Perm3 l1 l3
 
 end Perm3Reminder
 
 theorem Perm3_symm : forall (α : Type) (l1 l2 : List α),
-  Perm3 l1 l2 -> Perm3 l2 l1 := by
+  Perm3 l1 l2 → Perm3 l2 l1 := by
 
   intro α l1 l2 h; induction h
   case perm3_swap12 => constructor
@@ -1761,7 +1761,7 @@ theorem Perm3_symm : forall (α : Type) (l1 l2 : List α),
 /- If you find yourself dealing with deeply nested `cases` in this proof,
    think back to `Logic` where you learned about the `obtain` tactic -/
 theorem Perm3_In : forall (α : Type) (x : α) (l1 l2 : List α),
-    Perm3 l1 l2 -> In x l1 -> In x l2 := by
+    Perm3 l1 l2 → In x l1 → In x l2 := by
   /- ADMITTED -/
   intros α x l1 l2 hPerm hIn
   induction hPerm
@@ -1787,7 +1787,7 @@ theorem Perm3_In : forall (α : Type) (x : α) (l1 l2 : List α),
 
 /- EX1? (Perm3_NotIn) -/
 theorem Perm3_NotIn : forall (α : Type) (x : α) (l1 l2 : List α),
-    Perm3 l1 l2 -> ¬In x l1 -> ¬In x l2 := by
+    Perm3 l1 l2 → ¬In x l1 → ¬In x l2 := by
   /- ADMITTED -/
   intros α x l1 l2 hPerm hIn hContra
   apply hIn; apply Perm3_In
@@ -1823,3 +1823,370 @@ example : ¬ Perm3 [1, 2, 3] [1, 2, 4] := by
        alternate characterization, I guess)
 -/
 /- /FULL -/
+
+/- FULL -/
+/- ####################################################### -/
+/- * Exercising with Inductive Relations -/
+
+/- SOONER: CH: Bad flow + duplication needs fixing.
+   Could move some of this to the top.
+   In the terse version this whole section is useless,
+   it only has a (mostly) duplicated definition.
+   For now FULLED the whole thing, but better fix seems needed. -/
+
+/- TERSE: Just as a single-argument proposition defines a _property_,
+    a two-argument proposition defines a _relation_. -/
+/- FULL: A proposition parameterized by a number (such as `Ev`)
+    can be thought of as a _property_ -- i.e., it defines
+    a subset of `Nat`, namely those numbers for which the proposition
+    is provable.  In the same way, a two-argument proposition can be
+    thought of as a _relation_ -- i.e., it defines a set of pairs for
+    which the proposition is provable. -/
+
+/- TERSE: HIDEFROMHTML -/
+namespace Playground
+/- TERSE: /HIDEFROMHTML -/
+
+/- Just like properties, relations can be defined inductively.  One
+    useful example is the "less than or equal to" relation on numbers
+    that we briefly saw above. -/
+
+inductive Le : Nat → Nat → Prop where
+  | refl (n : Nat)                : Le n n
+  | succ (n m : Nat) (H : Le n m) : Le n (m + 1)
+
+/- FULL: (We've written the definition a bit differently this time,
+    giving explicit names to the arguments to the constructors and
+    moving them to the left of the colons.) -/
+
+/- FULL: Proofs of facts about `≤` using the constructors `Nat.le.refl` and
+    `Nat.le.succ` follow the same patterns as proofs about properties, like
+    [ev] above. We can `apply` the constructors to prove `≤`
+    goals (e.g., to show that `3≤3` or `3≤6`), and we can use
+    tactics like `inversion` to extract information from `≤`
+    hypotheses in the context (e.g., to prove that `(2 ≤ 1) → 2+2=5`.) -/
+
+/- TERSE: *** -/
+/- FULL: Here are some sanity checks on the definition.  (Notice that,
+    although these are the same kind of simple "unit tests" as we gave
+    for the testing functions we wrote in the first few lectures, we
+    must construct their proofs explicitly -- `rw`, `dsimp` and
+    `rfl` don't do the job, because the proofs aren't just a
+    matter of simplifying computations.) -/
+/- TERSE: Some sanity checks... -/
+
+theorem test_le1 : 3 ≤ 3 := by
+  /- WORKINCLASS -/
+  apply Nat.le.refl
+/- /WORKINCLASS -/
+
+theorem test_le2 : 3 ≤ 6 := by
+  /- WORKINCLASS -/
+  apply Nat.le.step; apply Nat.le.step; apply Nat.le.step; apply Nat.le.refl
+  /- /WORKINCLASS -/
+
+theorem test_le3 : (2 ≤ 1) → 2 + 2 = 5 := by
+  /- WORKINCLASS -/
+  intros h
+  inversion h
+  case step h' => inversion h'
+/- /WORKINCLASS -/
+
+/- TERSE: *** -/
+/- The "strictly less than" relation `n < m` can now be defined
+    in terms of `Nat.le`. -/
+
+def lt (n m : Nat) : Prop := Nat.le (n + 1) m
+
+/- TERSE: *** -/
+/- The `≥` operation is defined in terms of `≤`.
+   Lean provides a theorem `ge_iff_le` allowing us to rewrite between them.
+-/
+
+def ge (m n : Nat) : Prop := Nat.le n m
+
+example : forall (m n : Nat), m ≥ n → n ≤ m := by
+  intro m n h
+  rw [←ge_iff_le]; assumption
+
+/- TERSE: HIDEFROMHTML -/
+end Playground
+
+
+/- TERSE: /HIDEFROMHTML -/
+
+/- HIDE: PR: Added the following paragraph to try to help reduce
+   random walks over the following exercises. -/
+/- FULL: From the definition of `le`, we can sketch the behaviors of
+    `cases`, `induction`, and `induction` on a hypothesis `h`
+    providing evidence of the form [le e1 e2].  Doing `cases h`
+    will generate two cases. In the first case, `e1 = e2`, and it
+    will replace instances of `e2` with `e1` in the goal and context.
+    In the second case, `e2 = n' + 1` for some `n'` for which `le e1 n'`
+    holds, and it will replace instances of `e2` with `n' + 1`.
+    Doing [inversion H] will remove impossible cases and add generated
+    equalities to the context for further use. Doing `induction h`
+    will, in the second case, add the induction hypothesis that the
+    goal holds when `e2` is replaced with `n'`. -/
+
+/- Here are a number of facts about the `≤` and `<` relations that
+    we are going to need later in the course.  The proofs make good
+    practice exercises. -/
+
+/- EX3! (le_facts) -/
+theorem le_trans : forall (m n o : Nat), m ≤ n → n ≤ o → m ≤ o := by
+  /- ADMITTED -/
+  intro n m o h₁  h₂
+  induction  h₂
+  case refl => assumption
+  case step m' h' ih => constructor; exact ih
+/- /ADMITTED -/
+/- GRADE_THEOREM 0.5: le_trans -/
+
+theorem zero_le_n : forall n, 0 ≤ n := by
+  /- ADMITTED -/
+  intro n; induction n
+  case zero => constructor
+  case succ n ih => constructor; assumption
+  /- /ADMITTED -/
+/- GRADE_THEOREM 0.5: zero_le_n -/
+
+theorem n_le_m__succ_n_le_succ_m : forall n m,
+  n ≤ m → n + 1 ≤ m + 1 := by
+  /- ADMITTED -/
+  intro n m h
+  induction h
+  case refl => constructor
+  case step m' h ih =>
+    rw [Nat.succ_add]
+    constructor
+    assumption
+/- /ADMITTED -/
+/- GRADE_THEOREM 0.5: n_le_m__Sn_le_Sm -/
+
+theorem succ_n_le_succ_m__n_le_m : forall n m,
+  n + 1 ≤ m + 1 → n ≤ m := by
+  /- ADMITTED -/
+  intro n m h
+  inversion h
+  case refl => constructor
+  case step h' =>
+    apply le_trans _ (n + 1) _
+    . constructor; constructor
+    . assumption
+/- /ADMITTED -/
+/- GRADE_THEOREM 1: Sn_le_Sm__n_le_m -/
+
+theorem le_add_l : forall (a b : Nat), a ≤ a + b := by
+  /- ADMITTED -/
+  intros a b
+  induction a
+  case zero => rw [Nat.zero_add]; apply zero_le_n
+  case succ a' ih =>
+    rw [Nat.succ_add]
+    apply n_le_m__succ_n_le_succ_m
+    assumption
+/- GRADE_THEOREM 0.5: le_add_l -/
+/- [] -/
+
+/- EX2! (plus_le_facts1) -/
+theorem add_le : forall (n₁ n₂ m : Nat),
+  n₁ + n₂ ≤ m →
+  n₁ ≤ m ∧ n₂ ≤ m := by
+ /- ADMITTED -/
+  intros n₁ n₂ m h
+  induction h
+  case refl =>
+    constructor
+    . apply le_add_l
+    . rw [Nat.add_comm]; apply le_add_l
+  case step m' h' ih =>
+    obtain ⟨h₁, h₂⟩ := ih
+    constructor
+    . apply le_trans (n := n₁ + n₂)
+      . apply le_add_l
+      . apply Nat.le.step; assumption
+    . apply le_trans (n := n₁ + n₂)
+      . rw [Nat.add_comm]; apply le_add_l
+      . apply Nat.le.step; assumption
+/- /ADMITTED -/
+/- GRADE_THEOREM 1: add_le -/
+
+theorem add_le_cases : forall (n m p q : Nat),
+  n + m ≤ p + q → n ≤ p ∨ m ≤ q := by
+  /- Hint: May be easiest to prove by induction on `n`. -/
+/- ADMITTED -/
+  intros n m p q h; induction n generalizing m p q
+  case zero => left; apply zero_le_n
+  case succ n' ih =>
+    cases p
+    case zero =>
+      right; apply add_le at h
+      obtain ⟨_, h⟩ := h
+      rw [Nat.zero_add] at h; assumption
+    case succ p' =>
+      rw [Nat.succ_add, Nat.succ_add] at h
+      apply succ_n_le_succ_m__n_le_m at h
+      apply ih at h
+      cases h
+      . left; apply n_le_m__succ_n_le_succ_m; assumption
+      . right; assumption
+/- /ADMITTED -/
+/- GRADE_THEOREM 1: add_le_cases -/
+/- [] -/
+
+/- EX2! (plus_le_facts2) -/
+theorem add_le_compat_l : forall (n m p : Nat),
+  n ≤ m →
+  p + n ≤ p + m := by
+  /- ADMITTED -/
+  intros n m p h
+  induction p
+  case zero =>
+    rw [Nat.zero_add, Nat.zero_add]; assumption
+  case succ p' ih =>
+    rw [Nat.succ_add, Nat.succ_add]
+    apply n_le_m__succ_n_le_succ_m
+    assumption
+/- /ADMITTED -/
+/- GRADE_THEOREM 0.5: add_le_compat_l -/
+
+theorem plus_le_compat_r : forall (n m p : Nat),
+  n ≤ m →
+  n + p ≤ m + p := by
+  /- ADMITTED -/
+  intro n m p h
+  rw [Nat.add_comm, Nat.add_comm m]
+  apply add_le_compat_l
+  assumption
+/- /ADMITTED -/
+/- GRADE_THEOREM 0.5: plus_le_compat_r -/
+
+theorem le_plus_trans : forall (n m p : Nat),
+  n ≤ m →
+  n ≤ m + p := by
+  /- ADMITTED -/
+  intros n m p h
+  induction p
+  case zero => rw [Nat.add_zero]; assumption
+  case succ p' ih =>
+    rw [←Nat.add_assoc]; constructor; assumption
+/- /ADMITTED -/
+/- GRADE_THEOREM 1: le_plus_trans -/
+/- [] -/
+
+/- EX3? (lt_facts) -/
+theorem lt_ge_cases : forall (n m : Nat),
+  n < m ∨ n ≥ m := by
+  /- ADMITTED -/
+  intro n m; induction n generalizing m
+  case zero =>
+    cases m
+    case zero => right; constructor
+    case succ _ =>
+      left;
+      apply n_le_m__succ_n_le_succ_m;
+      apply zero_le_n
+  case succ n' ih =>
+    cases m
+    case zero =>
+      rw [ge_iff_le]; right
+      apply zero_le_n
+    case succ m' =>
+      obtain ih | ih := (ih m')
+      . left
+        apply n_le_m__succ_n_le_succ_m
+        exact ih
+      . right
+        apply n_le_m__succ_n_le_succ_m
+        exact ih
+/- /ADMITTED -/
+/- GRADE_THEOREM 1.5: lt_ge_cases -/
+
+theorem n_lt_m__n_le_m : forall (n m : Nat),
+  n < m →
+  n ≤ m := by
+  /- ADMITTED -/
+  intro n m h
+  apply succ_n_le_succ_m__n_le_m; constructor; assumption
+/- /ADMITTED -/
+/- GRADE_THEOREM 0.5: n_lt_m__n_le_m -/
+
+theorem plus_lt : forall (n₁ n₂ m : Nat),
+  n₁ + n₂ < m →
+  n₁ < m /\ n₂ < m := by
+/- ADMITTED -/
+  intro n₁ n₂ m h
+  constructor
+  . apply le_trans (n := (n₁ + n₂) + 1)
+    . apply n_le_m__succ_n_le_succ_m
+      apply le_add_l
+    . exact h
+  . apply le_trans (n := (n₂ + n₁) + 1)
+    . apply n_le_m__succ_n_le_succ_m
+      apply le_add_l
+    . rw [Nat.add_comm n₂]; assumption
+/- /ADMITTED -/
+/- GRADE_THEOREM 1: plus_lt -/
+/- [] -/
+
+/- EX4? (leb_le) -/
+theorem leb_complete : forall (n m : Nat),
+  n ≤? m = true → n ≤ m := by
+  /- ADMITTED -/
+  intro n m h; induction n generalizing m
+  case zero => apply zero_le_n
+  case succ n' ih =>
+    cases m
+    case zero =>
+      contradiction
+    case succ m' =>
+      rw [succ_leb_succ] at h
+      apply n_le_m__succ_n_le_succ_m
+      apply ih; apply h
+/- /ADMITTED -/
+/- GRADE_THEOREM 2: leb_complete -/
+
+theorem leb_correct : forall n m,
+  n ≤ m →
+  n ≤? m = true := by
+  /- ADMITTED -/
+  intro n m h
+  induction n generalizing m
+  case zero => rw [zero_leb]
+  case succ n' ih =>
+    cases m
+    case zero => contradiction
+    case succ m' =>
+      rw [succ_leb_succ]
+      apply succ_n_le_succ_m__n_le_m at h
+      apply ih at h
+      assumption
+/- /ADMITTED -/
+/- GRADE_THEOREM 2: leb_correct -/
+
+/- Hint: The next two can easily be proved without using `induction`. -/
+
+/- LATER: AC'21: To me what would be interesting for this last lemma `leb_iff`
+   would be to show that the proofs of completeness and correctness can
+   be carried out in a single induction. -/
+
+theorem leb_iff : forall n m,
+  n ≤? m = true ↔ n ≤ m := by
+  /- ADMITTED -/
+  intro n m; apply Iff.intro
+  . apply leb_complete
+  . apply leb_correct
+/- /ADMITTED -/
+/- GRADE_THEOREM 1: leb_iff -/
+
+theorem leb_true_trans : forall n m o,
+  n ≤? m = true → m ≤? o = true → n ≤? o = true := by
+  /- ADMITTED -/
+  intros n m o
+  rw [leb_iff, leb_iff, leb_iff]
+  apply le_trans
+/- /ADMITTED -/
+/- /HIDE -/
+/- GRADE_THEOREM 1: leb_true_trans -/
+/- [] -/
