@@ -184,6 +184,8 @@ def nextWorkingDay (d : Day) : Day :=
 -/
 -- /FULL
 
+
+
 #eval nextWorkingDay Day.friday
 /- ==> Day.monday -/
 
@@ -833,23 +835,37 @@ namespace NatPlayground
 
 -- TERSE: /- For simplicity in proofs, we choose unary representation. -/
 
-
 inductive Nat : Type where
   | zero
   | succ (n : Nat)
-
--- TODO hide this. this just lets you see (succ (succ zero)) instead of
--- NatPlayground.Nat.succ (NatPlayground.Nat.succ NatPlayground.Nat.zero) in the infoview.
-attribute [pp_nodot] Nat
-
-namespace Nat
-
--- TODO Rewrite
 
 /-
   With this definition, 0 is represented by `zero`, 1 by `succ zero`,
   2 by `succ (succ zero)`, and so on.
 -/
+
+
+/-
+  Naturally, Lean has its own definition of natural numbers.
+
+-/
+  #check Nat /- ==> NatPlayground.Nat : Type -/ /- ← this is our `Nat`... -/
+  #check _root_.Nat /- ==> _root_.Nat : Type -/ /- ← ...this is Lean's `Nat`. -/
+
+/-
+  Lean's [Nat] comes with powerful built-in reasoning and notation.
+  As we are just beginning to reason about natural numbers, we use our own
+  simple definition, and introduce the Lean one shortly after.
+-/
+
+
+-- Maybe TODO: hide the next 3 lines ↓ this just lets you see (succ (succ zero))
+-- instead of NatPlayground.Nat.succ (NatPlayground.Nat.succ
+-- NatPlayground.Nat.zero) in the infoview.
+attribute [pp_nodot] Nat
+namespace Nat
+open Nat
+
 
 -- TERSE: /- *** -/
 /-
@@ -863,7 +879,7 @@ inductive OtherNat : Type where
 
 /-
   This is the same _representation_ of numbers as `Nat`, but with different
-  (sillier!) constructor names.
+  constructor names.
 -/
 
 /-
@@ -879,17 +895,11 @@ def pred (n : Nat) : Nat :=
 
 -- TERSE: /- *** -/
 
+
 /-
-  Because natural numbers are such a pervasive kind of data,
-  Lean provides built-in support for them: ordinary decimal
-  numerals can be used as a shorthand, and Lean's `Nat` type uses
-  the constructors `Nat.zero` and `Nat.succ`.
+  We can define our own `Nat` literals:
 -/
 
--- TODO: change this to not talk about numerals yet, instead define our own.
--- TODO: document this
-
--- TODO explain abbrev
 abbrev one : Nat := succ zero
 abbrev two : Nat := succ one
 abbrev three : Nat := succ two
@@ -901,18 +911,24 @@ abbrev eight : Nat := succ seven
 abbrev nine : Nat := succ eight
 abbrev ten : Nat := succ nine
 
--- ... and so on.
+/- ... and so on. -/
 
+/-
+ The `abbrev` keyword defines an abbreviation -
+ useful for writing concrete terms.
+-/
 
--- RAB: Hovering over succ points out that "Using Nat.succ n should usually be
--- avoided in favor of n + 1, which is the simp normal form." How quickly should
--- we break away from succ style and go straight to n + 1 style? More broadly,
--- how much do we want to adhere to conventions like simp normal form? In my
--- view, following standard Lean style wherever possible is a good thing to be
--- doing, in no small part because proof view displays terms in Lean style, e.g. (n +
--- 1) instead of `succ n`.
+/-
+  Of course, we can verify our abbreviation does what we expect using `rfl`.
+-/
 
 example : succ (succ (succ (succ zero))) = four := by rfl
+
+
+/-
+  We can also write computations functions on `Nat`, and give them
+   our abbreviations as arguments.
+-/
 
 def minustwo (n : Nat) : Nat :=
   match n with
@@ -922,6 +938,10 @@ def minustwo (n : Nat) : Nat :=
 
 #eval minustwo four
 /- ===> 2 -/
+
+-- TODO:
+-- Lean user question: how to get (succ (succ zero)) rather than
+-- NatPlayground.Nat.succ (NatPlayground.Nat.succ (NatPlayground.Nat.zero))
 
 -- FULL
 #check Nat.succ  -- Nat → Nat
@@ -967,13 +987,28 @@ example : odd four = false := by rfl
 -- TERSE: /- *** -/
 -- TERSE: /- A multi-argument recursive function. -/
 
--- TODO talk about rewrites
-
 @[irreducible]
 def add (n : Nat) (m : Nat) : Nat :=
   match m with
   | zero => n
   | succ m' => succ (add n m')
+
+-- FULL
+
+/-
+  ######################################################################
+  # Proof by Simplification
+
+   ### Proving properties about functions in Lean
+
+   Being recursive, `add` is our first of a  more sophisticated class of
+   functions. In this chapter and onwards, we will _prove_ properties about
+   recursive functions, including `add`, which means we will need
+   _simplification rules_ about its behavior.
+
+  We provide these _rules_ for add, `add_zero` and `add_succ`, below.
+-/
+-- /FULL
 
 unseal add in
 theorem add_zero : ∀ n, add n zero = n := by
@@ -983,60 +1018,75 @@ theorem add_zero : ∀ n, add n zero = n := by
 unseal add in
 theorem add_succ : ∀ n m, add n (succ m) = succ (add n m) := by
   intro n m
-  dsimp [add]
+  rfl
+
+/-
+   These rules let us "evaluate" the function at arguments during a proof.
+   They give us the ability to use a fundamental proof, tool, a _tactic_,
+   to change the goal state of a proof to match one step of evaluating
+   a function.
+   Indeed we define these two rules using _tactics_: `intro` and `rfl`.
+   `intro` names a variable in a proof quantified under a "forall" (∀),
+    and `rfl`, as in the above examples, closes a proof of equality
+    whose left- and right-hand sides are definitionally equal.
+-/
 
 -- FULL
+
 /-
-  Adding three to two gives us five (whew!):
+  ## The `rewrite` tactic
+   The tactic that tells Lean to rewrite based on a rule is called `rewrite`.
+   Here is a simple example of using `rewrite` with laws to evaluate `add`:
 -/
 -- /FULL
 
--- TODO: make sure this is a sane example that shows off the rewriting
--- system in a way that's been explaned.
-example : add three two = five := by
-  rewrite [add_succ, add_succ, add_zero]
+example : add one one = two := by
+  rewrite [add_succ] /- Move your cursor here to see the new proof state -/
+  rewrite [add_zero]
   rfl
 
 
--- TODO rewrite this explanation fully
+example : add three two = five := by
+  rewrite [add_succ, add_succ, add_zero] /- `rewrite` can take many arguments -/
+  rfl
 
 -- FULL
 /-
-  The steps of simplification that Lean performs here can be
-  visualized as follows:
+  The keywords `rewrite` and `rfl` are examples of _tactics_. A tactic is a
+  command that is used between `by` and the end of the proof to guide the
+  process of checking some claim we are making. We will see several more tactics
+  in the rest of this chapter and many more in future chapters.
 
-       `add 3 2`
-    i.e. `add (succ (succ (succ 0))) (succ (succ 0))`
+  Even these trivial examples provide opportunities to _step through_ the proof,
+  using the cursor. Moving the cursor over the `by` and stepping through the
+  tactics will show the state of the proof at each step in the right-hand Lean
+  InfoView Panel.
 -/
-/-    ==> `succ (add (succ (succ (succ 0))) (succ 0))` -/
+
+-- /FULL
+
+-- FULL
 /-
-           by the second clause of the `match`
+  By default, `rewrite` rewrites left-to-right. To rewrite from right
+  to left, use `rewrite [← h]`, where `←` is typed as `\l` or `\<-`.
 -/
-/-    ==> `succ (succ (add (succ (succ (succ 0))) 0))` -/
+-- /FULL
+
+-- FULL
 /-
-           by the second clause of the `match`
--/
-/-    ==> `succ (succ (succ (add (succ 0))))` -/
-/-
-           by the first clause of the `match`
-    i.e. `5`
+  Now that we know how addition is defined, we can use
+  it to define multiplication:
 -/
 -- /FULL
 
 -- TERSE: /- *** -/
-
--- FULL
-/-
-  Now that we know how addition is defined, we can use Lean's builtin
-  definition and notation to write it more concisely.
-  The `+` operator is already defined for `Nat` in the standard library.
--/
--- /FULL
 @[irreducible]
 def mul (n m : Nat) : Nat :=
   match m with
   | zero => zero
   | succ m' => add (mul n m') n
+
+/- Along with its simplification rules: -/
 
 unseal mul in
 theorem mul_zero : ∀ n, mul n zero = zero := by
@@ -1048,12 +1098,36 @@ theorem mul_succ : ∀ n m, mul n (succ m) = add (mul n m) n := by
   intro n m
   rfl
 
--- TODO: add example with rewrites, add one with rfl
-
 /- test_mult1 -/
+example : mul three three = nine := by
+  rewrite [mul_succ, mul_succ, mul_succ, mul_zero]
+  rewrite [add_succ, add_succ, add_succ, add_zero]
+  rewrite [add_succ, add_succ, add_succ, add_zero]
+  rewrite [add_succ, add_succ, add_succ, add_zero]
+  rfl
+
+/-
+  For examples with concrete values, we can `unseal` functions to run some basic
+  computation with them. -/
+
 unseal mul add in
 example : mul three three = nine := by
   rfl
+
+/- This calls Lean's _evaluator_, which simplifies the function as much
+  as it can.
+
+  You may ask: why use `rewrite` and laws, when unsealing functions and
+  evaluating with thim is so much more consise?
+-/
+
+/-
+  ######################################################################
+  # Rewriting vs. Evaluation
+-/
+
+-- The bus stops here
+
 
 -- TERSE: /- *** -/
 /-
@@ -1082,13 +1156,7 @@ theorem sub_succ_succ : ∀ n m, sub (succ n) (succ m) = sub n m := by
   intro n m
   rfl
 
-/-
-  Now that we've seen how natural numbers are built from `Nat.zero`
-  and `Nat.succ`, we can take further advantage of Lean's notation: the
-  pattern `n + 1` is syntactic sugar for `Nat.succ n`, `n + 2` is
-  syntactic sugar for `Nat.succ (Nat.succ n)`, and so on.
-  We'll use this more concise style from now on.
--/
+
 
 @[irreducible]
 def pow (base power : Nat) : Nat :=
@@ -1115,20 +1183,15 @@ def factorial (n : Nat) : Nat
 
 /- test_factorial1 -/
 unseal factorial mul add in
-example : factorial three = six         := by rfl  -- ADMITTED
+example : factorial three = six := by rfl  -- ADMITTED
 /- test_factorial2 -/
 unseal factorial mul add in
-example : factorial five = mul ten (add ten two)   := by rfl  -- ADMITTED
+example : factorial five = mul ten (add ten two) := by rfl  -- ADMITTED
 -- GRADE_THEOREM 1: factorial_test2
 -- []
 -- /FULL
 
 -- TERSE: /- *** -/
-/-
-  Lean already provides `+`, `-`, `*` for `Nat`, so we don't need to
-  define our own notation.
--/
-
 
 -- JC: Overriding the `+` is an immense headache for technical reasons,
 -- so we leave that alone, since our definition is the same anyway.
@@ -1289,31 +1352,13 @@ theorem add_zero_one : 1 = 0 + 1 := by rfl
   `n + 0` reduces to `n` by definition.
 -/
 
+/- The semicolon `;` separates
+  multiple steps of tactics; they can also be separated by putting them on
+  separate lines. -/
+
 theorem add_zero : ∀ n : Nat, n + 0 = n := by
   intro n; rfl
 
--- FULL
-/-
-  The keywords `intro` and `rfl` are examples of _tactics_.
-  A tactic is a command that is used between `by` and the end of the
-  proof to guide the process of checking some claim we are making.
-  The semicolon `;` separates multiple steps of tactics;
-  they can also be separated by putting them on separate lines.
-  We will see several more tactics in the rest of this chapter and
-  many more in future chapters.
--/
--- /FULL
-
--- TERSE: /- *** -/
-
--- FULL
-/-
-  Even these trivial examples provide opportunities to _step through_ the proof,
-  using the cursor. Moving the cursor over the `by` and stepping through the
-  tactics will show the state of the proof at each step in the right-hand
-  Lean InfoView Panel.
--/
--- /FULL
 
 theorem add_succ : ∀ n m : Nat, n + (m + 1) = (n + m) + 1 := by
   intro n m; rfl
@@ -2074,6 +2119,7 @@ theorem lowerGrade_lowers : ∀ g : Grade,
 -- GRADE_THEOREM 3: lowerGrade_lowers
 -- []
 
+
 def applyLatePolicy (lateDays : Nat) (g : Grade) : Grade :=
   if lateDays <? 9 then g
   else if lateDays <? 17 then lowerGrade g
@@ -2116,3 +2162,49 @@ theorem grade_lowered_once : ∀ (lateDays : Nat) (g : Grade),
 
 end LateDays
 -- /FULL
+
+-- TODO put this somewhere
+
+/-
+   Lean does have an automatic evaluator, which we will introduce in
+   just a few chapters. But Lean professionals prefer to use a mix of
+   the evaluator and the rules, since not all functions in Lean can be
+   evaluated (!). In future chapters, we will show how to derive
+   simplification rules for functions automatically.
+-/
+
+-- needed or not?
+
+-- FULL
+/-
+  The steps of simplification that Lean performs here can be
+  visualized as follows:
+
+       `add 3 2`
+    i.e. `add (succ (succ (succ 0))) (succ (succ 0))`
+-/
+/-    ==> `succ (add (succ (succ (succ 0))) (succ 0))` -/
+/-
+           by the second clause of the `match`
+-/
+/-    ==> `succ (succ (add (succ (succ (succ 0))) 0))` -/
+/-
+           by the second clause of the `match`
+-/
+/-    ==> `succ (succ (succ (add (succ 0))))` -/
+/-
+           by the first clause of the `match`
+    i.e. `5`
+-/
+-- /FULL
+/-
+  Now that we've seen how natural numbers are built from `Nat.zero`
+  and `Nat.succ`, we can take further advantage of Lean's notation: the
+  pattern `n + 1` is syntactic sugar for `Nat.succ n`, `n + 2` is
+  syntactic sugar for `Nat.succ (Nat.succ n)`, and so on.
+  We'll use this more concise style from now on.
+-/
+
+/- Lean's builtin
+  definition and notation to write it more concisely.
+  The `+` operator is already defined for `Nat` in the standard library. -/
