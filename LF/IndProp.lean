@@ -12,8 +12,8 @@
    around the bush in later discussions. -/
 
 /- HIDE: BCP 25: After teaching the chapter this semester, I feel
-   that (a) the ev example, while arguably suboptimal, actually works
-   acceptably well. (I just wish that the n in `ev_SS n H` was not
+   that (a) the Ev example, while arguably suboptimal, actually works
+   acceptably well. (I just wish that the n in ``ev_succ_succ` n H` was not
    two smaller than the n that is being shown to be even -- that's
    always awkward.  Wonder if there is some clever way around that...)
 
@@ -122,7 +122,7 @@
        --------
 
        LATER: BCP 19: After lecturing on the first part of this
-       chapter, I'm afraid I have to agree that the ev / even / evenb
+       chapter, I'm afraid I have to agree that the Ev / even / evenb
        stuff is a total mess.  Besides the "why are there so many
        definitions of evenness?" problem, evenness is just not a very
        natural inductively defined proposition as a first example,
@@ -143,7 +143,7 @@
        IndPrinciples) also rely heavily on this example.  Sigh.
 
        BCP 20: Tried to sort this out a bit better by renaming the
-       propositional definition from `ev` to `eveni`, for symmetry with
+       propositional definition from `Ev` to `eveni`, for symmetry with
        `evenb`, and renaming the definition that says "a number is
        even if it is twice something" to `evend`.  What do people think
        of this?
@@ -167,7 +167,7 @@
   explain how `destruct` is dumb in that it does case analysis while
   ignoring details of the hypothesis. To be precise, in the first case
   it doesn't notice that `ev_0` is not a constructor for any
-  `ev (S (S n))`, and in the second, it throws away `S (S n)`.
+  `Ev (S (S n))`, and in the second, it throws away `S (S n)`.
 
   Immediately a student asked: Can we use `eqn` to tell it not to
   throw away that information?
@@ -181,8 +181,8 @@
   `destruct (S (S n)) eqn:E'` would have worked, but it's
   unnecessarily messy) and the class produced the following proof:
 
-    Theorem evSS_ev : forall n,
-      ev (S (S n)) -> ev n.
+    theorem evSS_ev : forall n,
+      Ev (S (S n)) -> Ev n.
     Proof.
       intros n E.
       remember (S (S n)) as m.
@@ -802,11 +802,11 @@ inductive Perm3 {α : Type} : List α -> List α -> Prop where
     _establish_ its evenness from the following two rules:
 [[[
                           ---- (ev_0)
-                          ev 0
+                          Ev 0
 
-                          ev n
+                          Ev n
                       ------------ (ev_succ_succ)
-                      ev (n + 2)
+                      Ev (n + 2)
 ]]]
 -/
 
@@ -824,11 +824,11 @@ inductive Perm3 {α : Type} : List α -> List α -> Prop where
     imagine using it to show that [4] is even:
 [[
                            ———— (ev_0)
-                           ev 0
-                       ———————————— (ev_SS)
-                       ev (S (S 0))
-                   ———————————————————— (ev_SS)
-                   ev (S (S (S (S 0))))
+                           Ev 0
+                       ———————————— (`ev_succ_succ`)
+                       Ev (S (S 0))
+                   ———————————————————— (`ev_succ_succ`)
+                   Ev (S (S (S (S 0))))
 ]]
 -/
 
@@ -905,7 +905,7 @@ Note: The value of parameter `n` must be fixed throughout the inductive declarat
 #guard_msgs in
 inductive WrongEv (n : Nat) : Prop where
   | wrong_ev_0 : WrongEv 0
-  | wrong_ev_SS (H: WrongEv n) : WrongEv (n + 2)
+  | wrong_ev_succ_succ (H: WrongEv n) : WrongEv (n + 2)
 
 
 /- In an `inductive` definition, an argument to the type constructor
@@ -933,7 +933,7 @@ namespace EvPlayground
 
 inductive Ev : Nat -> Prop where
   | ev_0  : Ev 0
-  | ev_SS : forall (n : Nat), Ev n -> Ev (n + 2)
+  | ev_succ_succ : forall (n : Nat), Ev n -> Ev (n + 2)
 
 end EvPlayground
 -- /FULL
@@ -953,6 +953,12 @@ theorem ev_4 : Ev 4 := by
 
 theorem ev_4' : Ev 4 := by
   exact Ev.ev_succ_succ 2 (Ev.ev_succ_succ 0 Ev.ev_0)
+
+/- ... or we can also use the `constructor` tactic we saw earlier to select the appropriate
+   inductive constructor -/
+
+theorem ev_4'' : Ev 4 := by
+  constructor; constructor; constructor
 
 /- In this way, we can also prove theorems that have hypotheses
     involving `Ev`. -/
@@ -1043,14 +1049,14 @@ theorem Perm3_refl : forall (α : Type) (a b c : α ), Perm3 [a, b, c] [a, b, c]
 
 /- TERSE: *** -/
 /- In other words, if someone gives us evidence `E` for the proposition
-    `ev n`, then we know that `E` must be one of two things:
+    `Ev n`, then we know that `E` must be one of two things:
 
       - `E = ev_0` and `n = O`, or
       - `E = ev_succ_succ n' E'` and `n = n' + 2)`, where `E'` is
-        evidence for `ev n'`. -/
+        evidence for `Ev n'`. -/
 
 /- FULL: This suggests that it should be possible to analyze a
-    hypothesis of the form `ev n` much as we do inductively defined
+    hypothesis of the form `Ev n` much as we do inductively defined
     data structures; in particular, it should be possible to argue either by
     _case analysis_ or by _induction_ on such evidence.  Let's look at a
     few examples to see what this means in practice. -/
@@ -1060,17 +1066,17 @@ theorem Perm3_refl : forall (α : Type) (a b c : α ), Perm3 [a, b, c] [a, b, c]
 /- ** Destructing and Inverting Evidence -/
 
 /- FULL: Suppose we are proving some fact involving a number `n`, and
-    we are given `ev n` as a hypothesis.  We already know how to
+    we are given `Ev n` as a hypothesis.  We already know how to
     perform case analysis on `n` using `cases` or `induction`,
     generating separate subgoals for the case where `n = O` and the
     case where `n = S n'` for some `n'`.  But for some proofs we may
-    instead want to analyze the evidence for `ev n` _directly_.
+    instead want to analyze the evidence for `Ev n` _directly_.
 
     As a tool for such proofs, we can formalize the intuitive
-    characterization that we gave above for evidence of `ev n`, using
+    characterization that we gave above for evidence of `Ev n`, using
     `cases`. -/
 
-/- TERSE: We can prove our characterization of evidence for `ev n`,
+/- TERSE: We can prove our characterization of evidence for `Ev n`,
     using `cases`. -/
 
 theorem ev_inversion : forall (n : Nat),
@@ -1111,7 +1117,7 @@ end LePlayground
     /- Which tactics are needed to prove this goal?
     [[
       n : nat
-      E : ev n
+      E : Ev n
       F : n = 1
       ======================
       true = false
@@ -1141,25 +1147,25 @@ end LePlayground
     /- Similarly, the following theorem can easily be proved using
         [destruct] on evidence. -/
 
-    Theorem ev_minus2 : forall n,
-      ev n -> ev (pred (pred n)).
+    theorem ev_minus2 : forall n,
+      Ev n -> Ev (pred (pred n)).
     Proof.
       intros n E.  destruct E as [| n' E'] eqn:EE.
       - /-E = ev_0 -/
         simpl. apply ev_0.
-      - /-E = ev_SS n' E' -/
+      - /-E = `ev_succ_succ` n' E' -/
         simpl. apply E'.
     Qed.
 
     /- TERSE: *** -/
-    /- However, the following simple variation shows that [destruct] can
+    /- However, the following simple variation shows that `cases` can
         sometimes throw away critical information: -/
 
-    Theorem evSS_ev : forall n,
-      ev (S (S n)) -> ev n.
+    theorem evSS_ev : forall n,
+      Ev (S (S n)) -> Ev n.
     /- FULL: Intuitively, we know that evidence for the hypothesis cannot
-        consist just of the [ev_0] constructor, since [O] and [S] are
-        different constructors of the type [nat]; hence, [ev_SS] is the
+        consist just of the `ev_0` constructor, since `0` and `succ` are
+        different constructors of the type `Nat`; hence, `ev_succ_succ` is the
         only case that applies.  Unfortunately, [destruct] is not smart
         enough to realize this, and it still generates two subgoals.  Even
         worse, in doing so, it keeps the final goal unchanged, failing to
@@ -1172,7 +1178,7 @@ end LePlayground
     Abort.
 
     /- TERSE: Tactic [destruct] replaced [S (S n)] with [0] in [E],
-        because that's what [ev_0] proves. -/
+        because that's what `ev_0` proves. -/
 
     /- FULL: What happened here, exactly?  Calling [destruct] has the effect
         of replacing all occurrences of the property argument by the
@@ -1198,8 +1204,8 @@ end LePlayground
 
     /- TERSE: So let's [remember] that term [S (S n)]. -/
 
-    Theorem evSS_ev_remember : forall n,
-      ev (S (S n)) -> ev n.
+    theorem evSS_ev_remember : forall n,
+      Ev (S (S n)) -> Ev n.
     Proof.
       intros n E. remember (S (S n)) as k eqn:Hk.
       destruct E as [|n' E'] eqn:EE.
@@ -1223,7 +1229,7 @@ end LePlayground
 /- We can use the inversion lemma that we proved above to help
     structure proofs: -/
 
-theorem Ev_succ_succ_Ev : forall n, Ev (n + 2) -> Ev n := by
+theorem ev_succ_succ_ev : forall n, Ev (n + 2) -> Ev n := by
   intro n H
   apply ev_inversion at H
   cases H
@@ -1236,12 +1242,12 @@ theorem Ev_succ_succ_Ev : forall n, Ev (n + 2) -> Ev n := by
 
 /- HIDE -/
 /- HIDE: CH: Tried, but there is no similarly simple lemma for le? -/
-/-Theorem leS_le : forall n m, le n (S m) -> le n m.
+/-theorem leS_le : forall n m, le n (S m) -> le n m.
 Proof.
   intros n m H. apply le_inversion in H. destruct H as [H0|H1].
   - rewrite H0. Abort. /- This one is false! -/
 
-Theorem leS_le : forall n m, le (S n) (S m) -> le n m.
+theorem leS_le : forall n m, le (S n) (S m) -> le n m.
 Proof.
   intros n m H. apply le_inversion in H. destruct H as [Hn|HS].
   - injection Hn as Hnm. rewrite Hnm. apply le_n.
@@ -1274,23 +1280,19 @@ Abort.-/
 /- TERSE: We've provided a handy tactic called `inversion` that does
     the work of our inversion lemma and more besides. -/
 
-theorem evSS_ev' : forall n, Ev (n + 2) -> Ev n := by
-  intro n H
-  inversion H
-  case ev_succ_succ n' H heq =>
-    injections heq heq
-    subst heq
-    exact H
+theorem ev_succ_succ_ev' : forall n, Ev (n + 2) -> Ev n := by
+  intro n h
+  inversion h; assumption
 
 /- HIDE -/
     /- PR: The following dialogue used to be between two versions of
-        Theorem ev_minus2' (using [inversion] and [destruct]). The
+        theorem ev_minus2' (using `inversion` and [destruct]). The
         concerns are affected by but not made obsolete by the new
-        treatment of [inversion] here. I think more work is needed. -/
-    /- AAA: I'm finding it a bit awkward to discuss [inversion] here
+        treatment of `inversion` here. I think more work is needed. -/
+    /- AAA: I'm finding it a bit awkward to discuss `inversion` here
        instead of [destruct], especially given that we are using
        [destruct] to talk about [reflect] below... Would it be too crazy
-       to use [inversion] only where it is actually needed? -/
+       to use `inversion` only where it is actually needed? -/
     /- BCP: I have never been satisfied with our discussion of destruct
         vs. inversion.  What's here now is much better than we've ever had
         before.  But if you have a clear idea for how to clean it up
@@ -1324,7 +1326,7 @@ theorem one_not_even : ¬ Ev 1 := by
     injections
 
 theorem one_not_even' : ¬ Ev 1 := by
-  intro h; inversion h; injections
+  intro h; inversion h
 -- /FULL
 
 
@@ -1338,12 +1340,486 @@ theorem ev_4_ev_n : forall n,
   -- ADMITTED -/
   intros n h
   inversion h
-  rename_i n' hev h
-  injections h
-  rename_i h'
-  subst h'
-  apply evSS_ev'
-  exact hev
+  case ev_succ_succ h' => apply ev_succ_succ_ev; exact h'
 /- /ADMITTED -/
 /- GRADE_THEOREM 1: ev_4_ev_n -/
 /-* [] -/
+
+-- EX1 (ev5_nonsense)
+/- Prove the following result using `inversion`. -/
+
+theorem ev5_nonsense : Ev 5 -> 2 + 2 = 9 := by
+  /- ADMITTED -/
+  intro h
+  /- Contradiction, as neither constructor can possibly apply... -/
+  inversion h
+  case ev_succ_succ h' =>
+    inversion h'
+    case ev_succ_succ h'' =>
+    inversion h''
+/- /ADMITTED -/
+/-* [] -/
+/- /FULL -/
+
+/- We can use `inversion` to re-prove some theorems from
+    `Tactics.lean`.
+
+    Note that `inversion` also works on equality propositions. -/
+
+theorem inversion_ex1 : forall (n m o : Nat),
+  [n, m] = [o, o] -> [n] = [m] := by
+  intro n m o h
+  inversion h; rfl
+
+theorem inversion_ex2 : forall (n : Nat),
+  n + 1 = 0 -> 2 + 2 = 5 := by
+  intro n h
+  inversion h
+
+/- TERSE: The `inversion` tactic works on any `H : P` where
+    `P` is defined inductively:
+
+      - For each constructor of `P`, make a subgoal where `H` is
+        constrained by the form of this constructor.
+
+      - Discard contradictory subgoals (such as `ev_0` above).
+
+      - Generate auxiliary equalities (as with `ev_succ_succ` above). -/
+/- SOONER: The wording there is totally awkward! -/
+/- LATER: Is this too dense??  Since equality is defined in the next
+   lecture [BCP: for some paths through the material -- they might
+   also not see it at all!], it might actually be better to postpone
+   the conversation here and do it all at once there. [PR: It is
+   dense, but I don't think seeing the definition of equality helps,
+   so I'm not sure postponing it would make a difference.] -/
+/- FULL: Here's how `inversion` works in general.
+      - Suppose the name `H` refers to an assumption `P` in the
+        current context, where `P` has been defined by an `inductive`
+        declaration.
+      - Then, for each of the constructors of `P`, `inversion h`
+        generates a subgoal in which `H` has been replaced by the
+        specific conditions under which this constructor could have
+        been used to prove `P`.
+      - Some of these subgoals will be self-contradictory; `inversion`
+        throws these away.
+      - The ones that are left represent the cases that must be proved
+        to establish the original goal.  For those, `inversion` adds
+        to the proof context all equations that must hold of the
+        arguments given to `P` -- e.g., `n' = n` in the proof of
+        `ev_succ_succ_ev`). -/
+
+/- HIDE -/
+    /- QUIZ -/
+    /- HIDE: LY: not quite a fair question because this is the first
+       time they are facing a situation where the index does not start
+       with a constructor. -/
+    /- Which tactics are needed to prove this goal, in addition to
+        [simpl] and [apply]?
+    [[
+      n : nat
+      E : Ev (n + 2)
+      =====================
+      Ev n
+    ]]
+
+       (A) `inversion`
+
+       (B) `inversion`, [discriminate]
+
+       (C) `inversion`, [rewrite add_comm]
+
+       (D) `inversion`, [rewrite add_comm], [discriminate]
+
+       (E) These tactics are not sufficient to prove the goal.
+
+     -/
+    /- FOLD -/
+   /- Lemma quiz_ev_plus_2 : forall n, Ev (n + 2) -> Ev n.
+    Proof.
+      intros n E.  rewrite add_comm in E.
+      inversion E as [| n' E' Eq]. apply E'.
+    Qed. -/
+    /- /FOLD -/
+    /- /QUIZ -/
+/- /HIDE -/
+/- TERSE: *** -/
+
+
+/- HIDEFROMADVANCED -/
+/- FULL: The `ev_double` exercise above allows us to easily show that
+    our new notion of evenness is implied by the two earlier ones
+    (since, by `even_bool_prop` in chapter \CHAP{Logic}, we already
+    know that those are equivalent to each other). To show that all
+    three coincide, we just need the following lemma. -/
+/- TERSE: Let's try to show that our new notion of evenness implies
+    our earlier notion (the one based on `double`). -/
+/- SOONER: This whole part of the section is a mess!! -/
+/- /HIDEFROMADVANCED -/
+
+/-- warning: declaration uses `sorry` -/
+#guard_msgs in
+example : forall n, Ev n -> Even n := by
+  /- WORKINCLASS -/
+
+/- We could try to proceed by case analysis or induction on `n`.  But
+    since `Ev` is mentioned in a premise, this strategy seems
+    unpromising, because (as we've noted before) the induction
+    hypothesis will talk about `n-1` (which is _not_ even!).  Thus, it
+    seems better to first try `inversion` on the evidence for `Ev`.
+    Indeed, the first case can be solved trivially. -/
+
+  intro n h
+  inversion h
+  /- h = ev_0 -/
+  case ev_0 => exists 0; rw [double_zero]
+  /- h = ev_succ_succ n' h' -/
+  case ev_succ_succ n' h' =>
+  /- Unfortunately, the second case is harder.  We need to show
+    `exists n0, n' + 2 = double n0`, but the only available assumption is
+    `h'`, which states that `Ev n'` holds.  Since this isn't directly
+    useful, it seems that we are stuck and that performing case
+    analysis on `h` was a waste of time.
+
+    If we look more closely at our second goal, however, we can see
+    that something interesting happened: By performing case analysis
+    on `h`, we were able to reduce the original result to a similar
+    one that involves a _different_ piece of evidence for `Ev`: namely
+    `h'`.  More formally, we could finish our proof if we could show
+    that
+[[
+        exists k', n' = double k',
+]]
+    which is the same as the original statement, but with `n'` instead
+    of `n`.  Indeed, it is not difficult to convince Lean that this
+    intermediate result would suffice. -/
+    have he : (exists k', n' = double k') -> (exists n0, n' + 2 = double n0) := by
+      intro ⟨k, hk⟩; exists (k + 1); rw [double_succ, hk]
+    apply he
+    /- Unfortunately, now we are stuck: we are trying to prove another instance
+        of the same theorem we set out to prove -- only here we are
+        talking about `n'` instead of `n`. -/
+    sorry
+/- LATER: APT: Added the explicit assert to "convince Rocq" but the
+   flow of the preceding discussion seems confusing to me. -/
+/- SOONER: BCP 21: I agree that it's all pretty chewy. Wonder if we
+   really need any of it or if the point could be made just as well
+   with less detail...  When I explained it in class this time, I just
+   observed that the destruct was giving us a hypothesis about 2 being
+   even, which just can't be what we want, and skipped all the rest...
+   After thinking about it for a bit, though, I do think the full
+   story here is useful (at least for the FULL version -- the TERSE
+   could still be streamlined). So I'm going to leave it for now. -/
+/- SOONER: BCP 25: I think best just to shorten it! And maybe make it
+   not a WORKINCLASS. -/
+/- /WORKINCLASS -/
+
+
+/- ####################################################### -/
+/- ** Induction on Evidence -/
+
+/- If this story feels familiar, it is no coincidence: We
+    encountered similar problems in the \CHAP{Induction} chapter, when
+    trying to use case analysis to prove results that required
+    induction.  And once again the solution is... induction! -/
+
+/- FULL: The behavior of `induction` on evidence is the same as its
+    behavior on data: It causes Lean to generate one subgoal for each
+    constructor that could have been used to build that evidence, while
+    providing an induction hypothesis for each recursive occurrence of
+    the property in question.
+
+    To prove that a property of `n` holds for all even numbers (i.e.,
+    those for which `Ev n` holds), we can use induction on `Ev n`.
+    This requires us to prove two things, corresponding to the two
+    ways in which `Ev n` could have been constructed. If it was
+    constructed by `ev_0`, then `n=0` and the property must hold of
+    `0`. If it was constructed by `ev_succ_succ`, then the evidence of `Ev n`
+    is of the form `ev_succ_succ n' E'`, where `n = n' + 2` and `h'` is
+    evidence for `Ev n'`. In this case, the inductive hypothesis says
+    that the property we are trying to prove holds for `n'`. -/
+
+/- Let's try proving that lemma again: -/
+
+theorem ev_Even : forall n, Ev n → Even n := by
+  intro n h
+  induction h
+  /- h = ev_0 -/
+  case ev_0 => exists 0; rw [double_zero]
+  /- h = ev_succ_succ n' h',  with ih : Even n' -/
+  case ev_succ_succ n' h' ih =>
+    let ⟨k, hk⟩ := ih
+    exists k + 1; rw [double_succ, hk]
+
+
+/- FULL: Here, we can see that Rocq produced an `ih` that corresponds
+    to `h`, the single recursive occurrence of `Ev` in its own
+    definition.  Since `h'` mentions `n'`, the induction hypothesis
+    talks about `n'`, as opposed to `n` or some other number. -/
+
+/- FULL -/
+/- The equivalence between the second and third definitions of
+    evenness now follows. -/
+
+theorem ev_Even_iff : forall n, Ev n <-> Even n := by
+  intro n; apply Iff.intro
+  . intro h; exact ev_Even _ h
+  . intro ⟨k, hk⟩; rw [hk]; exact ev_double k
+
+
+/- As we will see in later chapters, induction on evidence is a
+    recurring technique across many areas -- in particular for
+    formalizing the semantics of programming languages. -/
+
+/- The following exercises provide simpler examples of this
+    technique, to help you familiarize yourself with it. -/
+
+/- EX2 (ev_sum) -/
+theorem ev_sum : forall n m, Ev n -> Ev m -> Ev (n + m) := by
+  /- ADMITTED -/
+  intro n m hn hm
+  induction hn
+  case ev_0 => rw [Nat.zero_add]; exact hm
+  case ev_succ_succ n' h' ih =>
+    rw [Nat.add_comm, ←Nat.add_assoc, Nat.add_comm m]
+    apply Ev.ev_succ_succ; exact ih
+/- /ADMITTED -/
+/- [] -/
+
+/- EX3A! (ev_ev__ev) -/
+theorem ev_ev__ev : forall n m, Ev (n + m) -> Ev n -> Ev m := by
+  /- Hint: There are two pieces of evidence you could attempt to induct upon
+      here. If one doesn't work, try the other. -/
+  /- ADMITTED -/
+  intro n m hnm hn
+  induction hn generalizing m
+  case ev_0 => rw [Nat.zero_add] at hnm; exact hnm
+  case ev_succ_succ n' h' ih =>
+    apply ih; rw [Nat.add_comm, ←Nat.add_assoc, Nat.add_comm m] at hnm
+    inversion hnm; assumption
+/- /ADMITTED -/
+/- [] -/
+
+/- EX3? (ev_plus_plus) -/
+/- This exercise can be completed without induction or case analysis.
+    But, you will need a clever `have` and some tedious rewriting.
+    Hint: Is `(n+m) + (n+p)` even? -/
+
+theorem ev_plus_plus : forall n m p,
+  Ev (n+m) -> Ev (n+p) -> Ev (m+p) := by
+  /- ADMITTED -/
+  intro n m p hnm hnp
+  apply (ev_ev__ev (n+n))
+  . have h : n + n + (m + p) = n + m + (n + p) := by
+      rw [Nat.add_assoc, Nat.add_assoc]
+      congr 1
+      exact Nat.add_left_comm _ _ _
+    rw [h]
+    apply ev_sum
+    . assumption
+    . assumption
+  . rw [←double_add]; exact ev_double n
+/- /ADMITTED -/
+/- [] -/
+
+
+/- ####################################################### -/
+/- ** Multiple Induction Hypotheses -/
+
+/- Recall the definition of the reflexive, transitive, closure of a
+    relation: -/
+
+/- HIDEFROMHTML -/
+namespace ClosReflTransRemainder
+/- /HIDEFROMHTML -/
+inductive ClosReflTrans {α: Type} (R: α -> α -> Prop) : α -> α -> Prop where
+  | rt_step (x y : α) :
+      R x y ->
+      ClosReflTrans R x y
+  | rt_refl (x : α) :
+      ClosReflTrans R x x
+  | rt_trans (x y z : α) :
+      ClosReflTrans R x y ->
+      ClosReflTrans R y z ->
+      ClosReflTrans R x z
+/- HIDEFROMHTML -/
+end ClosReflTransRemainder
+/- /HIDEFROMHTML -/
+
+
+/-Let's say that a relation on a type `α` is _diagonal_ if it
+    refines the identity relation -- i.e., if `R x y` implies `x = y`. -/
+
+/- HIDE: NDS 25: I originally wanted to do this with the empty
+    relation, defined inductively, but this requires introducing the
+    surprising behavior of unhabitated types, which I don't think have
+    been covered (yet?). Maybe they should be?  BCP 25: This one seems good. -/
+
+def isDiagonal {α : Type} (R: α -> α -> Prop) := forall x y, R x y -> x = y
+
+/- Now consider the following lemma about diagonal relations: -/
+
+theorem closure_of_diagonal_is_diagonal : forall α (R: α -> α -> Prop),
+  isDiagonal R ->
+  isDiagonal (ClosReflTrans R) := by
+
+  intro α R hDiag x y h
+  induction h
+  /- The two first cases go as you'd expect... -/
+  case rt_step x' y' hr =>
+    rw [hDiag x' y' hr]
+  case rt_refl => rfl
+  /- ...  but something interesting happens here: there are two
+       induction hypotheses, `ih` and `ih'`! If you think about it, it
+       is not that weird: we are in the case `rt_trans`, which has
+       two recursive components, `hxy`, relating `x` to `y` and `hyz`,
+       relating `y` to `z`. Hence we may want (and will actually need)
+       an induction hypothesis for `hxy` and one for `hyz` -- they are
+       called `ihxy` and `ihyz` here. In general, Rocq will always
+       generate one induction hypothesis per recursive constructor of
+       the type being inducted over. -/
+  case rt_trans x' y' z' hxy hyz ihxy ihyz =>
+    rw [ihxy, ihyz]
+
+
+/- HIDE: NDS comparing the previous proof to the pen-and-paper version
+   could be an idea to consider, as the way people tend to write it
+   on paper differs a bit from the mechanized proof.  BCP 25: Yes. -/
+
+/- HIDE -/
+    /- LATER: BCP 25: This bit feels potentially confusing and also not
+      needed -- people that are paying attention enough to wonder about
+      this will notice it when it happens later... -/
+    /- Note that having multiple induction hypotheses is not
+        specific to evidence: any constructor of any inductive type with
+        more than one recursive component will yield as many induction
+        hypotheses as it has recursive components. -/
+    /- HIDE: NDS we may want to either 1) link to IndPrinciples for such
+      examples or 2) add such an example here, even though it is kind of
+      out of the topic. -/
+/- /HIDE -/
+
+/- EX4A? (ev'_ev) -/
+/- INSTRUCTORS: This is pretty hard, unless you know the trick that
+   the sample proof uses!!  But at least it's marked as
+   advanced and optional. :-) -/
+/- In general, there may be multiple ways of defining a
+    property inductively.  For example, here's a (slightly contrived)
+    alternative definition for `Ev`: -/
+
+inductive Ev' : Nat -> Prop where
+  | ev'_0 : Ev' 0
+  | ev'_2 : Ev' 2
+  | ev'_sum n m (Hn : Ev' n) (Hm : Ev' m) : Ev' (n + m)
+
+/- Prove that this definition is logically equivalent to the old one.
+    To streamline the proof, use the technique (from the \CHAP{Logic}
+    chapter) of applying theorems to arguments, and note that the same
+    technique works with constructors of inductively defined
+    propositions. -/
+
+theorem ev'_ev : forall n, Ev' n <-> Ev n := by
+ /- ADMITTED -/
+  intro n
+  apply Iff.intro
+  . /- -> -/
+    intro h; induction h
+    . constructor
+    . constructor; constructor
+    . apply ev_sum; assumption; assumption
+  . /- <- -/
+    intro h; induction h
+    . constructor
+    . constructor; assumption; constructor
+/- /ADMITTED -/
+/- [] -/
+
+/- We can do similar inductive proofs on the [Perm3] relation,
+    which we defined earlier as follows: -/
+
+namespace Perm3Reminder
+
+inductive Perm3 {α : Type} : List α -> List α -> Prop where
+  | perm3_swap12 (a b c : α) :
+      Perm3 [a, b, c] [b, a, c]
+  | perm3_swap23 (a b c : α) :
+      Perm3 [a, b, c] [a, c, b]
+  | perm3_trans (l1 l2 l3 : List α) :
+      Perm3 l1 l2 -> Perm3 l2 l3 -> Perm3 l1 l3
+
+end Perm3Reminder
+
+theorem Perm3_symm : forall (α : Type) (l1 l2 : List α),
+  Perm3 l1 l2 -> Perm3 l2 l1 := by
+
+  intro α l1 l2 h; induction h
+  case perm3_swap12 => constructor
+  case perm3_swap23 => constructor
+  case perm3_trans _ _ _ _ _ ih12 ih23 =>
+    exact Perm3.perm3_trans _ _ _ ih23 ih12
+
+/- EX2 (Perm3_In) -/
+/- If you find yourself dealing with deeply nested `cases` in this proof,
+   think back to `Logic` where you learned about the `obtain` tactic -/
+theorem Perm3_In : forall (α : Type) (x : α) (l1 l2 : List α),
+    Perm3 l1 l2 -> In x l1 -> In x l2 := by
+  /- ADMITTED -/
+  intros α x l1 l2 hPerm hIn
+  induction hPerm
+  case perm3_swap12 a b c =>
+    rw [In_cons, In_cons, In_cons, In_nil] at *
+    obtain h | h | h | h := hIn
+    . right; left; assumption
+    . left; assumption
+    . right; right; left; assumption
+    . contradiction
+  case perm3_swap23 a b c =>
+    rw [In_cons, In_cons, In_cons, In_nil] at *
+    obtain h | h | h | h := hIn
+    . left; assumption
+    . right; right; left; assumption
+    . right; left; assumption
+    . contradiction
+  case perm3_trans _ _ _ _ _ ih12 ih23 =>
+    apply ih23; apply ih12; apply hIn
+/- HIDE: CH: The base cases are a bit stupid without [tauto] -/
+/- /ADMITTED -/
+/- [] -/
+
+/- EX1? (Perm3_NotIn) -/
+theorem Perm3_NotIn : forall (α : Type) (x : α) (l1 l2 : List α),
+    Perm3 l1 l2 -> ¬In x l1 -> ¬In x l2 := by
+  /- ADMITTED -/
+  intros α x l1 l2 hPerm hIn hContra
+  apply hIn; apply Perm3_In
+  . apply Perm3_symm; exact hPerm
+  . exact hContra
+/- /ADMITTED -/
+/- [] -/
+
+/- EX2? (NotPerm3) -/
+/- Proving that something is NOT a permutation is quite tricky. Some
+    of the lemmas above, like [Perm3_In] can be useful for this. -/
+example : ¬ Perm3 [1, 2, 3] [1, 2, 4] := by
+  /- ADMITTED -/
+  intro h; apply (Perm3_In Nat 3) at h
+  have h4 : ¬In 3 [1, 2, 4] := by
+    rw [In_cons, In_cons, In_cons, In_nil]; intro h4
+    obtain h | h | h | h := h4
+    . contradiction
+    . contradiction
+    . contradiction
+    . contradiction
+  apply h4; apply h
+  rw [In_cons, In_cons, In_cons, In_nil]
+  right; right; left; rfl
+/- /ADMITTED -/
+/- [] -/
+/- LATER: Optional / advanced exercise (or exam question???): Extend
+   this definition to permutations on arbitrary-length lists.  Make
+   sure that you can prove the following...
+     - length-invariant
+     - if we filter a nat list and its permutation by equality to some
+       number, we get the same length (indeed, this could be an
+       alternate characterization, I guess)
+-/
+/- /FULL -/

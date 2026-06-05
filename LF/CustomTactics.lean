@@ -1,10 +1,15 @@
 module
 
 public meta import Lean.Elab.Tactic.ElabTerm
+public import Lean.Elab.Term.TermElabM
+public import Lean.Elab.Tactic.Basic
 public meta import Lean.Meta.Tactic.Generalize
-public meta import Lean.Meta.Tactic.Cases
+public import Lean.Meta.Tactic.Cases
 public meta import Lean.Meta.Tactic.Injection
 public meta import Lean.Meta.Tactic.Contradiction
+public import Lean.Meta.Basic
+public import Lean.Environment
+public import Lean.Meta.Tactic.Generalize
 
 namespace Lean.Meta
 
@@ -69,6 +74,9 @@ elab "apply " t:term " at " i:ident : tactic => withSynthesize <| withMainContex
   let mainGoal ← mainGoal.tryClear ldecl.fvarId
   replaceMainGoal <| [mainGoal] ++ mvs.pop.toList.map (·.mvarId!)
 
+end Lean.Elab.Tactic
+
+/-
 /--
   `inversion t` generalizes nonvariable indices of the type of `t` before invoking `cases t`,
   then solves away contradictory generated goals.
@@ -93,22 +101,93 @@ elab "inversion " targetName:term : tactic => withMainContext do
         let subgoals ← mvarId.cases newTarget.fvarId!
         let subgoals := subgoals.map (·.mvarId)
         let subgoals ← subgoals.filterM (not <$> ·.contradictionCore {})
-        -- remove any subgoals closed by `injections`
-        /- let subgoals ← subgoals.filterM (do
-          match ← injections · with
-          | InjectionsResult.solved => pure false
-          | _ => pure true) -/
         replaceMainGoal $ subgoals.toList
     | none =>
       throwTacticEx `inversion mvarId
-        m!"target is not an inductive type{indentExpr targetType}"
+        m!"target is not an inductive type{indentExpr targetType}" -/
+
+namespace Inversion
+
+open Lean Meta Elab Tactic
+
+set_option autoImplicit false
+
+private meta def mkGeneralizeArgs (hypType : Expr) : MetaM (Array GeneralizeArg) := do
+  let hypType ← whnf hypType
+  hypType.withApp fun fn args =>
+    matchConstInduct fn (fun _ => pure #[]) fun val _ => do
+      let indices := args.extract val.numParams args.size
+      let mut seen : Array Expr := #[]
+      let mut genArgs : Array GeneralizeArg := #[]
+      for idx in indices do
+        if idx.isFVar || seen.any (· == idx) then continue
+        seen := seen.push idx
+        genArgs := genArgs.push
+          { expr := idx
+            xName? := some (← mkFreshUserName `x)
+            hName? := some (← mkFreshUserName `heq) }
+      pure genArgs
+
+private meta partial def substGenEqs (mvarId : MVarId) (eqs : List FVarId) :
+    MetaM (Option MVarId) := do
+  match eqs with
+  | [] => return some mvarId
+  | e :: rest =>
+    mvarId.withContext do
+      match (← getLCtx).find? e with
+      | none => substGenEqs mvarId rest
+      | some decl =>
+        let ty ← instantiateMVars decl.type
+        if !ty.isEq && !ty.isHEq then
+          substGenEqs mvarId rest
+        else
+          match ← observing? (mvarId.cases e) with
+          | none => substGenEqs mvarId rest
+          | some #[] => return none
+          | some #[s] =>
+              let rest := rest.filterMap fun f => (s.subst.apply (mkFVar f)).fvarId?
+              let newEqs := s.fields.toList.filterMap (·.fvarId?)
+              substGenEqs s.mvarId (newEqs ++ rest)
+          | some sgs =>
+              throwTacticEx `inversion mvarId
+                m!"error: `cases` on the equation{indentExpr ty}produced \
+                   {sgs.size} subgoals, but an equality admits at most one"
+
+meta def inversionCore (h : FVarId) (clear? : Bool) : TacticM Unit := withMainContext do
+  let goal ← getMainGoal
+  let hypType ← h.getType
+  let (target, goal) ←
+    if clear? then pure (h, goal)
+    else do
+      let goal ← goal.assert (← mkFreshUserName `hInv) hypType (mkFVar h)
+      goal.intro1P
+  let genArgs ← mkGeneralizeArgs hypType
+  let (subst, newVars, goal) ← goal.withContext do
+    if genArgs.isEmpty then pure (({} : FVarSubst), (#[] : Array FVarId), goal)
+    else goal.generalizeHyp genArgs #[target]
+  let targetExpr := subst.apply (mkFVar target)
+  let target ← match targetExpr with
+    | .fvar f => pure f
+    | _ => goal.withContext do
+        throwTacticEx `inversion goal
+          m!"error: generalization mapped the inverted hypothesis to a non-variable term{indentExpr targetExpr}"
+  let genEqs := (newVars.extract genArgs.size newVars.size).toList
+  let subgoals ← goal.cases target
+  let newGoals ← subgoals.toList.filterMapM fun s => do
+    let eqs := genEqs.filterMap fun f => (s.subst.apply (mkFVar f)).fvarId?
+    substGenEqs s.mvarId eqs
+  replaceMainGoal newGoals
+
+elab "inversion " h:ident : tactic => do
+  inversionCore (← getFVarId h) (clear? := false)
+
+elab "inversion_clear " h:ident : tactic => do
+  inversionCore (← getFVarId h) (clear? := true)
 
 -- [https://github.com/leanprover-community/mathlib4/blob/master/Mathlib/Tactic/Lemma.lean]
 -- [https://github.com/leanprover-community/batteries/blob/main/Batteries/Tactic/Lemma.lean]
 /-- Synonym for `theorem`. -/
 macro "lemma " thm:declId sig:declSig val:declVal : command => `(theorem $thm $sig $val)
-
-end Lean.Elab.Tactic
 
 example (f : Nat → Nat) (n : Nat) (le : f n ≤ 0) : f n = 0 := by
   -- cases le /- Dependent elimination failed: Failed to solve equation 0 = f n -/
