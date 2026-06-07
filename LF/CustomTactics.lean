@@ -1,25 +1,41 @@
 module
 
-public meta import Lean.Parser.Term
 public meta import Lean.Elab.ConfigEval
 public meta import Lean.Elab.Tactic.ElabTerm
 public meta import Lean.Meta.Tactic.Generalize
 public meta import Lean.Meta.Tactic.Cases
 public meta import Lean.Meta.Tactic.Injection
 public meta import Lean.Meta.Tactic.Contradiction
+public meta import Lean.Elab.Tactic.RenameInaccessibles
 
 meta section
 
+/--
+`p|+` is shorthand for `sepBy1(p, "|")`. It parses 1 or more occurrences of
+`p` separated by `|`.
+
+It produces a `nullNode` containing a `SepArray` with the interleaved parser
+results. It has arity 1, and auto-groups its component parser if needed.
+-/
+macro:arg x:stx:max "|+" : stx => `(stx| sepBy1($x, " | "))
+
 namespace Lean.Parser
-open Term in
+
+declare_syntax_cat vars
+
+syntax ((colGt binderIdent)*)|+ : vars
+syntax "(" ((colGt binderIdent)*)|+ ")" : vars
+
 /--
   `inversion t` generalizes nonvariable indices of the type of `t` before invoking `cases t`,
   then solves away contradictory generated goals.
   * If `inversion +clear t` is set, `t` is `clear`ed from the context.
-  * If `inversion t with h₁ ... hₙ` are provided, the last n hypotheses generated are given these names.
+  * If `inversion t with (x ... | ... | z ...)` are provided,
+    for each new subgoal, the generated hypotheses are given the provided names.
 -/
 syntax (name := inversion)
-  "inversion " optConfig ident (" with " (ppSpace colGt binderIdent)+)? : tactic
+  "inversion " optConfig ident (" with " vars)? : tactic
+
 end Lean.Parser
 
 namespace Lean.Meta
@@ -132,7 +148,7 @@ structure InversionConfig where
 
 declare_config_elab elabInversionConfig InversionConfig
 
-def inversionCore (h : FVarId) (config : InversionConfig) : TacticM Unit := withMainContext do
+private def inversionCore (h : FVarId) (config : InversionConfig) : TacticM (List MVarId) := withMainContext do
   let goal ← getMainGoal
   let hypType ← h.getType
   let hypName ← h.getUserName
@@ -154,14 +170,24 @@ def inversionCore (h : FVarId) (config : InversionConfig) : TacticM Unit := with
   let newGoals ← subgoals.toList.filterMapM fun s => do
     let eqs := genEqs.filterMap fun f => (s.subst.apply (mkFVar f)).fvarId?
     substGenEqs s.mvarId eqs
-  replaceMainGoal newGoals
+  return newGoals
 
-elab_rules : tactic
-  | `(tactic| inversion $config $h:ident $[with $hs?*]?) => do
+@[tactic Lean.Parser.inversion]
+public meta def evalInversion : Tactic
+  | `(tactic| inversion $config $h:ident $[with $[$hss?*]|*]?)
+  | `(tactic| inversion $config $h:ident $[with ($[$hss?*]|*)]?) => do
     let config ← elabInversionConfig config
-    inversionCore (← getFVarId h) config
-    if let some hs := hs? then
-      evalTactic (← `(tactic| rename_i $hs*))
+    let goal ← getMainGoal
+    let newGoals ← inversionCore (← getFVarId h) config
+    if let some hss := hss? then
+      unless newGoals.length == hss.size do
+        throwTacticEx `inversion goal
+          m!"incorrect number of inversion cases: \
+            {hss.size} provided while expecting {newGoals.length}"
+      for goal in newGoals.reverse, hs in hss.reverse do
+        pushGoal (← renameInaccessibles goal hs)
+    else replaceMainGoal newGoals
+  | stx => throwErrorAt stx "could not parse inversion tactic"
 
 end Lean.Elab.Tactic
 
@@ -178,8 +204,13 @@ example (f : Nat → Nat) (n : Nat) (le : f n ≤ 0) : f n = 0 := by
   rfl
 
 example (f : Nat → Nat) (n : Nat) (le : f n ≤ 0) : f n = 0 := by
-  inversion +clear le with e
+  inversion le with e
   rfl
+
+/-- warning: declaration uses `sorry` -/
+#guard_msgs(warning)  in
+example (f : Nat → Nat) (n m : Nat) (le : f n ≤ f m) : f n = 0 := by
+  inversion +clear le with (| le _) <;> sorry
 
 example (H : Bool → Nat → False) (n : Nat) : False := by
   apply H at n; apply n; exact true
