@@ -75,7 +75,7 @@ inclusion in a `/-! … -/` Lean module-doc comment. Markdown-like delimiters
 links) are preserved so the resulting comment still reads naturally. -/
 partial def inlineToText : Verso.Doc.Inline Manual → String
   | .text s => s
-  | .linebreak _ => " "
+  | .linebreak _ => "\n"
   | .emph content => "*" ++ String.join (content.toList.map inlineToText) ++ "*"
   | .bold content => "**" ++ String.join (content.toList.map inlineToText) ++ "**"
   | .code s => "`" ++ s ++ "`"
