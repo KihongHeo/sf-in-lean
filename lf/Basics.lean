@@ -152,12 +152,19 @@ def nextWorkingDay (d : Day) : Day :=
   easier.
 -/
 
+/- MWH: The text that follows seems to assume the reader knows what pattern matching
+  is, calling attention only to the syntax. It also seems to assume the reader
+  knows what OCaml is. But the premise of this section seems to be that readers
+  do not know what functional programming is -- we are explaining it to them.
+  Seems like a gap. Was it in the original?
+-/
+
 /- You may also notice the unique pattern matching syntax- for
   example, in "`.monday`". The `.` - is syntactic sugar for `Day.monday`, and
   exists to save the programmer the time of typing out the full qualified name.
   You may wonder why the language doesn't just expose a pattern like `monday`
   without the dot, like OCaml does. This is to avoid name shadowing, because
-  being explicit about names is _especially_ important to avoid confusion and
+  being explicit about names is especially important to avoid confusion and
   headaches when writing proofs. The `.` syntax is a compromise that lets us
   know we're qualifying a name without having to type too much.
 -/
@@ -169,8 +176,8 @@ def nextWorkingDay (d : Day) : Day :=
 -- FULL
 /-
   Having defined a function, we can check that it works on
-  some examples.  There are actually three different ways to do
-  examples in Lean.  First, we can use the `#eval` command to
+  some examples. There are actually three different ways to do
+  examples in Lean. First, we can use the `#eval` command to
   evaluate a compound expression involving `nextWorkingDay`.
 -/
 -- /FULL
@@ -183,13 +190,6 @@ def nextWorkingDay (d : Day) : Day :=
 /- ==> Day.tuesday -/
 
 -- FULL
-/-
-  (We show Lean's responses in comments; if you have a computer
-  handy, this would be an excellent moment to fire up VS Code with
-  the Lean extension and try it for yourself.  Load this file,
-  `Basics.lean`, from the book's Lean sources, find the above
-  example, and observe the result in the Lean Infoview panel.)
--/
 
 /-
   ### Aside: Using the Lean Extension
@@ -211,8 +211,12 @@ def nextWorkingDay (d : Day) : Day :=
 
   If you haven't already, install the Lean Extension in VSCode and open the
   `Basics.lean` file to see the InfoView in action. Try hovering over the
-  `nextWorkingDay` function and the `Day` type to see their definitions, and
-  experiment with adding your own `#eval` commands to test other inputs.
+  `nextWorkingDay` function and the `Day` type to see their definitions.
+  For `#eval` and other commands, we show Lean's responses in comments; if you
+  hover over the `#eval` commands above, you will see the popup that contains
+  the output should match what's in the comment below. Experiment with adding
+  your own `#eval` commands to test other inputs.
+
 -/
 
 
@@ -220,7 +224,7 @@ def nextWorkingDay (d : Day) : Day :=
 
 /-
   Continuing with our simple type and function, we can record what we _expect_
-  the result of calling a function to be in the form of a Lean "example":
+  the result of calling a function to be in the form of a Lean `example`:
 -/
 
 /- test_next_working_day -/
@@ -231,12 +235,15 @@ example : nextWorkingDay (nextWorkingDay Day.saturday) = Day.tuesday := by
 /-
   This declaration does two things: it makes an assertion
   (that the second working day after `saturday` is `tuesday`), and it
-  gives the assertion a name that can be used to refer to it later.
+  gives the assertion a name for later reference.
   Having made the assertion, we can also ask Lean to _verify_ it.
   The `by rfl` can be read as "The assertion we've just made can be
   proved by observing that both sides of the equality evaluate to
   the same thing."
 -/
+
+/- MWH: Here we use the term "evaluate" without defining it. Should we do
+  that here? -/
 
 /-
   `rfl` stands for "reflexivity," which is the principle that any value is
@@ -248,17 +255,6 @@ example : nextWorkingDay (nextWorkingDay Day.saturday) = Day.tuesday := by
 -/
 
 -- /FULL
-
-/-
-  Third, we can ask Lean to _compile_ our definitions to efficient
-  native code.  Lean compiles to C, which is then compiled to machine
-  code by a standard C compiler.  This facility is very useful, since
-  it gives us a path from proved-correct algorithms written in Lean to
-  efficient executables.
-
-  Indeed, this is one of the main uses for which Lean was developed.
-  We'll come back to this topic in later chapters.
--/
 
 /- ###################################################################### -/
 /- ## Booleans -/
@@ -284,13 +280,9 @@ inductive MyBool : Type where
   | false
 open MyBool
 
--- TERSE:
-/- Booleans are also available in Lean's standard library, but in this
-   course we'll define everything from scratch, just to see how it's done. -/
--- TERSE: /- *** -/
 -- FULL
 /-
-  Functions over booleans can be defined in the same way as above:
+  Functions over booleans can be defined in the same way as above
 -/
 -- /FULL
 
@@ -298,8 +290,6 @@ def notb (b : MyBool) : MyBool :=
   match b with
   | .true => false
   | .false => true
-
--- TERSE: /- *** -/
 
 def andb (b1 : MyBool) (b2 : MyBool) : MyBool :=
   match b1 with
@@ -314,14 +304,14 @@ def orb (b1 : MyBool) (b2 : MyBool) : MyBool :=
 -- FULL
 /-
   The last two of these illustrate Lean's syntax for
-  multi-argument function definitions.  The corresponding
+  multi-argument function definitions. The corresponding
   multi-argument _application_ syntax is illustrated by the
   following "unit tests," which constitute a complete specification
-  /- a truth table -- for the `orb` function: -/
+  -- a truth table -- for the `orb` function:
 -/
 -- /FULL
--- TERSE: /- Note the syntax for defining multi-argument functions (`andb` and `orb`). -/
--- TERSE: /- *** -/
+
+-- TERSE: Note the syntax for defining multi-argument functions (`andb` and `orb`).
 
 /- test_orb1 -/
 example : orb .true  .false = .true  := by rfl
@@ -334,8 +324,8 @@ example : orb .true  .true  = .true  := by rfl
 
 /-
   We can define new symbolic notations for existing definitions.
-  Because Lean already defines these for the built-in `Bool`,
-  we restrict ours locally to a section.
+  Because Lean already defines the same notations for the built-in `Bool`,
+  we restrict ours locally to a _section_.
 -/
 
 section
@@ -355,13 +345,13 @@ end
 -- FULL
 /-
   The `sorry` keyword can be used as a placeholder for an
-  incomplete proof or definition.  We use it in exercises to indicate
+  incomplete proof or definition. We use it in exercises to indicate
   the parts that we're leaving for you -- i.e., your job is to replace
   `sorry` with real definitions and proofs.
 
   Remove `sorry` below and complete the definition of the
   following function; then make sure that the `example` assertions
-  below can each be verified by Lean.  The function should return
+  below can each be verified by Lean. The function should return
   `true` if either or both of its inputs are `false`.
 -/
 -- /FULL
@@ -413,10 +403,9 @@ example : andb3 .true .true .false = .false := by rfl  -- ADMITTED
 -- TERSE: /- *** -/
 -- FULL
 /-
-  Now that we've seen how to define our own booleans, we can switch to Lean's
-  built-in `Bool` type, which has the same structure but also includes a lot of
-  useful functions and lemmas.  We can even define functions to convert between
-  our `MyBool` and Lean's `Bool`.
+  Lean's built-in `Bool` type has the same structure as our `MyBool` but also
+  includes a lot of useful functions and lemmas. We can even define a function
+  to convert between our `MyBool` and Lean's `Bool`.
 -/
 
 def myBoolToBool (b : MyBool) : Bool :=
@@ -426,7 +415,7 @@ def myBoolToBool (b : MyBool) : Bool :=
 
 /-
   With the full power of Lean's `Bool` at our disposal, we can also write this
-  more concisely using the `bif ... then ... else` syntax, which is a
+  function more concisely using the `bif ... then ... else` syntax, which is a
   convenient way to write simple conditional expressions.
 -/
 
@@ -442,7 +431,7 @@ end
 
 /-
   Every expression in Lean has a type describing what sort of
-  thing it computes.  The `#check` command asks Lean to print the type
+  thing it computes. The `#check` command asks Lean to print the type
   of an expression.
 -/
 
@@ -517,9 +506,17 @@ inductive Color : Type where
   | white
   | primary (p : RGB)
 
-/-
-  Let's look at this in a little more detail.
+/- MWH: In the following you use Bool syntax and not MyBool.
+  This is maybe a little confusing because we are not writing
+  `Bool.true` or `.true`, but simply `true`. I don't believe
+  that we have explained why built-in syntax is special, or
+  even acknowledged that it is. We could do that here, or
+  perhaps should do it earlier when introducing `Bool`. Also:
+  In the examples below you might want to include a few from
+  `MyBool`.
+-/
 
+/-
   An `inductive` definition does two things:
 
   - It introduces a set of new _constructors_. E.g., `RGB.red`,
@@ -558,9 +555,10 @@ def monochrome (c : Color) : Bool :=
 
 /-
   Since the `primary` constructor takes an argument, a pattern
-  matching `primary` should include either a variable, as we just
-  did (note that we can choose its name freely), or a constant of
-  appropriate type (as below).
+  matching `primary` should include either a variable, a constant
+  of appropriate type, or `_`. The last, as used in the above
+  example, means that the constructor argument is being ignored.
+  Examples below illustrate the other two cases.
 -/
 
 def isRed (c : Color) : Bool :=
@@ -571,8 +569,26 @@ def isRed (c : Color) : Bool :=
   | .primary _ => false
 
 /-
-  The pattern `Color.primary _` here is shorthand for "the constructor
+  The pattern `.primary red` will match only when `c` is `Color.primary`
+  with the argument `RGB.red`. Patterns are checked in order, so
+  the subsequent pattern `.primary _` here means "the constructor
   `primary` applied to any `RGB` constructor except `red`."
+-/
+
+def isRed' (c : Color) : Bool :=
+  match c with
+  | .black => false
+  | .white => false
+  | .primary r =>
+    match r with
+    | .red => true
+    | _ => false
+
+/-
+  The `isRed'` function produces the same result as `isRed` but illustrates
+  the use of a pattern matching variable: the `.primary r` pattern
+  stores the `RGB` argument into variable `r`, and then pattern matches on
+  that argument to produce the final result.
 -/
 
 /-
