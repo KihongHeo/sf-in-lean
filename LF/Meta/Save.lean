@@ -369,6 +369,27 @@ private def findAlt? (contents : Array (Verso.Doc.Block Manual)) : Option String
     | .code s => some s
     | _ => none
 
+mutual
+
+/--
+Walk a list of blocks, batching consecutive `.para` blocks into a single
+`/-! … -/` comment instead of emitting one per paragraph. -/
+partial def walkBlocks (file : String) (bs : Array (Verso.Doc.Block Manual))
+    (buf : SaveBuffers) : SaveBuffers := Id.run do
+  let mut buf := buf
+  let mut pending : Array String := #[]
+  for b in bs do
+    match b with
+    | .para inls => pending := pending.push (inlinesToText inls)
+    | _ =>
+      if !pending.isEmpty then
+        buf := appendBoth buf file (asModuleDoc (String.intercalate "\n\n" pending.toList))
+        pending := #[]
+      buf := walkBlock file b buf
+  if !pending.isEmpty then
+    buf := appendBoth buf file (asModuleDoc (String.intercalate "\n\n" pending.toList))
+  return buf
+
 /--
 Walk a single block, accumulating teacher and student content into `buf` for
 `file`. The bulk of the saver's logic lives here. -/
@@ -397,7 +418,7 @@ partial def walkBlock (file : String) (b : Verso.Doc.Block Manual)
         let stars := String.ofList (List.replicate rating '⭐')
         let header := s!"### Exercise ({rating} star{if rating == 1 then "" else "s"}): {exName} {stars}"
         let mut buf := appendBoth buf file (asModuleDoc header)
-        for c in contents do buf := walkBlock file c buf
+        buf := walkBlocks file contents buf
         return buf
       return buf
     if name == ``LF.Meta.Block.bnf then
@@ -416,30 +437,25 @@ partial def walkBlock (file : String) (b : Verso.Doc.Block Manual)
         | .str s => s
         | _ => ""
       let mut buf := appendBoth buf file (asModuleDoc s!"_Details:_ {summary}")
-      for c in contents do buf := walkBlock file c buf
+      buf := walkBlocks file contents buf
       return buf
     -- Unknown extension block: recurse into children as a best-effort.
-    let mut buf := buf
-    for c in contents do buf := walkBlock file c buf
-    return buf
+    walkBlocks file contents buf
   | .para inls => return appendBoth buf file (asModuleDoc (inlinesToText inls))
   | .code s => return appendBoth buf file (asModuleDoc s.trimAscii.toString)
-  | .concat bs | .blockquote bs =>
-    let mut buf := buf
-    for c in bs do buf := walkBlock file c buf
-    return buf
+  | .concat bs | .blockquote bs => walkBlocks file bs buf
   | .ul lis | .ol _ lis =>
     let mut buf := buf
     for li in lis do
-      for c in li.contents do
-        buf := walkBlock file c buf
+      buf := walkBlocks file li.contents buf
     return buf
   | .dl dis =>
     let mut buf := buf
     for di in dis do
-      for c in di.desc do
-        buf := walkBlock file c buf
+      buf := walkBlocks file di.desc buf
     return buf
+
+end
 
 /--
 Determine the file-name base for a chapter Part. Uses the `file := …` HTML
@@ -470,8 +486,7 @@ partial def walkSection (depth : Nat) (file : String) (part : Part Manual)
   let hashes := String.ofList (List.replicate depth '#')
   let titleText := inlinesToText titleInlines
   buf := appendBoth buf file (asModuleDoc s!"{hashes} {titleText}")
-  for b in intro do
-    buf := walkBlock file b buf
+  buf := walkBlocks file intro buf
   for p in subParts do
     buf := walkSection (depth + 1) file p buf
   return buf
