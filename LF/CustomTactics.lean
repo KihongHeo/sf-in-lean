@@ -2,29 +2,19 @@ module
 
 public meta import Lean.Elab.ConfigEval
 public meta import Lean.Elab.Tactic.ElabTerm
+public meta import Lean.Elab.Tactic.RenameInaccessibles
+public meta import Lean.Elab.Tactic.Induction
+meta import all Lean.Elab.Tactic.Induction
+
 public meta import Lean.Meta.Tactic.Generalize
 public meta import Lean.Meta.Tactic.Cases
 public meta import Lean.Meta.Tactic.Injection
 public meta import Lean.Meta.Tactic.Contradiction
-public meta import Lean.Elab.Tactic.RenameInaccessibles
 
 meta section
 
-/--
-`p|+` is shorthand for `sepBy1(p, "|")`. It parses 1 or more occurrences of
-`p` separated by `|`.
-
-It produces a `nullNode` containing a `SepArray` with the interleaved parser
-results. It has arity 1, and auto-groups its component parser if needed.
--/
-macro:arg x:stx:max "|+" : stx => `(stx| sepBy1($x, " | "))
-
 namespace Lean.Parser
-
-declare_syntax_cat vars
-
-syntax ((colGt binderIdent)*)|+ : vars
-syntax "(" ((colGt binderIdent)*)|+ ")" : vars
+open Tactic
 
 /--
   `inversion t` generalizes nonvariable indices of the type of `t` before invoking `cases t`,
@@ -34,7 +24,7 @@ syntax "(" ((colGt binderIdent)*)|+ ")" : vars
     for each new subgoal, the generated hypotheses are given the provided names.
 -/
 syntax (name := inversion)
-  "inversion " optConfig ident : tactic
+  "inversion " optConfig ident (inductionAlts)? : tactic
 
 end Lean.Parser
 
@@ -73,6 +63,21 @@ def forallMetaTelescopeReducingUntilDefEq
     out := tp
   return (mvs, bis, out)
 
+/--
+Find a metavariable whose name is (a suffix or prefix of) `tag`,
+and throw an error if none exists.
+This is adapted from `Lean.Elab.Tactic.findTag?`.
+-/
+def findTag (mvarIds : List MVarId) (tag : Name) : MetaM MVarId := do
+  match (← mvarIds.findM? fun mvarId => return tag == (← mvarId.getDecl).userName) with
+  | some mvarId => return mvarId
+  | none =>
+  match (← mvarIds.findM? fun mvarId => return tag.isSuffixOf (← mvarId.getDecl).userName) with
+  | some mvarId => return mvarId
+  | none =>
+  match (← mvarIds.findM? fun mvarId => return tag.isPrefixOf (← mvarId.getDecl).userName) with
+  | some mvarId => return mvarId
+  | none => throwError m!"goal '{tag}' not found"
 end Lean.Meta
 
 namespace Lean.Elab.Tactic
@@ -172,12 +177,28 @@ private def inversionCore (h : FVarId) (config : InversionConfig) : TacticM (Lis
     substGenEqs s.mvarId eqs
   return newGoals
 
+open Lean.Parser.Tactic in
 @[tactic Lean.Parser.inversion]
 public meta def evalInversion : Tactic
-  | `(tactic| inversion $config $h:ident) => do
+  | `(tactic| inversion $config $h:ident $[with $[$alts?:inductionAlt]*]?) => do
     let config ← elabInversionConfig config
-    let _goal ← getMainGoal
-    let newGoals ← inversionCore (← getFVarId h) config
+    let goals ← inversionCore (← getFVarId h) config
+    replaceMainGoal goals
+    if let some alts := alts? then
+      for alt in alts do
+        trace[debug] "{alt}"
+        match alt with
+        | `(inductionAlt| | $tag $vars* => $tactics:tacticSeq) =>
+          let vars : TSyntaxArray ``binderIdent := vars.map (⟨·.raw⟩)
+          let vars' : TSyntaxArray `ident := vars.map (⟨·.raw⟩)
+          let goal ← findTag goals tag.getId
+          trace[debug] "{vars} in {goal} with {(← goal.getDecl).lctx.getFVars}"
+          trace[debug] "var scope: {(extractMacroScopes vars'[0]!.getId).scopes}"
+          let goal ← renameInaccessibles goal vars
+          let goals ← evalTacticAt tactics goal
+          pushGoals goals
+          trace[debug] "{goals}"
+        | _ => throwErrorAt alt "could not parse inversion tactic alternative"
     /- if let some hss := hss? then
       unless newGoals.length == hss.size do
         throwTacticEx `inversion goal
@@ -186,7 +207,6 @@ public meta def evalInversion : Tactic
       for goal in newGoals.reverse, hs in hss.reverse do
         pushGoal (← renameInaccessibles goal hs)
     else -/
-    replaceMainGoal newGoals
   | stx => throwErrorAt stx "could not parse inversion tactic"
 
 end Lean.Elab.Tactic
@@ -198,19 +218,19 @@ end -- meta section
 /-- Synonym for `theorem`. -/
 macro "lemma " thm:declId sig:declSig val:declVal : command => `(theorem $thm $sig $val)
 
+set_option trace.debug true
+
 example (f : Nat → Nat) (n : Nat) (le : f n ≤ 0) : f n = 0 := by
   -- cases le /- Dependent elimination failed: Failed to solve equation 0 = f n -/
-  inversion le
-  rfl
+  inversion le with | refl e => rewrite [← e]; rfl
 
 example (f : Nat → Nat) (n : Nat) (le : f n ≤ 0) : f n = 0 := by
   inversion +clear le
   rfl
 
 /-- warning: declaration uses `sorry` -/
-#guard_msgs(warning)  in
 example (f : Nat → Nat) (n m : Nat) (le : f n ≤ f m) : f n = 0 := by
-  inversion +clear le <;> sorry
+  inversion +clear le with | refl => sorry | step => sorry
 
 example (H : Bool → Nat → False) (n : Nat) : False := by
   apply H at n; apply n; exact true
