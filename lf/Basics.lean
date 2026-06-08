@@ -620,8 +620,8 @@ def myFoo : Bool := true
 -- FULL
 /-
   Inside of a namespace, all previous definitions from that namespace are
-  available, and can be referred to without prefixing.
-  Definitions can also be prefixed by a namespace to put it in the namespace
+  available, and can be referenced without prefixes.
+  Definitions can also be prefixed by a namespace to put them in the namespace
   without having to open and close the namespace.
 -/
 -- /FULL
@@ -641,9 +641,9 @@ def RGB.myOtherBlue : RGB := myBlue
 -- FULL
 /-
   We can also use `open` to bring the definitions of a namespace into scope.
-  This makes it convenient to refer to all of those definitions without
-  a prefix. Original definitions of the same name can then be referred to
-  by the special prefix `_root_`.
+  This means that we can refer to all of the namespace's definitions without
+  a prefix. Definitions of the same name declared prior to the `open`
+  can be referred to by the special prefix `_root_`.
   Lean also provides _sections_, which delimit the scope of `open`ing
   namespaces and `local` notations within `section ... end`.
   We already saw `prefix` and `infix` notations for MyBool;
@@ -702,6 +702,15 @@ inductive Nybble : Type where
 
 -- FULL
 /-
+  Note: The `bits` constructor illustrates a feature of multi-argument
+  declarations, both for constructors and for functions: Instead
+  of writing `(x0 : Bit) (x1 : Bit) ...` we write `(x0 x1 ... : Bit)`
+  since all of the variables have the same type. We could have done
+  the same with the function definition `orb` above, writing
+  `orb (b1 b2 : MyBool)` rather than `orb (b1 : MyBool) (b2 : MyBool)`
+-/
+
+/-
   The `bits` constructor acts as a wrapper for its contents.
   Unwrapping can be done by pattern-matching, as in the `allZero`
   function below, which tests a nybble to see if all its bits are
@@ -717,11 +726,6 @@ def allZero (nb : Nybble) : Bool :=
   | .bits .b0 .b0 .b0 .b0 => true
   | .bits _   _   _   _   => false
 
-/-
-  (The underscore `_` here is a _wildcard pattern_, which avoids
-  inventing variable names that will not be used.)
--/
-
 #eval allZero (.bits .b1 .b0 .b1 .b0)
 /- ===> false -/
 #eval allZero (.bits .b0 .b0 .b0 .b0)
@@ -736,7 +740,7 @@ end TuplePlayground
 
 -- FULL
 /-
-  We put this section in a namespace so that our own definition of natural
+  We put this section in a namespace so that our own definition of
   numbers does not interfere with the one from the standard library.
   In the rest of the book, we'll use the standard library's.
 -/
@@ -748,7 +752,7 @@ namespace NatPlayground
 /-
   All the types we have defined so far -- both "enumerated
   types" such as `Day`, `Bool`, and `Bit` and tuple types such as
-  `Nybble` built from them -- are finite.  The natural numbers, on
+  `Nybble` built from them -- are finite. The natural numbers, on
   the other hand, are an infinite set, so we'll need to use a
   slightly richer form of type declaration to represent them.
 -/
@@ -757,31 +761,25 @@ namespace NatPlayground
   There are many representations of numbers to choose from. You are
   certainly familiar with decimal notation (base 10), using the
   digits 0 through 9, for example, to form the number 123. You may
-  very likely also have encountered hexadecimal notation (base 16),
+  also have encountered hexadecimal notation (base 16),
   in which the same number is represented as 7B, or octal (base 8),
   where it is 173, or binary (base 2), where it is 1111011. Using an
   enumerated type to represent digits, we could use any of these as
-  our representation natural numbers. Indeed, there are
-  circumstances where each of these choices would be useful.
+  our representation natural numbers.
 -/
 
 /-
-  The binary representation is valuable in computer hardware because
-  the digits can be represented with just two distinct voltage
-  levels, resulting in simple circuitry. Analogously, we wish here
-  to choose a representation that makes _proofs_ simpler.
--/
-
-/-
-  In fact, there is a representation of numbers that is even simpler
-  than binary, namely unary (base 1), in which only a single digit
-  is used -- as our forebears might have done to count days by
-  making scratches on the walls of their caves. To represent unary
-  numbers with a Lean datatype, we use two constructors. The
+  There are circumstances where each of these choices would
+  be useful. The binary representation is valuable in computer hardware
+  because the digits can be represented with just two distinct voltage
+  levels, resulting in simple circuitry. Here we choose a _unary_
+  (base 1) representation that is even simpler than binary, makes proofs
+  simpler. In this representation, only a single digit
+  is used. As a Lean datatype, we use two constructors. The
   [zero] constructor represents zero. The [succ] constructor can be
   applied to the representation of the natural number [n], yielding
   the representation of [n+1], where [succ] stands for "successor."
-   Here is the complete datatype definition: *)
+  Here is the complete datatype definition:
 -/
 
 -- /FULL
@@ -801,8 +799,10 @@ inductive Nat : Type where
   Naturally, Lean has its own definition of natural numbers.
 
 -/
-  #check Nat /- ==> NatPlayground.Nat : Type -/ /- ← this is our `Nat`... -/
-  #check _root_.Nat /- ==> _root_.Nat : Type -/ /- ← ...this is Lean's `Nat`. -/
+  #check Nat
+  /- ==> NatPlayground.Nat : Type -/ /- ← this is our `Nat`... -/
+  #check _root_.Nat
+  /- ==> _root_.Nat : Type -/ /- ← ...this is Lean's `Nat`. -/
 
 /-
   Lean's [Nat] comes with powerful built-in reasoning and notation.
@@ -817,35 +817,6 @@ inductive Nat : Type where
 attribute [pp_nodot] Nat
 namespace Nat
 open Nat
-
-
--- TERSE: /- *** -/
-/-
-  Critical point: this just defines a _representation_ of
-  numbers -- a unary notation for writing them down.
--/
-
-inductive OtherNat : Type where
-  | stop
-  | tick (foo : OtherNat)
-
-/-
-  This is the same _representation_ of numbers as `Nat`, but with different
-  constructor names.
--/
-
-/-
-  The _interpretation_ of these representations arises from how we use them to
-  compute. A simple computation involving `Nat` is `pred` below.
--/
-
-def pred (n : Nat) : Nat :=
-  match n with
-  | zero => zero
-  | succ n' => n'
-
--- TERSE: /- *** -/
-
 
 /-
   We can define our own `Nat` literals:
@@ -868,16 +839,20 @@ abbrev ten : Nat := succ nine
  The `abbrev` keyword defines an abbreviation, and is useful for writing
  concrete terms.
 
-  Of course, we can verify our abbreviation does what we expect using `rfl`.
+Of course, we can verify our abbreviation does what we expect using `rfl`.
 -/
 
 example : succ (succ (succ (succ zero))) = four := by rfl
 
 
 /-
-  We can also write computations functions on `Nat`, and give them
-   our abbreviations as arguments.
+  We can also write computations functions on `Nat`.
 -/
+
+def pred (n : Nat) : Nat :=
+  match n with
+  | zero => zero
+  | succ n' => n'
 
 def minustwo (n : Nat) : Nat :=
   match n with
@@ -886,7 +861,7 @@ def minustwo (n : Nat) : Nat :=
   | succ (succ n') => n'
 
 #eval minustwo four
-/- ===> 2 -/
+/- ===> succ (succ zero) -/
 
 -- TODO:
 -- Lean user question: how to get (succ (succ zero)) rather than
@@ -899,12 +874,12 @@ def minustwo (n : Nat) : Nat :=
 
 /-
   These are all things that can be applied to a number to yield a
-  number.  However, there is a fundamental difference between `Nat.succ`
-  and the other two: functions like `Nat.pred` and `minustwo` are
+  number. However, there is a fundamental difference between `Nat.succ`
+  and the other two: functions like `Nat.pred` and `Nat.minustwo` are
   defined by giving _computation rules_ -- e.g., the definition of
-  `Nat.pred` says that `Nat.pred 2` can be simplified to `1` -- while the
-  definition of `Nat.succ` has no such behavior attached.  Although it is
-  _like_ a function in the sense that it can be applied to an
+  `Nat.pred` says that `Nat.pred (succ (succ zero))` can be simplified to
+  `succ zero` -- while the definition of `Nat.succ` has no such behavior attached.
+  Although it is _like_ a function in the sense that it can be applied to an
   argument, it does not _do_ anything at all!  It is just a way of
   writing down numbers.
 -/
@@ -936,6 +911,10 @@ example : odd four = false := by rfl
 -- TERSE: /- *** -/
 -- TERSE: /- A multi-argument recursive function. -/
 
+/- MWH: Point out the irreducible annotation and foreshadow what's it for and
+  where you will explain it?
+-/
+
 @[irreducible]
 def add (n : Nat) (m : Nat) : Nat :=
   match m with
@@ -948,16 +927,20 @@ def add (n : Nat) (m : Nat) : Nat :=
   ######################################################################
   # Proof by Simplification
 
-   ### Proving properties about functions in Lean
+  ### Proving properties about functions in Lean
 
-   Being recursive, `add` is our first of a  more sophisticated class of
-   functions. In this chapter and onwards, we will _prove_ properties about
-   recursive functions, including `add`, which means we will need
-   _simplification rules_ about its behavior.
+  Being recursive, `add` is our first of a more sophisticated class of
+  functions. In this chapter and onwards, we will _prove_ properties about
+  recursive functions, including `add`, which means we will need
+  _simplification rules_ about its behavior.
 
   We provide these _rules_ for add, `add_zero` and `add_succ`, below.
 -/
 -- /FULL
+
+/- MWH: unseal not mentioned, explain what it's for and why you are doing it?
+  Also, why are you calling these "rules" when they are labeled as "theorem"?
+-/
 
 unseal add in
 theorem add_zero : ∀ n, add n zero = n := by
@@ -969,9 +952,20 @@ theorem add_succ : ∀ n m, add n (succ m) = succ (add n m) := by
   intro n m
   rfl
 
+/- MWH: Using the word "evaluate" in the below text is weird to me, esp since the actual
+  "evaluate" might already be iffy for some readers. This is not evaluation, it is
+  equational reasoning, right?
+
+  You also use the term "goal state" below, and then later "proof state".
+  It seems to me that you might want to introduce something about what a proof
+  is, and how proofs are structured. What is a goal, or goal state, and how do
+  tactics move you from the start to the goal? What are the hypotheses, that you
+  are starting from?
+-/
+
 /-
    These rules let us "evaluate" the function at arguments during a proof. They
-   give us the ability to use a fundamental proof, tool, a _tactic_, to change
+   give us the ability to use a fundamental proof tool, a _tactic_, to change
    the goal state of a proof to match one step of evaluating a function.
 
    Indeed we define these two rules using _tactics_: `intro` and `rfl`.
@@ -984,13 +978,14 @@ theorem add_succ : ∀ n m, add n (succ m) = succ (add n m) := by
 
 /-
   ## The `rewrite` tactic
-   The tactic that tells Lean to rewrite based on a rule is called `rewrite`.
-   Here is a simple example of using `rewrite` with laws to evaluate `add`:
+   A tactic that tells Lean to rewrite (part of) a goal or hypothesis
+   based on a rule is called `rewrite`. Here is a simple example of
+   using `rewrite` with laws to evaluate `add`:
 -/
 -- /FULL
 
-example : add one one = two := by
-  rewrite [add_succ] /- Move your cursor here to see the new proof state -/
+example : add one one = two := by  /- Move your cursor (click) here to see the initial proof state in the InfoView -/
+  rewrite [add_succ] /- Now click here to see the new proof state, after the tactic -/
   rewrite [add_zero]
   rfl
 
@@ -999,10 +994,16 @@ example : add three two = five := by
   rewrite [add_succ, add_succ, add_zero] /- `rewrite` can take many arguments -/
   rfl
 
+/- MWH: This text is a little jarring to me. Per my above comments, I think you
+  need to introduce what a proof is, what a goal is, what a proof state is, etc.
+  in order to explain what tactics are. Once you have the concepts down, the
+  tactic explanations follow easily.
+-/
+
 -- FULL
 /-
-  The keywords `rewrite` and `rfl` are examples of _tactics_. A tactic is a
-  command that is used between `by` and the end of the proof to guide the
+  As mentioned, the keywords `rewrite` and `rfl` are tactics, which are
+  commands (used between `by` and the end of the proof) to guide the
   process of checking some claim we are making. We will see several more tactics
   in the rest of this chapter and many more in future chapters.
 
