@@ -16,15 +16,19 @@ meta section
 namespace Lean.Parser
 open Tactic
 
+declare_syntax_cat invAlt
+syntax " | " caseArg " => " tacticSeq : invAlt
+
 /--
   `inversion t` generalizes nonvariable indices of the type of `t` before invoking `cases t`,
   then solves away contradictory generated goals.
   * If `inversion +clear t` is set, `t` is `clear`ed from the context.
-  * If `inversion t with (x ... | ... | z ...)` are provided,
-    for each new subgoal, the generated hypotheses are given the provided names.
+  * The form `inversion t with | tag₁ x ... => tac ... | ... | tagₙ z ... => tac ...` is supported,
+    similar to that of `cases` and `inversion`.
+    However, `tag`s must be explicitly given.
 -/
 syntax (name := inversion)
-  "inversion " optConfig ident (inductionAlts)? : tactic
+  "inversion " optConfig ident (" with " (colGe invAlt)+)? : tactic
 
 end Lean.Parser
 
@@ -78,6 +82,48 @@ def findTag (mvarIds : List MVarId) (tag : Name) : MetaM MVarId := do
   match (← mvarIds.findM? fun mvarId => return tag.isPrefixOf (← mvarId.getDecl).userName) with
   | some mvarId => return mvarId
   | none => throwError m!"goal '{tag}' not found"
+
+def mkGeneralizeArgs (mvarId : MVarId) (hypType : Expr) (hypName : Name) : MetaM (Array GeneralizeArg) := do
+  let hypType ← whnf hypType
+  let (ind, args) := hypType.getAppFnArgs
+  match ← isInductive? ind with
+  | some val =>
+    let indices := args.drop val.numParams
+    let mut genArgs : Array GeneralizeArg := #[]
+    for idx in indices do
+      unless idx.isFVar || genArgs.any (·.expr == idx) do
+        genArgs := genArgs.push
+          { expr := idx
+            hName? := some (← mkFreshUserName $ hypName.append `eq) }
+    return genArgs
+  | none =>
+    throwTacticEx `inversion mvarId
+      m!"target is not an inductive type{indentExpr hypType}"
+
+partial def substGenEqs (mvarId : MVarId) (eqs : List FVarId) : MetaM (Option MVarId) := do
+  match eqs with
+  | [] => return some mvarId
+  | e :: rest =>
+    mvarId.withContext do
+      match (← getLCtx).find? e with
+      | none => substGenEqs mvarId rest
+      | some decl =>
+        let ty ← instantiateMVars decl.type
+        if !ty.isEq && !ty.isHEq then
+          substGenEqs mvarId rest
+        else
+          match ← observing? (mvarId.cases e) with
+          | none => substGenEqs mvarId rest
+          | some #[] => return none
+          | some #[s] =>
+              let rest := rest.filterMap fun f => (s.subst.apply (mkFVar f)).fvarId?
+              let newEqs := s.fields.toList.filterMap (·.fvarId?)
+              substGenEqs s.mvarId (newEqs ++ rest)
+          | some sgs =>
+              throwTacticEx `inversion mvarId
+                m!"error: `cases` on the equation{indentExpr ty}produced \
+                   {sgs.size} subgoals, but an equality admits at most one"
+
 end Lean.Meta
 
 namespace Lean.Elab.Tactic
@@ -106,48 +152,6 @@ elab "apply " t:term " at " i:ident : tactic => withSynthesize <| withMainContex
   let mainGoal ← mainGoal.tryClear ldecl.fvarId
   replaceMainGoal <| [mainGoal] ++ mvs.pop.toList.map (·.mvarId!)
 
-private def mkGeneralizeArgs (hypType : Expr) (hypName : Name) : TacticM (Array GeneralizeArg) := do
-  let hypType ← whnf hypType
-  let (ind, args) := hypType.getAppFnArgs
-  match ← isInductive? ind with
-  | some val =>
-    let indices := args.drop val.numParams
-    let mut genArgs : Array GeneralizeArg := #[]
-    for idx in indices do
-      unless idx.isFVar || genArgs.any (·.expr == idx) do
-        genArgs := genArgs.push
-          { expr := idx
-            hName? := some (← mkFreshUserName $ hypName.append `eq) }
-    return genArgs
-  | none =>
-    throwTacticEx `inversion (← getMainGoal)
-      m!"target is not an inductive type{indentExpr hypType}"
-
-private partial def substGenEqs (mvarId : MVarId) (eqs : List FVarId) :
-    MetaM (Option MVarId) := do
-  match eqs with
-  | [] => return some mvarId
-  | e :: rest =>
-    mvarId.withContext do
-      match (← getLCtx).find? e with
-      | none => substGenEqs mvarId rest
-      | some decl =>
-        let ty ← instantiateMVars decl.type
-        if !ty.isEq && !ty.isHEq then
-          substGenEqs mvarId rest
-        else
-          match ← observing? (mvarId.cases e) with
-          | none => substGenEqs mvarId rest
-          | some #[] => return none
-          | some #[s] =>
-              let rest := rest.filterMap fun f => (s.subst.apply (mkFVar f)).fvarId?
-              let newEqs := s.fields.toList.filterMap (·.fvarId?)
-              substGenEqs s.mvarId (newEqs ++ rest)
-          | some sgs =>
-              throwTacticEx `inversion mvarId
-                m!"error: `cases` on the equation{indentExpr ty}produced \
-                   {sgs.size} subgoals, but an equality admits at most one"
-
 structure InversionConfig where
   clear : Bool := false
 
@@ -161,7 +165,7 @@ private def inversionCore (h : FVarId) (config : InversionConfig) : TacticM (Lis
     if config.clear then pure (h, goal)
     else (← goal.assert hypName hypType (.fvar h)).intro1P
   let genArgs ← goal.withContext do
-    mkGeneralizeArgs hypType hypName
+    mkGeneralizeArgs goal hypType hypName
   let (subst, newVars, goal) ← goal.withContext do
     goal.generalizeHyp genArgs #[target]
   let targetExpr := subst.apply (mkFVar target)
@@ -177,36 +181,24 @@ private def inversionCore (h : FVarId) (config : InversionConfig) : TacticM (Lis
     substGenEqs s.mvarId eqs
   return newGoals
 
-open Lean.Parser.Tactic in
+private def evalInvAlt (goals : List MVarId) : Tactic
+  | `(invAlt| | $tag:ident $vars:binderIdent* => $tactics:tacticSeq) => do
+    let goals ← findTag goals tag.getId
+      >>= (renameInaccessibles · vars)
+      >>= (evalTacticAt tactics ·)
+    pushGoals goals
+  | stx@`(invAlt| | _ $_* => $_) =>
+    throwErrorAt stx "inversion alternatives must be explicitly named"
+  | stx => throwErrorAt stx "could not parse inversion alternative"
+
 @[tactic Lean.Parser.inversion]
 public meta def evalInversion : Tactic
-  | `(tactic| inversion $config $h:ident $[with $[$alts?:inductionAlt]*]?) => do
+  | `(tactic| inversion $config $h:ident $[with $[$alts?:invAlt]*]?) => do
     let config ← elabInversionConfig config
     let goals ← inversionCore (← getFVarId h) config
-    replaceMainGoal goals
     if let some alts := alts? then
-      for alt in alts do
-        trace[debug] "{alt}"
-        match alt with
-        | `(inductionAlt| | $tag $vars* => $tactics:tacticSeq) =>
-          let vars : TSyntaxArray ``binderIdent := vars.map (⟨·.raw⟩)
-          let vars' : TSyntaxArray `ident := vars.map (⟨·.raw⟩)
-          let goal ← findTag goals tag.getId
-          trace[debug] "{vars} in {goal} with {(← goal.getDecl).lctx.getFVars}"
-          trace[debug] "var scope: {(extractMacroScopes vars'[0]!.getId).scopes}"
-          let goal ← renameInaccessibles goal vars
-          let goals ← evalTacticAt tactics goal
-          pushGoals goals
-          trace[debug] "{goals}"
-        | _ => throwErrorAt alt "could not parse inversion tactic alternative"
-    /- if let some hss := hss? then
-      unless newGoals.length == hss.size do
-        throwTacticEx `inversion goal
-          m!"incorrect number of inversion cases: \
-            {hss.size} provided while expecting {newGoals.length}"
-      for goal in newGoals.reverse, hs in hss.reverse do
-        pushGoal (← renameInaccessibles goal hs)
-    else -/
+      alts.forM (evalInvAlt goals)
+    replaceMainGoal goals
   | stx => throwErrorAt stx "could not parse inversion tactic"
 
 end Lean.Elab.Tactic
@@ -222,15 +214,19 @@ set_option trace.debug true
 
 example (f : Nat → Nat) (n : Nat) (le : f n ≤ 0) : f n = 0 := by
   -- cases le /- Dependent elimination failed: Failed to solve equation 0 = f n -/
-  inversion le with | refl e => rewrite [← e]; rfl
+  inversion le with | refl e => rw [← e]
 
 example (f : Nat → Nat) (n : Nat) (le : f n ≤ 0) : f n = 0 := by
-  inversion +clear le
-  rfl
+  inversion +clear le; rfl
 
 /-- warning: declaration uses `sorry` -/
 example (f : Nat → Nat) (n m : Nat) (le : f n ≤ f m) : f n = 0 := by
-  inversion +clear le with | refl => sorry | step => sorry
+  inversion +clear le with
+  | refl e =>
+    rw [← e]
+    sorry
+  case step k _ e =>
+    sorry
 
 example (H : Bool → Nat → False) (n : Nat) : False := by
   apply H at n; apply n; exact true
