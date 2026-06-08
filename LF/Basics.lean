@@ -403,7 +403,7 @@ example : andb3 .false .true .true = .false := by rfl  -- ADMITTED
 example : andb3 .true .false .true = .false := by rfl  -- ADMITTED
 /- test_andb34 -/
 example : andb3 .true .true .false = .false := by rfl  -- ADMITTED
--- GRADE_THEOREM 1: andb3_test4
+ -- GRADE_THEOREM 1: andb3_test4
 -- []
 -- /FULL
 
@@ -445,8 +445,6 @@ end    -- (close the `section` where we defined `MyBool`)
 -- to keep this pattern?
 -- BCP: Ideally no!
 
--- BCP STOPPED HERE
-
 /- ###################################################################### -/
 /- ## Types -/
 
@@ -469,9 +467,9 @@ end    -- (close the `section` where we defined `MyBool`)
 #check (not true : Bool)
 
 /-
-  Functions like `not` itself are also data values, just like
-  `true` and `false`.  Their types are called _function types_, and
-  they are written with arrows.
+  Functions like `not` are themselves data values, just like `true`
+  and `false`.  Their types are called _function types_, and they are
+  written with arrows.
 -/
 
 #check not
@@ -479,28 +477,23 @@ end    -- (close the `section` where we defined `MyBool`)
 
 -- FULL
 /-
-  The type of `not`, written `Bool → Bool` and pronounced
-  "`Bool` arrow `Bool`," can be read, "Given an input of type
-  `Bool`, this function produces an output of type `Bool`."
-  Similarly, the type of `and`, written `Bool → Bool → Bool`, can
-  be read, "Given two inputs, each of type `Bool`, this function
-  produces an output of type `Bool`."
+  The type of `not`, written `Bool → Bool` and pronounced "`Bool`
+  arrow `Bool`," can be read, "Given an input of type `Bool`, this
+  function produces an output of type `Bool`." Similarly, the type of
+  `and`, written `Bool → Bool → Bool`, can be read, "Given two inputs,
+  each of type `Bool`, this function produces an output of type
+  `Bool`."
+
+  Note that → is a unicode symbol, not a simple ASCII character. The
+  Lean Extension for VS Code provides convenient shortcuts for
+  entering such symbols. Simply type \ (backslash) followed by the
+  name of the symbol, and the extension will automatically replace it
+  with the actual symbol. For example, typing \-> or \to will produce
+  →, and \lambda will produce λ. To find out what backslash sequence
+  produces a unicode symbol that you can see on the screen, just hover
+  over it.
 -/
-
--- RADDITION ↓
-
-/-
-  You may notice that → is a unicode character, not a simple ASCII string. This
-  is a common convention in Lean, and the Lean Extension provides convenient
-  shortcuts for entering these characters. Simply typing \ (backslash) followed
-  by the name of the character, and the extension will automatically replace it
-  with the correct symbol. For example, typing \-> or \to will produce →, and
-  \lambda will produce λ. This allows you to write more concise and readable
-  code without having to remember complex keyboard shortcuts.
--/
-
 -- /FULL
-
 
 /-
   ######################################################################
@@ -509,11 +502,11 @@ end    -- (close the `section` where we defined `MyBool`)
 
 -- FULL
 /-
-  The types we have defined so far are examples of simple
-  "enumerated types": their definitions explicitly enumerate a
-  finite set of elements, called _constructors_.  Here is a more
-  interesting type definition, `Color`, where one of the
-  constructors takes an argument:
+  The types we have defined so far are simple examples of "enumerated
+  types": their definitions explicitly enumerate a finite set of
+  elements, called _constructors_.  Here is a more interesting type
+  definition, `Color`, where one of the constructors takes an
+  argument:
 -/
 -- /FULL
 -- TERSE: /- A more interesting type definition: -/
@@ -529,12 +522,13 @@ inductive Color : Type where
   | primary (p : RGB)
 
 /-
-  Let's look at this in a little more detail.
+  Let's look at this in detail.
 
   An `inductive` definition does two things:
 
   - It introduces a set of new _constructors_. E.g., `RGB.red`,
     `Color.primary`, `true`, `false`, `Day.monday`, etc. are constructors.
+    -- BCP: Why do all of these have namespaces except true and false?
 
   - It groups them into a new named type, like `Bool`, `RGB`, or
     `Color`.
@@ -542,22 +536,21 @@ inductive Color : Type where
   _Constructor expressions_ are formed by applying a constructor
   to zero or more other constructors or constructor expressions,
   obeying the declared number and types of the constructor arguments.
+
   E.g., these are valid constructor expressions...
       - `RGB.red`
       - `true`
       - `Color.primary RGB.red`
-      - etc.
   ...but these are not:
       - `RGB.red Color.primary`
       - `true RGB.red`
       - `Color.primary (Color.primary RGB.red)`
-      - etc.
 -/
 
 -- TERSE: /- *** -/
 
 /-
-  We can define functions on colors using pattern matching just as
+  We can define functions on colors using pattern matching, just as
   we did for `Day` and `Bool`.
 -/
 
@@ -568,11 +561,14 @@ def monochrome (c : Color) : Bool :=
   | .primary _ => false
 
 /-
-  Since the `primary` constructor takes an argument, a pattern
-  matching `primary` should include either a variable, as we just
-  did (note that we can choose its name freely), or a constant of
+  Since the `primary` constructor takes an argument, a pattern that
+  matches `primary` should include either a variable, as we just did
+  (note that we can choose its name freely), or a constant of
   appropriate type (as below).
 -/
+-- BCP: We didn't use a variable -- we used an underscore!  We should
+-- explain this in two steps: first with an explicit name, then with
+-- an underscore.
 
 def isRed (c : Color) : Bool :=
   match c with
@@ -590,6 +586,8 @@ def isRed (c : Color) : Bool :=
   ######################################################################
   ## Namespaces and Sections
 -/
+
+-- BCP STOPPED HERE
 
 -- JC: I edited a lot of the contents and comments in just this section,
 -- I hope it makes sense.
