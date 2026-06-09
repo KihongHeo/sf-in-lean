@@ -942,6 +942,11 @@ def add (n : Nat) (m : Nat) : Nat :=
   Also, why are you calling these "rules" when they are labeled as "theorem"?
 -/
 
+-- WORKING TODO: "Since the 'theorems' here exactly match our code, they're
+-- very easy to prove!"
+
+-- 
+
 unseal add in
 theorem add_zero : ∀ n, add n zero = n := by
   intro n
