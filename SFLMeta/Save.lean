@@ -15,6 +15,7 @@ open Verso.ArgParse
 open Std (HashMap)
 open SubVerso.Highlighting
 open Verso.Genre.Manual.InlineLean.Scopes (getScopes setScopes)
+open Verso (BuildLogT reportError)
 
 /--
 When `true`, `lean` code blocks render with the teacher (solution-filled)
@@ -546,14 +547,14 @@ private def writeProject (dest : System.FilePath) (toolchain : String)
 Run `lake build` inside `dest` and report any failure via `logError`. Used to
 verify each generated project compiles. Student builds are expected to succeed
 with `sorry` warnings only. -/
-private def buildProject (dest : System.FilePath) (kind : String)
-    (logError : String → IO Unit) : IO Unit := do
+private def buildProject (dest : System.FilePath) (kind : String) :
+    BuildLogT IO Unit := do
   IO.println s!"Building generated {kind} project at {dest}…"
   let res ← IO.Process.output {
     cmd := "lake", args := #["build"], cwd := dest
   }
   if res.exitCode != 0 then
-    logError <|
+    reportError <|
       s!"Generated {kind} project at {dest} failed to build " ++
       s!"(exit {res.exitCode}):\n--- stdout ---\n{res.stdout}\n" ++
       s!"--- stderr ---\n{res.stderr}"
@@ -565,8 +566,8 @@ Shared implementation for `emitSaved` and `emitSavedTerse`. Walks the document
 tree, accumulates per-file content, writes teacher and student Lake projects
 under `dest/generated/{teacherName,studentName}/`, and verifies they compile. -/
 private def emitSavedImpl (teacherName studentName : String) :
-    Mode → (String → IO Unit) → Config → TraverseState → Part Manual → IO Unit :=
-  fun _mode logError cfg _state text => do
+    Mode → Config → TraverseState → Part Manual → BuildLogT IO Unit :=
+  fun _mode cfg _state text => do
     let buf : SaveBuffers := walkOuter "LF.lean" text ({} : SaveBuffers)
     let toolchain ← (IO.FS.readFile "lean-toolchain").toBaseIO >>= fun
       | .ok s => pure s
@@ -581,21 +582,21 @@ private def emitSavedImpl (teacherName studentName : String) :
     let studentDest := cfg.destination / "generated" / studentName
     writeProject teacherDest toolchain teacherName teacherFiles
     writeProject studentDest toolchain studentName studentFiles
-    buildProject teacherDest teacherName logError
-    buildProject studentDest studentName logError
+    buildProject teacherDest teacherName
+    buildProject studentDest studentName
 
 /--
 The Verso `ExtraStep` for full builds. Walks the document tree (which has full
 content; terse blocks are absent after traversal) and writes teacher and student
 Lake projects under `<destination>/generated/{teacher,student}/`. -/
-def emitSaved : Mode → (String → IO Unit) → Config → TraverseState → Part Manual → IO Unit :=
+def emitSaved : Mode → Config → TraverseState → Part Manual → BuildLogT IO Unit :=
   emitSavedImpl "teacher" "student"
 
 /--
 The Verso `ExtraStep` for terse builds. Walks the document tree (which has
 terse content; full blocks are absent after traversal) and writes teacher and
 student Lake projects under `<destination>/generated/{terse-teacher,terse-student}/`. -/
-def emitSavedTerse : Mode → (String → IO Unit) → Config → TraverseState → Part Manual → IO Unit :=
+def emitSavedTerse : Mode → Config → TraverseState → Part Manual → BuildLogT IO Unit :=
   emitSavedImpl "terse-teacher" "terse-student"
 
 end SFLMeta

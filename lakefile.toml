@@ -3,7 +3,7 @@ version = "0.1.0"
 defaultTargets = ["LF"]
 
 [leanOptions]
-verso.code.warnLineLength = 0 # 0 disables warnings; consider setting to 70
+weak.verso.code.warnLineLength = 0 # 0 disables warnings; consider setting to 70
 
 # [[require]]
 # name = "mathlib"
@@ -13,7 +13,7 @@ verso.code.warnLineLength = 0 # 0 disables warnings; consider setting to 70
 [[require]]
 name = "verso"
 git = "https://github.com/leanprover/verso"
-ref = "main"
+rev = "main"
 
 [[lean_lib]]
 name = "SFLMeta"
