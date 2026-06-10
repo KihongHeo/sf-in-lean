@@ -143,6 +143,7 @@ def nextWorkingDay (d : Day) : Day :=
   | .sunday    => .monday
 
 -- FULL
+
 /-
   Note that the argument and return types of this function are
   explicitly declared on the first line.  Like most functional
@@ -152,12 +153,12 @@ def nextWorkingDay (d : Day) : Day :=
   easier.
 -/
 
-/- MWH: The text that follows seems to assume the reader knows what pattern matching
-  is, calling attention only to the syntax. It also seems to assume the reader
-  knows what OCaml is. But the premise of this section seems to be that readers
-  do not know what functional programming is -- we are explaining it to them.
-  Seems like a gap. Was it in the original?
+/-
+  The `match` keyword is Lean's keyword for _pattern matching_: the functional
+  programming way of examining and making decisions on data. We assume some
+  familiarity with basic pattern matching in this book.
 -/
+
 
 /- You may also notice the unique pattern matching syntax- for
   example, in "`.monday`". The `.` - is syntactic sugar for `Day.monday`, and
@@ -242,9 +243,6 @@ example : nextWorkingDay (nextWorkingDay Day.saturday) = Day.tuesday := by
   the same thing."
 -/
 
-/- MWH: Here we use the term "evaluate" without defining it. Should we do
-  that here? -/
-
 /-
   `rfl` stands for "reflexivity," which is the principle that any value is
   equal to itself. After evaluation, both sides of the equality are the same
@@ -273,7 +271,7 @@ example : nextWorkingDay (nextWorkingDay Day.saturday) = Day.tuesday := by
   scratch; later we'll switch to Lean's built-in `Bool`.
 -/
 
-section
+section MyBool
 
 inductive MyBool : Type where
   | true
@@ -288,17 +286,17 @@ open MyBool
 
 def notb (b : MyBool) : MyBool :=
   match b with
-  | .true => false
-  | .false => true
+  | .true =>  .false
+  | .false => .true
 
 def andb (b1 : MyBool) (b2 : MyBool) : MyBool :=
   match b1 with
   | .true => b2
-  | .false => false
+  | .false => .false
 
 def orb (b1 : MyBool) (b2 : MyBool) : MyBool :=
   match b1 with
-  | .true => true
+  | .true => .true
   | .false => b2
 
 -- FULL
@@ -414,6 +412,12 @@ def myBoolToBool (b : MyBool) : Bool :=
   | .false => false
 
 /-
+  Note how we don't have to use the `.`, because we have specified the type
+  of `true` by declaring the return type of `myBoolToBool` to be `Bool`.
+  Lean's type inference algorithm fills in the gap.
+-/
+
+/-
   With the full power of Lean's `Bool` at our disposal, we can also write this
   function more concisely using the `bif ... then ... else` syntax, which is a
   convenient way to write simple conditional expressions.
@@ -423,7 +427,7 @@ def boolToMyBool (b : Bool) : MyBool :=
   bif b then true else false
 -- /FULL
 
-end
+end MyBool
 
 
 /- ###################################################################### -/
@@ -506,16 +510,6 @@ inductive Color : Type where
   | white
   | primary (p : RGB)
 
-/- MWH: In the following you use Bool syntax and not MyBool.
-  This is maybe a little confusing because we are not writing
-  `Bool.true` or `.true`, but simply `true`. I don't believe
-  that we have explained why built-in syntax is special, or
-  even acknowledged that it is. We could do that here, or
-  perhaps should do it earlier when introducing `Bool`. Also:
-  In the examples below you might want to include a few from
-  `MyBool`.
--/
-
 /-
   An `inductive` definition does two things:
 
@@ -530,7 +524,8 @@ inductive Color : Type where
   obeying the declared number and types of the constructor arguments.
   E.g., these are valid constructor expressions...
       - `RGB.red`
-      - `true`
+      - `MyBool.true`
+      - `true` -- Lean's builtin Boolean type- no `.` needed
       - `Color.primary RGB.red`
       - etc.
   ...but these are not:
