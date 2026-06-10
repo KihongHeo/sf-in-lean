@@ -809,35 +809,36 @@ inductive Nat : Type where
 -- instead of NatPlayground.Nat.succ (NatPlayground.Nat.succ
 -- NatPlayground.Nat.zero) in the infoview.
 -- At least, that's what it's supposed to do... see TODO below.
-attribute [pp_nodot] Nat
+attribute [pp_nodot] Nat.succ
 namespace Nat
 open Nat
 
-/-
-  We can define our own `Nat` literals:
--/
+@[reducible]
+def ofNat (x : _root_.Nat) : Nat :=
+  match x with
+  | .zero => zero
+  | .succ b => succ (ofNat b)
 
-abbrev one : Nat := succ zero
-abbrev two : Nat := succ one
-abbrev three : Nat := succ two
-abbrev four : Nat := succ three
-abbrev five : Nat := succ four
-abbrev six : Nat := succ five
-abbrev seven : Nat := succ six
-abbrev eight : Nat := succ seven
-abbrev nine : Nat := succ eight
-abbrev ten : Nat := succ nine
+instance instOfNat {n : _root_.Nat} : OfNat Nat n where
+  ofNat := ofNat n
 
-/- ... and so on. -/
+theorem zero_eq_0 : zero = 0 := rfl
 
 /-
- The `abbrev` keyword defines an abbreviation, and is useful for writing
- concrete terms.
-
-Of course, we can verify our abbreviation does what we expect using `rfl`.
+  We can now use Lean's numerals -- `0`, `1`, `2`, and so on -- to write
+  our `Nat`s, along with rules relating each numeral to its successor form:
 -/
 
-example : succ (succ (succ (succ zero))) = four := by rfl
+-- RULES
+theorem one_eq_succ_zero : 1 = succ 0 := rfl
+-- RULES
+theorem two_eq_succ_one : 2 = succ 1 := rfl
+-- RULES
+theorem three_eq_succ_two : 3 = succ 2 := rfl
+-- RULES
+theorem four_eq_succ_three : 4 = succ 3 := rfl
+
+example : succ (succ (succ (succ zero))) = 4 := by rfl
 
 
 /-
@@ -855,7 +856,7 @@ def minustwo (n : Nat) : Nat :=
   | succ (zero) => zero
   | succ (succ n') => n'
 
-#eval minustwo four
+#eval minustwo 4
 /- ===> succ (succ zero) -/
 
 -- TODO:
@@ -899,9 +900,9 @@ def odd (n : Nat) : Bool :=
   not (even n)
 
 /- test_odd1 -/
-example : odd one = true  := by rfl
+example : odd 1 = true  := by rfl
 /- test_odd2 -/
-example : odd four = false := by rfl
+example : odd 4 = false := by rfl
 
 -- TERSE: /- *** -/
 -- TERSE: /- A multi-argument recursive function. -/
@@ -915,6 +916,8 @@ def add (n : Nat) (m : Nat) : Nat :=
   match m with
   | zero => n
   | succ m' => succ (add n m')
+
+instance instAdd : Add Nat where add := add
 
 -- FULL
 
@@ -937,18 +940,22 @@ def add (n : Nat) (m : Nat) : Nat :=
   Also, why are you calling these "rules" when they are labeled as "theorem"?
 -/
 
+-- Definitive decision. We don't do these simp lemmas now.
+-- We do them in Nats.lean.
 -- WORKING TODO: "Since the 'theorems' here exactly match our code, they're
 -- very easy to prove!"
 
--- 
+--
 
+-- RULES
 unseal add in
-theorem add_zero : ∀ n, add n zero = n := by
+theorem add_zero : ∀ n : Nat, n + 0 = n := by
   intro n
   rfl
 
+-- RULES
 unseal add in
-theorem add_succ : ∀ n m, add n (succ m) = succ (add n m) := by
+theorem add_succ : ∀ n m : Nat, n + succ m = succ (n + m) := by
   intro n m
   rfl
 
@@ -993,14 +1000,16 @@ theorem add_succ : ∀ n m, add n (succ m) = succ (add n m) := by
 -/
 -- /FULL
 
-example : add one one = two := by  /- Move your cursor (click) here to see the initial proof state in the InfoView -/
-  rewrite [add_succ] /- Now click here to see the new proof state, after the tactic -/
+example : (1 + 1 : Nat) = 2 := by  /- Move your cursor (click) here to see the initial proof state in the InfoView -/
+  rewrite [one_eq_succ_zero] /- Now click here to see the new proof state, after the tactic -/
+  rewrite [add_succ]
   rewrite [add_zero]
   rfl
 
 
-example : add three two = five := by
-  rewrite [add_succ]; rewrite [add_succ]; rewrite [add_zero] /- a semi ; is like a newline -/
+example : (3 + 2 : Nat) = 5 := by
+  rewrite [two_eq_succ_one]; rewrite [one_eq_succ_zero] /- a semi ; is like a newline -/
+  rewrite [add_succ]; rewrite [add_succ]; rewrite [add_zero]
   -- rewrite [add_succ, add_succ, add_zero] /- `rewrite` can take many arguments applied left to right -/
   rfl
 
@@ -1046,6 +1055,8 @@ def mul (n m : Nat) : Nat :=
   | zero => zero
   | succ m' => add (mul n m') n
 
+instance instMul : Mul Nat where mul := mul
+
 /-
   MWH: These simplification rules, and the ones for `add` above, are just restatements
   of the code. So, it seems a little odd to be making them because doing so offers no
@@ -1055,29 +1066,33 @@ def mul (n m : Nat) : Nat :=
 
 /- Along with its simplification rules: -/
 
+-- RULES
 unseal mul in
-theorem mul_zero : ∀ n, mul n zero = zero := by
+theorem mul_zero : ∀ n : Nat, n * 0 = 0 := by
   intro n
   rfl
 
-unseal mul in
-theorem mul_succ : ∀ n m, mul n (succ m) = add (mul n m) n := by
+-- RULES
+unseal mul add in
+theorem mul_succ : ∀ n m : Nat, n * succ m = n * m + n := by
   intro n m
   rfl
 
 /- test_mult1 -/
-example : mul three three = nine := by
+example : (3 * 3 : Nat) = 9 := by
+  rewrite [three_eq_succ_two, two_eq_succ_one, one_eq_succ_zero]
   rewrite [mul_succ, mul_succ, mul_succ, mul_zero]
   rewrite [add_succ, add_succ, add_succ, add_zero]
   rewrite [add_succ, add_succ, add_succ, add_zero]
   rewrite [add_succ, add_succ, add_succ, add_zero]
   rfl
 
+
 /-
   We can also `unseal` functions to run some basic computation with them. -/
 
 unseal mul add in
-example : mul three three = nine := by
+example : (3 * 3 : Nat) = 9 := by
   rfl
 
 /- This calls Lean's _evaluator_, which simplifies the function as much
@@ -1108,26 +1123,47 @@ def sub (n m : Nat) : Nat :=
   | succ _, zero => n
   | succ n', succ m' => sub n' m'
 
+instance instSub : Sub Nat where sub := sub
+
+-- RULES
 unseal sub in
-theorem sub_zero_n : ∀ n, sub zero n = zero := by
+theorem sub_zero : ∀ n : Nat, 0 - n = 0 := by
   intro n
   rfl
 
+-- RULES
 unseal sub in
-theorem sub_succ_zero : ∀ n, sub (succ n) zero = succ n := by
+theorem succ_sub_zero : ∀ n : Nat, succ n - 0 = succ n := by
   intro n
   rfl
 
+-- RULES
 unseal sub in
-theorem sub_succ_succ : ∀ n m, sub (succ n) (succ m) = sub n m := by
+theorem succ_sub_succ : ∀ n m : Nat, succ n - succ m = n - m := by
   intro n m
   rfl
 
 @[irreducible]
 def pow (base power : Nat) : Nat :=
   match power with
-  | zero => one
+  | zero => 1
   | succ p => mul base (pow base p)
+
+instance instPow : Pow Nat Nat where pow := pow
+
+macro_rules | `($x ^ $y) => `(HPow.hPow ($x : Nat) ($y : Nat))
+
+-- RULES
+unseal pow in
+theorem pow_zero : ∀ n : Nat, n ^ 0 = 1 := by
+  intro n
+  rfl
+
+-- RULES
+unseal pow in
+theorem pow_succ : ∀ n m : Nat, n ^ succ m = n * n ^ m := by
+  intro n m
+  rfl
 
 -- FULL
 -- EX1 (factorial)
@@ -1142,16 +1178,16 @@ def pow (base power : Nat) : Nat :=
 def factorial (n : Nat) : Nat
   -- ADMITDEF
   := match n with
-  | zero => one
+  | zero => 1
   | succ n' => mul (succ n') (factorial n')
   -- /ADMITDEF
 
 /- test_factorial1 -/
 unseal factorial mul add in
-example : factorial three = six := by rfl  -- ADMITTED
+example : factorial 3 = 6 := by rfl  -- ADMITTED
 /- test_factorial2 -/
 unseal factorial mul add in
-example : factorial five = mul ten (add ten two) := by rfl  -- ADMITTED
+example : factorial 5 = mul 10 (add 10 2) := by rfl  -- ADMITTED
 -- GRADE_THEOREM 1: factorial_test2
 -- []
 -- /FULL
@@ -1164,10 +1200,6 @@ example : factorial five = mul ten (add ten two) := by rfl  -- ADMITTED
 -- so we _do_ want to override the notation instance for it.
 -- The `mul` and `pow` definitions are the same as the stdlib,
 -- but we can also override notation for it.
-
-instance instSub : Sub Nat where sub := sub
-instance instMul : Mul Nat where mul := mul
-instance instPow : Pow Nat Nat where pow := pow
 
 -- JC: In the infoview, hover over the operators
 -- to check out their associativity --
@@ -1190,12 +1222,12 @@ instance instPow : Pow Nat Nat where pow := pow
 
 def beq (n m : Nat) : Bool :=
   match n with
-  | 0 => match m with
-         | 0 => true
-         | _ + 1 => false
-  | n' + 1 => match m with
-              | 0 => false
-              | m' + 1 => beq n' m'
+  | zero => match m with
+            | zero => true
+            | succ _ => false
+  | succ n' => match m with
+               | zero => false
+               | succ m' => beq n' m'
 
 -- TERSE: /- *** -/
 /-
@@ -1205,11 +1237,11 @@ def beq (n m : Nat) : Bool :=
 
 def leb (n m : Nat) : Bool :=
   match n with
-  | 0 => true
-  | n' + 1 =>
+  | zero => true
+  | succ n' =>
       match m with
-      | 0 => false
-      | m' + 1 => leb n' m'
+      | zero => false
+      | succ m' => leb n' m'
 
 /- test_leb1 -/
 example : leb 2 2 = true  := by rfl
@@ -1256,7 +1288,7 @@ example : 4 <=? 2 = false := by rfl
 
 def ltb (n m : Nat) : Bool
   -- ADMITDEF
-  := leb (n + 1) m
+  := leb (succ n) m
   -- /ADMITDEF
 
 infix:65 "<?" => ltb
@@ -1293,11 +1325,13 @@ example : 4 <? 2 = false := by rfl  -- ADMITTED
 /-
   plus_1_1
 -/
-example : 1 + 1 = 2 := by rfl
+unseal add in
+example : (1 + 1 : Nat) = 2 := by rfl
 
 -- TERSE: /- Another specific fact about natural numbers: -/
 -- JC: Keep the name for this one, it gets used later.
-theorem add_zero_one : 1 = 0 + 1 := by rfl
+unseal add in
+theorem add_zero_one : (1 : Nat) = 0 + 1 := by rfl
 
 -- FULL
 /-
@@ -1321,37 +1355,10 @@ theorem add_zero_one : 1 = 0 + 1 := by rfl
   multiple steps of tactics; they can also be separated by putting them on
   separate lines. -/
 
-theorem add_zero : ∀ n : Nat, n + 0 = n := by
-  intro n; rfl
-
-
-theorem add_succ : ∀ n m : Nat, n + (m + 1) = (n + m) + 1 := by
-  intro n m; rfl
-
-theorem mul_zero : ∀ n : Nat, n * 0 = 0 := by
-  intro n; rfl
-
-theorem mul_succ : ∀ n m : Nat, n * (m + 1) = n * m + n := by
-  intro n m; rfl
-
--- JC: Dumping the rest of the properties here.
--- They're needed because the notations prevent reducing from left to right
--- by just `dsimp [sub]` or `dsimp [pow]`.
--- I don't think these properties are actually used by us,
--- so maybe they can just be exercises.
-
-#check Nat.sub_zero
-
-theorem sub_zero n : 0 - n = 0 := by rfl
-theorem succ_sub_zero n : (n + 1) - 0 = n + 1 := by rfl
-theorem succ_sub_succ n m : (n + 1) - (m + 1) = n - m := by rfl
-
-theorem pow_zero n : n ^ 0 = 1 := by rfl
-theorem pow_succ (n m : Nat) : n ^ (m + 1) = n * (n ^ m) := by rfl
-
 -- JC: And another one, which we _do_ use later.
 
-theorem beq_succ : ∀ n m : Nat, (n + 1 == m + 1) = (n == m) := by
+-- RULES
+theorem beq_succ : ∀ n m : Nat, (succ n == succ m) = (n == m) := by
   intro n m; rfl
 /-
   ######################################################################
@@ -1454,7 +1461,7 @@ theorem add_mul_zero : ∀ p q : Nat,
 
 -- TERSE: /- Sometimes simple calculation and rewriting are not enough... -/
 example : ∀ n : Nat,
-    (n + 1 == 0) = false := by
+    (succ n == 0) = false := by
   intro n
   /-
     `rfl` doesn't work here because `n` is unknown
@@ -1471,7 +1478,7 @@ example : ∀ n : Nat,
 -- TERSE: /- We can use `cases` to perform case analysis: -/
 
 theorem add_one_neb_zero : ∀ n : Nat,
-    (n + 1 == 0) = false := by
+    (succ n == 0) = false := by
   intro n
   cases n
   case zero => rfl
@@ -1513,8 +1520,8 @@ theorem add_one_neb_zero : ∀ n : Nat,
 
 def plus' (n : Nat) (m : Nat) : Nat :=
   match n with
-  | 0 => m
-  | n' + 1 => (plus' n' m) + 1
+  | zero => m
+  | succ n' => succ (plus' n' m)
 
 /-
   When Lean checks this definition, it verifies that the recursion
@@ -1617,12 +1624,16 @@ example : incr (.b0 (.b1 .z)) = .b1 (.b1 .z) := by rfl  -- ADMITTED
 /- test_bin_incr3 -/
 example : incr (.b1 (.b1 .z)) = .b0 (.b0 (.b1 .z)) := by rfl  -- ADMITTED
 /- test_bin_incr4 -/
+unseal Nat.mul Nat.add in
 example : binToNat (.b0 (.b1 .z)) = 2 := by rfl  -- ADMITTED
 /- test_bin_incr5 -/
+unseal Nat.mul Nat.add in
 example : binToNat (incr (.b1 .z)) = 1 + binToNat (.b1 .z) := by rfl  -- ADMITTED
 /- test_bin_incr6 -/
+unseal Nat.mul Nat.add in
 example : binToNat (incr (incr (.b1 .z))) = 2 + binToNat (.b1 .z) := by rfl  -- ADMITTED
 /- test_bin_incr7 -/
+unseal Nat.mul Nat.add in
 example : binToNat (.b0 (.b0 (.b0 (.b1 .z)))) = 8 := by rfl  -- ADMITTED
 
 -- GRADE_THEOREM 0.5: incr_test1
@@ -1745,7 +1756,7 @@ theorem orb_false_true : ∀ b : Bool,
 -- FULL
 -- EX1 (zero_nbeq_plus_1)
 theorem zero_neb_add_one : ∀ n : Nat,
-  (0 == n + 1) = false := by
+  (0 == Nat.succ n) = false := by
   -- ADMITTED
   intro n; cases n
   case zero => rfl
@@ -1755,7 +1766,7 @@ theorem zero_neb_add_one : ∀ n : Nat,
 -- []
 -- /FULL
 
-end CountdownPlayground
+end NatPlayground
 
 
 -- FULL
@@ -2085,13 +2096,13 @@ theorem lowerGrade_lowers : ∀ g : Grade,
 -- []
 
 
-def applyLatePolicy (lateDays : Nat) (g : Grade) : Grade :=
+def applyLatePolicy (lateDays : NatPlayground.Nat) (g : Grade) : Grade :=
   if lateDays <? 9 then g
   else if lateDays <? 17 then lowerGrade g
   else if lateDays <? 21 then lowerGrade (lowerGrade g)
   else lowerGrade (lowerGrade (lowerGrade g))
 
-theorem applyLatePolicy_unfold : ∀ (lateDays : Nat) (g : Grade),
+theorem applyLatePolicy_unfold : ∀ (lateDays : NatPlayground.Nat) (g : Grade),
     applyLatePolicy lateDays g
     =
     (if lateDays <? 9 then g
@@ -2101,7 +2112,7 @@ theorem applyLatePolicy_unfold : ∀ (lateDays : Nat) (g : Grade),
   intro _ _; rfl
 
 -- EX2 (no_penalty_for_mostly_on_time)
-theorem no_penalty_for_mostly_on_time : ∀ (lateDays : Nat) (g : Grade),
+theorem no_penalty_for_mostly_on_time : ∀ (lateDays : NatPlayground.Nat) (g : Grade),
     (lateDays <? 9 = true) →
     applyLatePolicy lateDays g = g := by
   -- ADMITTED
@@ -2113,7 +2124,7 @@ theorem no_penalty_for_mostly_on_time : ∀ (lateDays : Nat) (g : Grade),
 -- []
 
 -- EX2 (grade_lowered_once)
-theorem grade_lowered_once : ∀ (lateDays : Nat) (g : Grade),
+theorem grade_lowered_once : ∀ (lateDays : NatPlayground.Nat) (g : Grade),
     (lateDays <? 9 = false) →
     (lateDays <? 17 = true) →
     applyLatePolicy lateDays g = lowerGrade g := by
