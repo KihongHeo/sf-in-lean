@@ -2,7 +2,7 @@ import VersoManual
 
 open Verso.Genre Manual
 
-namespace LF.Meta
+namespace SFLMeta
 
 /-- Inline CSS that paints the rendered HTML in *Software Foundations*-style
 colors: warm cream background, deep maroon section headings, dark red accents,
@@ -105,4 +105,4 @@ blockquote {
 }
 "###
 
-end LF.Meta
+end SFLMeta

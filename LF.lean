@@ -1,6 +1,6 @@
-import LF.Meta.Bnf
-import LF.Meta.Ignore
-import LF.Meta.Save
+import SFLMeta.Bnf
+import SFLMeta.Ignore
+import SFLMeta.Save
 
 -- manually put imports here that are ready to be included
 import LF.BasicsVerso

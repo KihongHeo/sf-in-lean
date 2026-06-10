@@ -5,7 +5,7 @@ open Verso ArgParse Doc Elab Genre.Manual
 open Verso.Output Verso.Output.Html
 open Verso.Doc.Html
 
-namespace LF.Meta
+namespace SFLMeta
 
 /-- A token in a BNF production right-hand side. -/
 inductive BnfToken where
@@ -63,7 +63,7 @@ declare_syntax_cat bnfBody
 /-- A body is zero or more productions. -/
 syntax bnfProd* : bnfBody
 
-/-- A term-level BNF literal: elaborates to a `LF.Meta.BNF` value. -/
+/-- A term-level BNF literal: elaborates to a `SFLMeta.BNF` value. -/
 syntax (name := bnfTerm) "bnf%" bnfBody "end" : term
 
 /-! ## Macro: parsed syntax → term -/
@@ -78,12 +78,12 @@ def tokToTerm (stx : TSyntax `bnfTok) : MacroM (TSyntax `term) :=
     let name := i.getId.toString
     if name.startsWith "_" then
       let s := Syntax.mkStrLit (name.drop 1).toString
-      `(LF.Meta.BnfToken.meta $s)
+      `(SFLMeta.BnfToken.meta $s)
     else
       let s := Syntax.mkStrLit name
-      `(LF.Meta.BnfToken.nonterm $s)
+      `(SFLMeta.BnfToken.nonterm $s)
   | `(bnfTok| $s:str) =>
-    `(LF.Meta.BnfToken.lit $s)
+    `(SFLMeta.BnfToken.lit $s)
   | _ => Macro.throwUnsupported
 
 /-- Translate a parsed `bnfAlt` to term syntax producing an `Array BnfToken`. -/
@@ -98,13 +98,13 @@ def prodToTerm (stx : TSyntax `bnfProd) : MacroM (TSyntax `term) := do
     | Macro.throwUnsupported
   let lhsStr := Syntax.mkStrLit lhs.getId.toString
   let altTerms ← (#[first] ++ rest).mapM altToTerm
-  `(({ lhs := $lhsStr, alts := #[$altTerms,*] } : LF.Meta.BnfProduction))
+  `(({ lhs := $lhsStr, alts := #[$altTerms,*] } : SFLMeta.BnfProduction))
 
 macro_rules
   | `(bnf% $body:bnfBody end) => do
     let `(bnfBody| $[$prods:bnfProd]*) := body | Macro.throwUnsupported
     let prodTerms ← prods.mapM prodToTerm
-    `(({ productions := #[$prodTerms,*] } : LF.Meta.BNF))
+    `(({ productions := #[$prodTerms,*] } : SFLMeta.BNF))
 
 /-! ## Runtime parser for the code-block body -/
 
@@ -275,7 +275,7 @@ def bnf : CodeBlockExpanderOf Unit
     let bnfVal ← Bnf.parseString src
     let json := (toJson bnfVal).compress
     ``(Verso.Doc.Block.other
-        (LF.Meta.Block.bnf $(quote json) $(quote src))
+        (SFLMeta.Block.bnf $(quote json) $(quote src))
         #[Verso.Doc.Block.code $(quote src)])
 
-end LF.Meta
+end SFLMeta

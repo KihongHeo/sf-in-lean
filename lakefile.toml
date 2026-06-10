@@ -13,6 +13,9 @@ git = "https://github.com/leanprover/verso"
 ref = "main"
 
 [[lean_lib]]
+name = "SFLMeta"
+
+[[lean_lib]]
 name = "LF"
 # CGH: I'm disabling globs because we need a successful build for Verso,
 # which is not the case for current `main`
@@ -21,3 +24,7 @@ name = "LF"
 [[lean_exe]]
 name = "lf_verso"
 root = "Main"
+
+[[lean_exe]]
+name = "lf_verso_terse"
+root = "MainTerseLF"

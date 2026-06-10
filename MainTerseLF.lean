@@ -10,7 +10,8 @@ def config : Config where
   emitHtmlMulti := .immediately
   htmlDepth := 2
   extraCss := {SFLMeta.sfTheme}
-  --extraFiles := [("assets", "assets")]
+  draft := true          -- proxy for terse mode: kept true throughout traversal and rendering
+  destination := "_out/terse"
 
-def main := manualMain (%doc LF) (config := { config with })
-  (extraSteps := [SFLMeta.emitSaved])
+def main := manualMain (%doc LF) (config := config)
+  (extraSteps := [SFLMeta.emitSavedTerse])

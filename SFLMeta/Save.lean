@@ -1,8 +1,10 @@
 import VersoManual
-import LF.Meta.Bnf
-import LF.Meta.Ignore
-import LF.Meta.Exercise
-import LF.Meta.Details
+import SFLMeta.Bnf
+import SFLMeta.Ignore
+import SFLMeta.Exercise
+import SFLMeta.Terse
+import SFLMeta.SlideBreak
+import SFLMeta.Details
 import Std.Data.HashMap
 import SubVerso.Highlighting
 
@@ -26,7 +28,7 @@ register_option sf.showSolutions : Bool := {
   descr := "When true, show the teacher (solution-filled) version of `lean` code blocks in the rendered HTML output."
 }
 
-namespace LF.Meta
+namespace SFLMeta
 
 /-! ## Block extensions used by the saver -/
 
@@ -64,7 +66,7 @@ text fallback. Use it to attach an ASCII alt that ends up in the generated
 def diagramWithAlt : DirectiveExpanderOf Unit
   | (), contents => do
     let blocks ← contents.mapM elabBlock
-    ``(Verso.Doc.Block.other LF.Meta.Block.diagramWithAlt #[$blocks,*])
+    ``(Verso.Doc.Block.other SFLMeta.Block.diagramWithAlt #[$blocks,*])
 
 /-! ## Inline-to-text pretty printer -/
 
@@ -153,7 +155,7 @@ private def decodeLeanSaved? (data : Json) : Option (String × String) :=
 
 /-! ## Syntactic rewriting of `solution!` markers
 
-The `solution!` term and tactic elaborators (declared in `LF.Meta.Exercise`)
+The `solution!` term and tactic elaborators (declared in `SFLMeta.Exercise`)
 register the source range of each invocation into `solutionEditsRef` as they
 run. The project-local `lean` code-block expander (below) snapshots that ref
 around its call to the upstream Lean elaborator, then uses the freshly added
@@ -315,8 +317,8 @@ Wraps each ` ```lean … ``` ` code block. The pipeline is:
 @[code_block]
 def lean : CodeBlockExpanderOf Verso.Genre.Manual.InlineLean.LeanBlockConfig
   | config, str => do
-    LF.Meta.studentEditRef.set #[]
-    LF.Meta.teacherEditRef.set #[]
+    SFLMeta.studentEditRef.set #[]
+    SFLMeta.teacherEditRef.set #[]
     let preEnv ← getEnv
     let preScopes ← getScopes
     let underlying ← Verso.Genre.Manual.InlineLean.lean config str
@@ -342,14 +344,14 @@ def lean : CodeBlockExpanderOf Verso.Genre.Manual.InlineLean.LeanBlockConfig
     let student := applyFillInForStudent (applyEdits src studentRanges)
     if sf.showSolutions.get (← getOptions) then
       ``(Verso.Doc.Block.other
-          (LF.Meta.Block.leanSaved $(quote teacher) $(quote student))
+          (SFLMeta.Block.leanSaved $(quote teacher) $(quote student))
           #[$underlying])
     else
       let studentHls ← elabAndHighlightStudent preEnv preScopes student
       let range := Syntax.getRange? str
       let lspRange := range.map (← getFileMap).utf8RangeToLspRange
       ``(Verso.Doc.Block.other
-          (LF.Meta.Block.leanSaved $(quote teacher) $(quote student))
+          (SFLMeta.Block.leanSaved $(quote teacher) $(quote student))
           #[Verso.Doc.Block.other
               (Verso.Genre.Manual.InlineLean.Block.lean
                 $(quote studentHls)
@@ -421,7 +423,7 @@ partial def walkBlock (file : String) (b : Verso.Doc.Block Manual)
         buf := walkBlocks file contents buf
         return buf
       return buf
-    if name == ``LF.Meta.Block.bnf then
+    if name == ``Block.bnf then
       if let some src := decodeBnfSource? which.data then
         return appendBoth buf file (asModuleDoc src.trimAscii.toString)
     if name == ``Block.diagramWithAlt then
@@ -438,6 +440,16 @@ partial def walkBlock (file : String) (b : Verso.Doc.Block Manual)
         | _ => ""
       let mut buf := appendBoth buf file (asModuleDoc s!"_Details:_ {summary}")
       buf := walkBlocks file contents buf
+      return buf
+    if name == ``Block.terse then
+      -- Terse content kept in the tree only in terse builds (full builds replace
+      -- with concat #[] during traverse). Recurse into children.
+      return walkBlocks file contents buf
+    if name == ``Block.full then
+      -- Full content kept in the tree only in full builds. Recurse into children.
+      return walkBlocks file contents buf
+    if name == ``Block.slidebreak then
+      -- Slide-break marker: emit nothing in all generated .lean files.
       return buf
     -- Unknown extension block: recurse into children as a best-effort.
     walkBlocks file contents buf
@@ -549,14 +561,11 @@ private def buildProject (dest : System.FilePath) (kind : String)
     IO.println s!"Generated {kind} project built successfully."
 
 /--
-The Verso `ExtraStep` that emits and builds the teacher and student Lake
-projects.
-
-After Verso has emitted HTML, walk the document tree, accumulate per-file
-content, write two complete projects under
-`<destination>/generated/{teacher,student}/`, and then invoke `lake build` in
-each to verify they compile. -/
-def emitSaved : Mode → (String → IO Unit) → Config → TraverseState → Part Manual → IO Unit :=
+Shared implementation for `emitSaved` and `emitSavedTerse`. Walks the document
+tree, accumulates per-file content, writes teacher and student Lake projects
+under `dest/generated/{teacherName,studentName}/`, and verifies they compile. -/
+private def emitSavedImpl (teacherName studentName : String) :
+    Mode → (String → IO Unit) → Config → TraverseState → Part Manual → IO Unit :=
   fun _mode logError cfg _state text => do
     let buf : SaveBuffers := walkOuter "LF.lean" text ({} : SaveBuffers)
     let toolchain ← (IO.FS.readFile "lean-toolchain").toBaseIO >>= fun
@@ -568,11 +577,25 @@ def emitSaved : Mode → (String → IO Unit) → Config → TraverseState → P
     let studentFiles : Array (String × String) :=
       buf.fold (init := #[]) fun acc file (_teacher, student) =>
         acc.push (file, student)
-    let teacherDest := cfg.destination / "generated" / "teacher"
-    let studentDest := cfg.destination / "generated" / "student"
-    writeProject teacherDest toolchain "teacher" teacherFiles
-    writeProject studentDest toolchain "student" studentFiles
-    buildProject teacherDest "teacher" logError
-    buildProject studentDest "student" logError
+    let teacherDest := cfg.destination / "generated" / teacherName
+    let studentDest := cfg.destination / "generated" / studentName
+    writeProject teacherDest toolchain teacherName teacherFiles
+    writeProject studentDest toolchain studentName studentFiles
+    buildProject teacherDest teacherName logError
+    buildProject studentDest studentName logError
 
-end LF.Meta
+/--
+The Verso `ExtraStep` for full builds. Walks the document tree (which has full
+content; terse blocks are absent after traversal) and writes teacher and student
+Lake projects under `<destination>/generated/{teacher,student}/`. -/
+def emitSaved : Mode → (String → IO Unit) → Config → TraverseState → Part Manual → IO Unit :=
+  emitSavedImpl "teacher" "student"
+
+/--
+The Verso `ExtraStep` for terse builds. Walks the document tree (which has
+terse content; full blocks are absent after traversal) and writes teacher and
+student Lake projects under `<destination>/generated/{terse-teacher,terse-student}/`. -/
+def emitSavedTerse : Mode → (String → IO Unit) → Config → TraverseState → Part Manual → IO Unit :=
+  emitSavedImpl "terse-teacher" "terse-student"
+
+end SFLMeta

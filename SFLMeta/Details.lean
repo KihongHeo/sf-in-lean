@@ -4,7 +4,7 @@ open Lean Elab
 open Verso ArgParse Doc Elab Genre.Manual
 open Verso.Output.Html
 
-namespace LF.Meta
+namespace SFLMeta
 
 /-! ## `:::details` directive
 
@@ -113,7 +113,7 @@ def details : DirectiveExpanderOf DetailsConfig
   | cfg, contents => do
     let blocks ← contents.mapM elabBlock
     ``(Verso.Doc.Block.other
-        (LF.Meta.Block.details $(quote cfg.summary))
+        (SFLMeta.Block.details $(quote cfg.summary))
         #[$blocks,*])
 
-end LF.Meta
+end SFLMeta

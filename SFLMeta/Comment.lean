@@ -1,8 +1,8 @@
 import VersoManual
-import LF.Meta.Bnf
-import LF.Meta.Ignore
-import LF.Meta.Exercise
-import LF.Meta.Details
+import SFLMeta.Bnf
+import SFLMeta.Ignore
+import SFLMeta.Exercise
+import SFLMeta.Details
 import Std.Data.HashMap
 import SubVerso.Highlighting
 
@@ -14,7 +14,7 @@ open Std (HashMap)
 open SubVerso.Highlighting
 open Verso.Genre.Manual.InlineLean.Scopes (getScopes setScopes)
 
-namespace LF.Meta
+namespace SFLMeta
 
 block_extension Block.devcomment where
   data := Json.null
@@ -28,4 +28,4 @@ block_extension Block.devcomment where
 A `:::devcomment` directive is a noop for inline developer comments. -/
 @[directive]
 def dev : DirectiveExpanderOf Unit
-  | (), _ => ``(Verso.Doc.Block.other LF.Meta.Block.devcomment #[])
+  | (), _ => ``(Verso.Doc.Block.other SFLMeta.Block.devcomment #[])

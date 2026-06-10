@@ -1,16 +1,17 @@
 import VersoManual
 import VersoManual.InlineLean
 import Illuminate
-import LF.Meta.Bnf
-import LF.Meta.Ignore
-import LF.Meta.Save
-import LF.Meta.Comment
-import LF.Meta.Exercise
+import SFLMeta.Bnf
+import SFLMeta.Ignore
+import SFLMeta.Save
+import SFLMeta.Comment
+import SFLMeta.Exercise
+import SFLMeta.SlideBreak
+import SFLMeta.Terse
 
 open Verso.Genre Manual
 --open Illuminate.Diagram
-open LF.Meta
-open LF
+open SFLMeta
 
 /-
 INSTRUCTORS: This file and Induction.lean each take about an hour to
@@ -34,8 +35,6 @@ open InlineLean hiding lean
 htmlSplit := .never
 file := "Basics"
 %%%
-
-# Introduction
 
 The _functional style_ of programming is founded on simple,
 everyday mathematical intuitions: If a procedure or method has no
