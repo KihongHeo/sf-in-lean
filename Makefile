@@ -37,9 +37,13 @@ $(eval $(call VOLUME_template,lf,LF,lf_verso,lf_verso_terse))
 
 all: lf
 
-serve:
+serve: all
 	python3 -m http.server 8000 -d _out/
 
 clean:
 	lake clean
 	rm -rf _out/
+
+temp:
+	python3 scripts/to_verso.py LF/Basics.lean LF/BasicsVerso.lean 
+	$(MAKE) all

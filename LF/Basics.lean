@@ -998,7 +998,7 @@ def add (n : Nat) (m : Nat) : Nat :=
 
 /-
   ######################################################################
-  # Proof by Simplification
+  # Simplifying addition
 
   ### Proving properties about functions in Lean
 
