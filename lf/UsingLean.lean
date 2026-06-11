@@ -250,5 +250,18 @@ def minustwo (n : Nat) : Nat :=
   | .succ (.zero) => .zero
   | .succ (.succ n') => n'
 
+def double (n : Nat) : Nat :=
+  match n with
+  | .zero => 0
+  | .succ n' => .succ (.succ (double n'))
+
+theorem even_S : ∀ n : Nat,
+    even (.succ n) = !even n := by
+  -- ADMITTED
+  intro n
+  induction n
+  case zero => rfl
+  case succ n' ih =>
+    rewrite [even, ih, NatPlayground.Nat.notb_involutive]; rfl
 
   -- TODO: talk about using Nat.add_zero and friends from now on.

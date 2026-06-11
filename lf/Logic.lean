@@ -1227,7 +1227,7 @@ theorem even_double_conv : ∀ n, ∃ k,
   | zero => exact ⟨0, by rfl⟩
   | succ n' ih =>
     obtain ⟨k, hk⟩ := ih
-    rw [even_S]
+    rw [even_succ]
     cases h : even n' with
     | true =>
       simp

@@ -525,7 +525,7 @@ theorem eqb_refl : ∀ n : Nat,
 -- /HIDE
 
 -- FULL
--- EX2? (even_S)
+-- EX2? (even_succ)
 -- TERSE
 /-
   Here's a useful theorem that proves `even (n + 1)` flips
@@ -546,7 +546,7 @@ theorem eqb_refl : ∀ n : Nat,
 -/
 -- /FULL
 
-theorem even_S : ∀ n : Nat,
+theorem even_succ : ∀ n : Nat,
     even (succ n) = !even n := by
   -- ADMITTED
   intro n
@@ -555,7 +555,7 @@ theorem even_S : ∀ n : Nat,
   case succ n' ih =>
     rewrite [even, ih, notb_involutive]; rfl
 -- /ADMITTED
--- GRADE_THEOREM 1: even_S
+-- GRADE_THEOREM 1: even_succ
 -- []
 -- /FULL
 
