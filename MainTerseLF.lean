@@ -4,7 +4,7 @@ import SFLMeta.Theme
 
 open Verso.Genre Manual
 
-def config : Config where
+def config : RenderConfig where
   emitTeX := false
   emitHtmlSingle := .no
   emitHtmlMulti := .immediately

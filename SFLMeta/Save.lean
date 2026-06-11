@@ -122,6 +122,10 @@ private def appendTeacherStudent
 private def asModuleDoc (s : String) : String :=
   "/-!\n" ++ s.trimAscii.toString ++ "\n-/\n\n"
 
+/-- Merge adjacent `/-! … -/` blocks into one, separating their contents with a blank line. -/
+private def mergeAdjacentModuleDocs (s : String) : String :=
+  s.replace "\n-/\n\n/-!\n" "\n\n"
+
 /-- Decode a `Block.bnf` payload and return its original source string. -/
 private def decodeBnfSource? (data : Json) : Option String :=
   match data with
@@ -574,10 +578,10 @@ private def emitSavedImpl (teacherName studentName : String) :
       | .error _ => pure "leanprover/lean4:v4.30.0-rc2\n"
     let teacherFiles : Array (String × String) :=
       buf.fold (init := #[]) fun acc file (teacher, _student) =>
-        acc.push (file, teacher)
+        acc.push (file, mergeAdjacentModuleDocs teacher)
     let studentFiles : Array (String × String) :=
       buf.fold (init := #[]) fun acc file (_teacher, student) =>
-        acc.push (file, student)
+        acc.push (file, mergeAdjacentModuleDocs student)
     let teacherDest := cfg.destination / "generated" / teacherName
     let studentDest := cfg.destination / "generated" / studentName
     writeProject teacherDest toolchain teacherName teacherFiles

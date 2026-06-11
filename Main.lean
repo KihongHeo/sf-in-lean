@@ -4,7 +4,7 @@ import SFLMeta.Theme
 
 open Verso.Genre Manual
 
-def config : Config where
+def config : RenderConfig where
   emitTeX := false
   emitHtmlSingle := .no
   emitHtmlMulti := .immediately
@@ -12,5 +12,5 @@ def config : Config where
   extraCss := {SFLMeta.sfTheme}
   --extraFiles := [("assets", "assets")]
 
-def main := manualMain (%doc LF) (config := { config with })
+def main := manualMain (%doc LF) (config := config)
   (extraSteps := [SFLMeta.emitSaved])

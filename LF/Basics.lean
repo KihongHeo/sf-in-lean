@@ -533,14 +533,15 @@ end    -- (close the `section` where we defined `MyBool`)
   each of type `Bool`, this function produces an output of type
   `Bool`." -/
 
-/- ### Aside: Unicode in Lean
+/- ### Aside: Unicode in Lean -/
 
+/-
   Note that → is a unicode symbol, not a simple ASCII character. The
   Lean Extension for VS Code provides convenient shortcuts for
-  entering such symbols. Simply type \ (backslash) followed by the
+  entering such symbols. Simply type `\` (backslash) followed by the
   name of the symbol, and the extension will automatically replace it
-  with the actual symbol. For example, typing \-> or \to will produce
-  →, and \lambda will produce λ. To find out what backslash sequence
+  with the actual symbol. For example, typing `\->` or `\to` will produce
+  →, and `\lambda` will produce λ. To find out what backslash sequence
   produces a unicode symbol that you can see on the screen, just hover
   over it.
 -/
@@ -998,7 +999,9 @@ def add (n : Nat) (m : Nat) : Nat :=
 
 /-
   ######################################################################
-  # Proof by Simplification
+  # Simplifying addition
+
+  -- BCP: Why do we jump from # to ### here?
 
   ### Proving properties about functions in Lean
 
@@ -1058,11 +1061,12 @@ theorem add_succ : ∀ n m, add n (succ m) = succ (add n m) := by
 
 -- FULL
 
+/- ## The `rewrite` tactic -/
+
 /-
-  ## The `rewrite` tactic
-   A tactic that tells Lean to rewrite (part of) a goal or hypothesis
-   based on a rule is called `rewrite`. Here is a simple example of
-   using `rewrite` with laws to evaluate `add`:
+  A tactic that tells Lean to rewrite (part of) a goal or hypothesis
+  based on a rule is called `rewrite`. Here is a simple example of
+  using `rewrite` with laws to evaluate `add`:
 -/
 -- /FULL
 
@@ -1925,36 +1929,44 @@ theorem andb_eq_orb : ∀ b c : Bool,
   where a student's final letter grade is lowered if they submit too
   many homework assignments late.
 -/
+-- /FULL
 
 namespace LateDays
 
 -- <? in this section operates on standard Nat (not NatPlayground.Nat)
 local notation:65 a:66 " <? " b:66 => Nat.blt a b
 
+-- FULL
 /-
   First, we inroduce a datatype for modeling the "letter" component
   of a grade.
 -/
+-- /FULL
 inductive Letter : Type where
   | A | B | C | D | F
 
+-- FULL
 /-
   Then we define the modifiers -- a `natural` `a` is just a "plain"
   grade of `a`.
 -/
+-- /FULL
 inductive Modifier : Type where
   | plus | natural | minus
 
+-- FULL
 /-
   A full `Grade`, then, is just a `letter` and a `modifier`.
   In Lean, a combination of several values is called a _structure_.  The `structure`
   keyword is used to define a new structure type.
 -/
+-- /FULL
 
 structure Grade where
   letter : Letter
   modifier : Modifier
 
+-- FULL
 /-
   We will want to be able to say when one grade is "better" than
   another.  In other words, we need a way to compare two grades.  As
@@ -1965,17 +1977,21 @@ structure Grade where
   constructors that can be used to indicate whether two values are
   "equal", "less than", or "greater than" one another.
 -/
+-- /FULL
 inductive Comparison : Type where
   | eq   -- "equal"
   | lt   -- "less than"
   | gt   -- "greater than"
 
+-- FULL
 /-
   Since we're in a namespace, we can open the relevant types to
   avoid having to write `Letter.A`, etc.
 -/
+-- /FULL
 open Letter Modifier Comparison
 
+-- FULL
 /-
   Using pattern matching, it is not difficult to define the
   comparison operation for two letters `l1` and `l2` (see below).
@@ -1985,6 +2001,7 @@ open Letter Modifier Comparison
   This is simply a convenient abbreviation for nested pattern
   matching.
 -/
+-- /FULL
 def letterComparison (l1 l2 : Letter) : Comparison :=
   match l1, l2 with
   | A, A => eq
@@ -2210,7 +2227,6 @@ theorem grade_lowered_once : ∀ (lateDays : Nat) (g : Grade),
 -- []
 
 end LateDays
--- /FULL
 
 -- TODO put this somewhere
 

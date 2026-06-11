@@ -551,6 +551,19 @@ each of type `Bool`, this function produces an output of type
 
 ### Aside: Unicode in Lean
 
+:::full
+
+Note that → is a unicode symbol, not a simple ASCII character. The
+Lean Extension for VS Code provides convenient shortcuts for
+entering such symbols. Simply type \ (backslash) followed by the
+name of the symbol, and the extension will automatically replace it
+with the actual symbol. For example, typing \-> or \to will produce
+→, and \lambda will produce λ. To find out what backslash sequence
+produces a unicode symbol that you can see on the screen, just hover
+over it.
+
+:::
+
 ## New Types from Old
 
 :::full
@@ -1023,7 +1036,7 @@ def add (n : Nat) (m : Nat) : Nat :=
   | succ m' => succ (add n m')
 ```
 
-# Proof by Simplification
+# Simplifying addition
 
 ```lean
 unseal add in
@@ -1049,6 +1062,14 @@ Indeed we define these two rules using _tactics_: `intro` and `rfl`.
 right-hand sides are definitionally equal.
 
 ## The `rewrite` tactic
+
+:::full
+
+A tactic that tells Lean to rewrite (part of) a goal or hypothesis
+based on a rule is called `rewrite`. Here is a simple example of
+using `rewrite` with laws to evaluate `add`:
+
+:::
 
 ```lean
 example : add one one = two := by  /- Move your cursor (click) here to see the initial proof state in the InfoView -/
