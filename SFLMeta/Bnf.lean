@@ -223,10 +223,10 @@ block_extension Block.bnf (json : String) (source : String) where
         match Json.parse jsonStr >>= fromJson? with
         | .ok (b : BNF) => pure (Bnf.toHtmlImpl b)
         | .error e =>
-          HtmlT.logError s!"BNF deserialization failed: {e}"
+          Verso.reportError s!"BNF deserialization failed: {e}"
           pure .empty
       | _ =>
-        HtmlT.logError "BNF: malformed data"
+        Verso.reportError "BNF: malformed data"
         pure .empty
   toTeX :=
     open Verso.Output.TeX in
@@ -236,10 +236,10 @@ block_extension Block.bnf (json : String) (source : String) where
         match Json.parse jsonStr >>= fromJson? with
         | .ok (b : BNF) => pure (Bnf.toTeXImpl b)
         | .error e =>
-          TeX.logError s!"BNF deserialization failed: {e}"
+          Verso.reportError s!"BNF deserialization failed: {e}"
           pure .empty
       | _ =>
-        TeX.logError "BNF: malformed data"
+        Verso.reportError "BNF: malformed data"
         pure .empty
   extraCss := [
 r##"

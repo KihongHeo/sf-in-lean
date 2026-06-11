@@ -486,11 +486,13 @@ private def chapterFileBase (p : Part Manual) : String :=
 private def chapterPath (p : Part Manual) : String :=
   "LF/" ++ chapterFileBase p ++ ".lean"
 
-/-- Generated Lean module name for a chapter Part. The slug is wrapped in
-French-quote brackets so titles whose slugs contain characters that aren't
-valid Lean identifier letters (hyphens, spaces, …) still parse. -/
+/-- Generated Lean module name for a chapter Part. Uses the raw `file :=`
+identifier when it is a plain alphanumeric/underscore name; falls back to
+French-quote brackets for slugs that contain hyphens or other punctuation. -/
 private def chapterModule (p : Part Manual) : String :=
-  "LF.«" ++ chapterFileBase p ++ "»"
+  let base := chapterFileBase p
+  if base.all (fun c => c.isAlphanum || c == '_') then "LF." ++ base
+  else "LF.«" ++ base ++ "»"
 
 /--
 Walk a section (a Part at depth ≥ 1, inside a chapter). The section's title is
@@ -509,21 +511,21 @@ partial def walkSection (depth : Nat) (file : String) (part : Part Manual)
   return buf
 
 /--
-The root of the walker. The outermost Part is treated as a single chapter:
-all of its content (intro plus every nested sub-section, at any depth) flows
-into one chapter file. The root file (`LF.lean`) is just an `import`
-statement pointing at the chapter module. -/
+The root of the walker. Each top-level sub-Part of the root document is
+treated as a chapter and written to its own file (using the `file :=` metadata
+key each chapter sets in its `%%%` block). The root file (`LF.lean`) gets one
+`import` line per chapter. -/
 def walkOuter (rootFile : String) (text : Part Manual) (buf : SaveBuffers) :
     SaveBuffers := Id.run do
-  let chapterFile := chapterPath text
+  let .mk _ _ _ _ subParts := text
   let mut buf := buf
-  -- Root file: just imports the chapter module.
-  buf := appendBoth buf rootFile s!"import {chapterModule text}\n"
-  -- Chapter file: prelude so chapter content can use Lean's metaprogramming
-  -- APIs (e.g. `Macro.throw`, `Lean.Name`) without each block specifying its
-  -- own imports.
-  buf := appendBoth buf chapterFile "import Lean\n\nopen Lean\n\n"
-  walkSection 1 chapterFile text buf
+  for p in subParts do
+    buf := appendBoth buf rootFile s!"import {chapterModule p}\n"
+  for p in subParts do
+    let chapterFile := chapterPath p
+    buf := appendBoth buf chapterFile "import Lean\n\nopen Lean\n\n"
+    buf := walkSection 1 chapterFile p buf
+  return buf
 
 /--
 Write a complete generated Lake project at `dest`: the per-file buffer

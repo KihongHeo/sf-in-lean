@@ -35,6 +35,10 @@ We should be following the [style guide](https://leanprover-community.github.io/
 
 **To do**: take inspiration from Jimmy Wales' [Seven Rules of Trust](https://en.wikipedia.org/wiki/The_Seven_Rules_of_Trust), which underpin Wikipedia's distributed development.
 
+## Project board (for claiming files)
+
+https://github.com/orgs/plclub/projects/2
+
 ## Building the Verso Documentation
 
 1. Build the volume modules: `lake build LF`
