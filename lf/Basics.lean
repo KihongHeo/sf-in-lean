@@ -1253,21 +1253,37 @@ example : 4 <? 2 = false := by rfl  -- ADMITTED
 /- We can use our new functions to show an important property of
    natural numbers: -/
 
+/- We can use our new functions to show an important property of
+   natural numbers: -/
+
 theorem beq_succ : ∀ n m : Nat, (succ n == succ m) = (n == m) := by
   intro n m; rfl
 
+
 /-
   ######################################################################
+  # General Proofs about Natural Numbers
   # General Proofs about Natural Numbers
 -/
 
 -- TERSE: /- A (slightly) more interesting theorem: -/
 
 theorem add_id_example : ∀ n m : Nat,
+theorem add_id_example : ∀ n m : Nat,
     n = m →
     n + n = m + m := by
   -- FULL
   /-
+
+    We now begin to make claims about _general_ natural numbers.
+
+    We begin by making a universal claim about all numbers `n` and `m` that are
+    equal to each other (`n = m`). The arrow symbol is pronounced "implies."
+    Type it with "\to" or "\->" or "\r".
+
+     The `intro` tactic moves the universally quantified variables and the
+     hypothesis into the context, giving them names.  The goal is now to prove
+     `n + n = m + m` under the assumption `h : n = m`.
 
     We now begin to make claims about _general_ natural numbers.
 
@@ -1287,6 +1303,14 @@ theorem add_id_example : ∀ n m : Nat,
 
      After the rewrite, the goal is `m + m = m + m`, which can be closed by
      `rfl`.
+    The tactic that tells Lean to perform replacement is one we have seen
+    before: `rewrite`. It can take a hypothesis from the context as an argument,
+    just like it can take a previously proved theorem.  In this case, we want to
+    rewrite with the hypothesis `h`, which says that `n` and `m` are equal, so
+    that we can replace `n` with `m` in the goal.
+
+     After the rewrite, the goal is `m + m = m + m`, which can be closed by
+     `rfl`.
   -/
   -- /FULL
   intro n m
@@ -1297,13 +1321,18 @@ theorem add_id_example : ∀ n m : Nat,
 -- TERSE:
       /- We make a general claim about natural numbers, and prove
         it by rewriting with the hypothesis. -/
+-- TERSE:
+      /- We make a general claim about natural numbers, and prove
+        it by rewriting with the hypothesis. -/
 
 -- FULL
+-- EX1 (add_id_exercise)
 -- EX1 (add_id_exercise)
 /-
   Remove `sorry` and fill in the proof.
 -/
 
+theorem add_id_exercise : ∀ n m o : Nat,
 theorem add_id_exercise : ∀ n m o : Nat,
     n = m → m = o → n + m = m + o := by
   -- ADMITTED
@@ -1311,6 +1340,7 @@ theorem add_id_exercise : ∀ n m o : Nat,
   rewrite [h1, h2]
   rfl
   -- /ADMITTED
+-- GRADE_THEOREM 1: add_id_exercise
 -- GRADE_THEOREM 1: add_id_exercise
 -- []
 -- /FULL
@@ -1334,6 +1364,7 @@ theorem add_id_exercise : ∀ n m o : Nat,
   previously declared lemmas and theorems.
 -/
 
+/- TODO: how to get these to show `∀ (n : Nat)` instead of `mul_zero (n : Nat)` -/
 /- TODO: how to get these to show `∀ (n : Nat)` instead of `mul_zero (n : Nat)` -/
 #check mul_zero  -- ∀ (n : Nat), n * 0 = 0
 #check mul_succ  -- ∀ (n m : Nat), n * Nat.succ m = n + n * m
@@ -1525,7 +1556,11 @@ theorem zero_neb_add_one : ∀ n : Nat,
 
   Lean handles notation scoping through namespaces and
  _type classes_ rather than notation scopes.  The numeric literal `3`
+ _type classes_ rather than notation scopes.  The numeric literal `3`
   can be interpreted as `Nat`, `Int`, `Float`, etc., depending on the
+  expected type, thanks to Lean's `OfNat` type class. We explain type classes
+  in full in a later chapter.
+  /- TODO: which chapter? -/
   expected type, thanks to Lean's `OfNat` type class. We explain type classes
   in full in a later chapter.
   /- TODO: which chapter? -/
@@ -1543,14 +1578,17 @@ theorem zero_neb_add_one : ∀ n : Nat,
 -/
 
 def add' (n : Nat) (m : Nat) : Nat :=
+def add' (n : Nat) (m : Nat) : Nat :=
   match n with
   | zero => m
+  | succ n' => succ (add' n' m)
   | succ n' => succ (add' n' m)
 
 /-
   When Lean checks this definition, it verifies that the recursion
   terminates.  Specifically, it checks that one of the arguments
   is _structurally decreasing_.  This implies that all calls to
+  `add'` will eventually terminate.
   `add'` will eventually terminate.
 
   This requirement is a fundamental feature of Lean's design: In
