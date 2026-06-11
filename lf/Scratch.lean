@@ -1391,8 +1391,7 @@ end LateDays
 
 /- Lean's builtin
   definition and notation to write it more concisely.
-  The `+` operator is already defined for `Nat` in the standard library. -/
-<<<<<<< HEAD
+  The `+` operator is already defined for `Nat` in the standard library. -
 
 /-
   ** New Tactics: `dsimp`, and `exact`.
@@ -1412,5 +1411,3 @@ end LateDays
   transform `h` slightly — for instance, `exact h.symm` uses
   the symmetry of equality.
 -/
-=======
->>>>>>> 655013437f39574f89dbf1cc2bb8130daf795842
