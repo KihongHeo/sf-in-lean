@@ -20,6 +20,64 @@
 
 -- Things ported:
 
+-- TOFIX: prose. The same numeral and the same `+` work at two
+-- different types. Typeclasses are the dispatch mechanism.
+#check (3 : Nat)
+#check (3 : NatPlayground.Nat)
+
+#print Add
+
+#check (inferInstance : Add Nat)
+#check (inferInstance : Add NatPlayground.Nat)
+
+-- TOFIX: prose. Two proofs of "the same" fact, one per instance.
+section
+open NatPlayground.Nat
+example : (2 + 2 : NatPlayground.Nat) = 4 := by
+  rw [two_eq_succ_one, one_eq_succ_zero, add_succ, add_succ, add_zero]
+  rfl
+end
+
+example : (2 + 2 : Nat) = 4 := by rfl
+
+-- TOFIX: prose. Why rules instead of brute simplification: code written
+-- against an interface cannot unfold any implementation. Only the laws
+-- are available.
+example (α : Type) [Add α] (x y : α)
+    (comm : ∀ a b : α, a + b = b + a) :
+    x + y = y + x := by
+  fail_if_success rfl
+  rw [comm]
+
+-- TOFIX: closing prose. The general flow of Lean is to state rewrite rules
+-- for a type, prove lemmas from the rules, rewrite with the lemmas, and
+-- let dsimp/simp/calc carry out the routine steps.
+
+
+/-
+  ######################################################################
+  # Automated rewriting: `simp` and simp annotations
+-/
+
+-- TOFIX: prose. simp = rewrite with a whole set of rules, repeatedly.
+example (n : Nat) : ((n + 0) + 0) + 0 = n := by
+  simp
+
+-- TOFIX: prose. simp also works with our own rules, given explicitly...
+section
+open NatPlayground.Nat
+example (n : NatPlayground.Nat) : (n + 0) + 0 = n := by
+  simp [add_zero]
+end
+
+-- TOFIX: prose. ...or registered once with the @[simp] annotation.
+def double' (n : Nat) : Nat := n + n
+
+@[simp] theorem double'_def (n : Nat) : double' n = n + n := rfl
+
+example (n : Nat) : double' (n + 0) = n + n := by
+  simp
+
 
 
 @[irreducible]

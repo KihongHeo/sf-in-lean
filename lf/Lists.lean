@@ -1,4 +1,4 @@
--- Note that rewrite laws should sometimes differ from pattern matching now 
+-- Note that rewrite laws should sometimes differ from pattern matching now
 
 /- Lists: Working with Structured Data -/
 
@@ -734,10 +734,10 @@ theorem myRepeat_plus : ∀ c1 c2 n : Nat,
   induction c1
   case zero =>
     dsimp [myRepeat]
-    rw [zero_add]; rfl
+    rw [Nat.zero_add]; rfl
   case succ c1' ih =>
     dsimp [myRepeat]
-    rw [succ_add, cons_append, ih]
+    rw [Nat.succ_add, cons_append, ih]
     dsimp [myRepeat]
 
 -- *** Reversing a List
@@ -833,8 +833,8 @@ theorem app_length : ∀ l1 l2 : List Nat,
   -- WORKINCLASS
   intro l1 l2
   induction l1
-  case nil => dsimp; rw [zero_add]
-  case cons n l1' ih => dsimp; rw [ih, succ_add]
+  case nil => dsimp; rw [Nat.zero_add]
+  case cons n l1' ih => dsimp; rw [ih, Nat.succ_add]
 -- /WORKINCLASS
 
 -- HIDEFROMADVANCED
@@ -1085,7 +1085,7 @@ theorem eqblist_refl : ∀ l : NatList,
   case nil => rfl
   case cons n l' ih =>
     dsimp [eqblist, ih]
-    rw [eqb_refl, ih]
+    rw [Nat.beq_refl, ih]
     rfl
 -- /ADMITTED
 -- []
@@ -1226,15 +1226,15 @@ theorem bag_count_sum : ∀ (s1 s2 : Bag) (v : Nat),
   induction s1
   case nil =>
     dsimp [NatList.app, count]
-    rw [zero_add]
+    rw [Nat.zero_add]
   case cons h s1' ih =>
     dsimp [NatList.app, count]
     cases (h == v)
     case false =>
-      dsimp [succ_add]; exact ih
+      dsimp [Nat.succ_add]; exact ih
     case true =>
       dsimp
-      rw [succ_add, ←ih]
+      rw [Nat.succ_add, ←ih]
 -- /SOLUTION
 -- []
 
