@@ -244,4 +244,11 @@ def eqb (n m : Nat) :=
   | .succ _, 0 | 0, .succ _ => false
   | .succ n, .succ m => eqb n m
 
+def minustwo (n : Nat) : Nat :=
+  match n with
+  | .zero => .zero
+  | .succ (.zero) => .zero
+  | .succ (.succ n') => n'
+
+
   -- TODO: talk about using Nat.add_zero and friends from now on.

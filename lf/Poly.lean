@@ -767,7 +767,7 @@ def doit3times {α : Type} (f : α → α) (n : α) : α :=
 #check @doit3times  /- @doit3times : {α : Type} → (α → α) → α → α -/
 
 /- test_doit3times -/
-example : doit3times NatPlayground.Nat.minustwo 9 = 3 := by rfl
+example : doit3times minustwo 9 = 3 := by rfl
 
 /- test_doit3times' -/
 example : doit3times not true = false := by rfl
