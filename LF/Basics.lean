@@ -141,6 +141,12 @@ def nextWorkingDay (d : Day) : Day :=
   programming way of examining and making decisions on data. We assume some
   familiarity with basic pattern matching in this book.
 -/
+-- TODO (Claude): "We assume some familiarity with basic pattern matching"
+-- contradicts the chapter's premise that readers may be new to functional
+-- programming (see also MWH's comment below).  The Rocq original walks
+-- through `match` as a new concept; consider restoring a gentle explanation
+-- and dropping the OCaml/Haskell references, which assume exactly the
+-- background the chapter says it doesn't.
 
 
 /-
@@ -177,6 +183,9 @@ def nextWorkingDay (d : Day) : Day :=
   in comments.)
 -/
 -- BCP: Are these comments auto-verified?
+-- TODO (Claude): They are not, and some have drifted from what Lean
+-- actually prints (see `#eval minustwo 4` below).  Consider `#guard_msgs`
+-- to machine-check the response comments so they can't rot.
 -- /FULL
 
 
@@ -185,6 +194,11 @@ def nextWorkingDay (d : Day) : Day :=
 
 -- BCP: Can we write `nextWorkingDay .friday`?  If so, why didn't we?
 -- If not, why not?
+-- TODO (Claude): Related: the definition above uses the short form
+-- `.monday` while this #eval uses the long form `Day.friday`, with no
+-- stated rule for when each is used.  Suggest: use fully qualified names
+-- first, introduce the `.` abbreviation explicitly as a convenience (as
+-- BCP's comment above proposes), then stick to one convention.
 
 #eval nextWorkingDay (nextWorkingDay Day.saturday)
 /- ==> Day.tuesday -/
@@ -256,6 +270,10 @@ example : nextWorkingDay (nextWorkingDay Day.saturday) = Day.tuesday := by
   proved by observing that both sides of the equality evaluate to
   the same thing."
 -/
+-- TODO (Claude): "gives the assertion a name that we can use to refer to
+-- it later" is false in Lean: `example` is anonymous (the name survives
+-- only in the `/- test_next_working_day -/` comment).  This is leftover
+-- Rocq text.  Either use named `theorem`s for these tests or fix the prose.
 
 /-
   `rfl` stands for "reflexivity," which is the principle that any value is
@@ -267,6 +285,11 @@ example : nextWorkingDay (nextWorkingDay Day.saturday) = Day.tuesday := by
 -/
 -- /FULL
 
+-- TODO (Claude): The promise of "three different ways" (above) is broken:
+-- the `example` mechanism is never labeled as the second way, and this
+-- third way (compilation) is described but never demonstrated.  Either
+-- demonstrate it (even a one-line `lake` mention) or reduce the
+-- enumeration to two.
 /-
   Third, we can ask Lean to _compile_ our definitions to efficient
   native code.
@@ -281,6 +304,11 @@ example : nextWorkingDay (nextWorkingDay Day.saturday) = Day.tuesday := by
 -- FULL
 /- ###################################################################### -/
 /- ## Running Lean -/
+-- TODO (Claude): This section is nearly verbatim the same as RAB's
+-- "Aside: Using the Lean Extension" above, and the parenthetical before
+-- that repeats it a third time.  Keep one copy; the spot right after the
+-- first #eval (RAB's location) seems best, since that is the first moment
+-- the reader has a reason to look at the InfoView.
 
 /-
    You may already be reading this chapter inside VS Code, but if not
@@ -329,12 +357,24 @@ example : nextWorkingDay (nextWorkingDay Day.saturday) = Day.tuesday := by
   We define our own `MyBool` to teach the concept of building from
   scratch; later we'll switch to Lean's built-in `Bool`.
 -/
+-- TODO (Claude): The rationale for the `My` prefix is split across two
+-- half-paragraphs here.  Suggest one explicit sentence: "we name it
+-- `MyBool` only to avoid clashing with the built-in `Bool`; everything
+-- else is identical."  (Keeping the constructors named `true`/`false`
+-- seems right, per the harmonize-with-stdlib promise -- cf. BCP's
+-- question below.)
 
 /-
   The next command opens a new namespace so that our definitions don't
   clash with ones from the standard library. We'll discuss it in more
   detail below.
 -/
+-- TODO (Claude): "opens a new namespace" is incorrect: Lean sections do
+-- not namespace declarations -- `notb`, `andb`, etc. land at root scope
+-- and avoid clashes only because their names differ.  The correct
+-- section/namespace distinction is taught later in this very file, so a
+-- careful reader will notice the contradiction.  Fix the prose (or
+-- actually use `namespace`).
 section MyBool
 
 -- BCP: Why call it MyBool instead of just Bool?  (Or, conversely, why call the constructors
@@ -394,6 +434,10 @@ example : orb .true  .true  = .true  := by rfl
   we restrict ours locally to a _section_.
 -/
 -- BCP: We are already inside a section, no?
+-- TODO (Claude): The notation declarations below expose precedence
+-- numbers and `(priority := high)` with zero commentary, ~1200 lines
+-- before notation is actually discussed.  Either tell the reader to
+-- ignore the numbers for now or hide these lines.
 
 section
 local prefix:40 (priority := high) "!" => notb
@@ -496,6 +540,10 @@ def myBoolToBool (b : MyBool) : Bool :=
   function more concisely using the `bif ... then ... else` syntax, which is a
   convenient way to write simple conditional expressions.
 -/
+-- TODO (Claude): `bif` deserves one sentence of explanation: beginners
+-- will naturally write `if` next time and hit a `Decidable` error they
+-- cannot interpret.  Explain why `bif` here (boolean-valued condition
+-- vs. propositional `if`), or avoid the construct this early.
 
 def boolToMyBool (b : Bool) : MyBool :=
   bif b then true else false
@@ -507,6 +555,11 @@ end MyBool
 -- the next exercise. This is the same as in Rocq, but do we want
 -- to keep this pattern?
 -- BCP: Ideally no!
+-- TODO (Claude): Concretely: even trivial drop-in exercises would keep
+-- hands on keyboards through this stretch -- e.g., "define `isWeekend`",
+-- "write a `Color` inverter", "add your own `#check` and predict the
+-- output".  The namespaces/sections material in particular is reference
+-- content that could become an exercise-light aside.
 
 /- ###################################################################### -/
 /- ## Types -/
@@ -610,6 +663,10 @@ inductive Color : Type where
       - `Color.primary (Color.primary RGB.red)`
 -/
 -- BCP: Why do all of the constructors have namespaces except true and false?
+-- TODO (Claude): The bullet above draws attention to this inconsistency
+-- without resolving it, which is risky for beginners.  Either explain
+-- (`Bool`'s constructors are exported to the root namespace) or drop
+-- the remark.
 
 -- TERSE: /- *** -/
 
@@ -645,6 +702,10 @@ def isRed (c : Color) : Bool :=
   the subsequent pattern `.primary _` here means "the constructor
   `primary` applied to any `RGB` constructor except `red`."
 -/
+-- TODO (Claude): Typo above: "The pattern `.primary red`" is missing the
+-- dot on `red` (the code says `.primary .red`).  Since dot-notation rules
+-- are exactly what beginners are absorbing here, this will actively
+-- confuse.
 
 def isRed' (c : Color) : Bool :=
   match c with
@@ -746,6 +807,10 @@ end
   ######################################################################
   ## Tuples
 -/
+-- TODO (Claude): This section teaches a multi-field constructor, not
+-- Lean's actual tuple syntax `(a, b)` / `Prod`.  A reader who later meets
+-- real tuples may be confused by the terminology; consider a heading like
+-- "Constructors with multiple arguments".
 
 namespace TuplePlayground
 
@@ -843,6 +908,10 @@ namespace NatPlayground
   enumerated type to represent digits, we could use any of these as
   our representation natural numbers.
 -/
+-- TODO (Claude): Garbled sentences in this stretch: "as our
+-- representation natural numbers" (missing "of") just above, and in the
+-- next paragraph "...that is even simpler than binary, makes proofs
+-- simpler" (dangling clause).
 
 /-
   There are circumstances where each of these choices would
@@ -866,6 +935,13 @@ inductive Nat : Type where
   | zero
   | succ (n : Nat)
 
+-- TODO (Claude): The instructor advice at the top says to work directly
+-- in this .lean file, but the "hidden" scaffolding (this attribute, the
+-- OfNat instance, `unseal`, `@[irreducible]`, `#guard_msgs`, the BEq
+-- instance) is fully visible to anyone reading the source, and far beyond
+-- a beginner's reach.  Until a rendered pipeline hides these blocks,
+-- consider stating once near the top a convention like "you can safely
+-- ignore anything marked ASSUME THIS IS HIDDEN."
 -- ASSUME THIS IS HIDDEN
 attribute [pp_nodot] Nat.succ
 
@@ -923,6 +999,7 @@ example : succ (succ (succ (succ zero))) = 4 := by rfl
 /-
   We can also write computations functions on `Nat`.
 -/
+-- TODO (Claude): Garbled: "write computations functions on `Nat`".
 
 def pred (n : Nat) : Nat :=
   match n with
@@ -941,6 +1018,9 @@ def minustwo (n : Nat) : Nat :=
 -- TODO:
 -- Lean user question: how to get (succ (succ zero)) rather than
 -- NatPlayground.Nat.succ (NatPlayground.Nat.succ (NatPlayground.Nat.zero))
+-- TODO (Claude): Until the display issue is fixed, the response comment
+-- above should show what Lean actually prints; "what I see doesn't match
+-- the book" reads to a beginner as "I broke something."
 
 -- FULL
 #check Nat.succ  -- Nat → Nat
@@ -989,6 +1069,14 @@ example : odd 4 = false := by rfl
 -- TERSE: /- A multi-argument recursive function. -/
 
 
+-- TODO (Claude): The sealing strategy needs to be acknowledged in the
+-- text.  `add` and `mul` are @[irreducible] (so `rfl` won't prove
+-- `1 + 1 = 2`, usefully forcing rewrite practice), but `even`, `beq`,
+-- and `leb` are not, so `rfl` blasts right through `leb 2 2 = true`.
+-- A beginner will inevitably ask why `rfl` works on some computations
+-- and not others -- and stock Lean *will* prove `1 + 1 = 2` by `rfl`.
+-- One honest paragraph ("we have deliberately sealed `add` so you must
+-- practice rewriting; real Lean computes it") would defuse this.
 @[irreducible]
 def add (n : Nat) (m : Nat) : Nat :=
   match m with
@@ -1004,6 +1092,11 @@ instance instAdd : Add Nat where add := add
   # Proof by Rewriting
 
   -- BCP: Why do we jump from # to ### here?
+  -- TODO (Claude): Heading levels are inconsistent throughout this
+  -- region ("# Proof state and tactics" below should be a subsection),
+  -- and from `add_zero_zero_explained` onward whole theorem blocks drift
+  -- into two-space indentation.  Since whitespace is significant in
+  -- tactic blocks, the file itself should model clean indentation.
 
   ### Proving properties about functions in Lean
 
@@ -1307,6 +1400,10 @@ infix:65 "≤?" => leb
 example : 4 ≤? 2 = false := by rfl
 
 -- FULL
+-- TODO (Claude): `=?` does not exist in this file -- we defined `==`
+-- (via BEq), `≤?`, and `<?`.  Rocq residue.  Since `=` vs `==` is one of
+-- the most important distinctions in the chapter, this paragraph must
+-- use the actual notation.
 /-
   We now have two symbols that both look like equality: `=`
   and `=?`.  We'll have much more to say about their differences and
@@ -1343,6 +1440,10 @@ example : 4 <? 2 = false := by rfl  -- ADMITTED
 /- We can use our new functions to show an important property of
    natural numbers: -/
 
+-- TODO (Claude): Two issues here: (1) `intro n m; rfl` is the first use
+-- of `;` sequencing, which is never introduced; (2) the theorem is
+-- billed as "an important property" but is never motivated or used in
+-- this chapter -- it reads as an orphan.
 theorem beq_succ : ∀ n m : Nat, (succ n == succ m) = (n == m) := by
   intro n m; rfl
 
@@ -1354,6 +1455,12 @@ theorem beq_succ : ∀ n m : Nat, (succ n == succ m) = (n == m) := by
 
 -- TERSE: /- A (slightly) more interesting theorem: -/
 
+-- TODO (Claude): The file mixes two binder styles without comment:
+-- `theorem foo (n : Nat) : ...` (no `intro` needed, e.g. `add_zero_zero`)
+-- vs. `theorem foo : ∀ n : Nat, ...` plus `intro` (here).  "When do I
+-- need `intro`?" is one of a beginner's first hard questions; one
+-- explicit paragraph reconciling the two styles would prevent
+-- cargo-culting.
 theorem add_id_example : ∀ n m : Nat,
     n = m →
     n + n = m + m := by
@@ -1416,6 +1523,11 @@ theorem add_id_exercise : ∀ n m o : Nat,
   a door open for total nonsense to enter Lean's safe, formally
   checked world!
 -/
+-- TODO (Claude): `sorry` was already explained before the nandb
+-- exercise, and this second explanation arrives *after* add_id_exercise
+-- told the student to remove a `sorry`.  Keep one explanation, placed
+-- before its first use, and cover both roles there (exercise placeholder
+-- / temporarily accepting a claim).
 -- /FULL
 
 -- TERSE: /- *** -/
@@ -1569,6 +1681,10 @@ theorem andb3_exchange : ∀ b c d : Bool,
 
 
 -- EX2 (orb_false_true)
+-- TODO (Claude): This exercise requires the stdlib lemma `Bool.or_false`,
+-- but nothing has taught how a student would ever *find* such a lemma
+-- (hover, `exact?`, naming conventions).  Either add a sentence on lemma
+-- discovery or provide the needed fact directly.
 /-
   Prove the following claim.
   /- Tip: the rewrite rule to simplifiy (b || false)
@@ -1740,6 +1856,10 @@ example : incr (.b1 .z) = .b0 (.b1 .z) := by rfl  -- ADMITTED
 example : incr (.b0 (.b1 .z)) = .b1 (.b1 .z) := by rfl  -- ADMITTED
 /- test_bin_incr3 -/
 example : incr (.b1 (.b1 .z)) = .b0 (.b0 (.b1 .z)) := by rfl  -- ADMITTED
+-- TODO (Claude): The `unseal Nat.mul Nat.add in` incantations below sit
+-- directly on tests students must read and extend; a student who writes
+-- their own test will see it mysteriously fail without the unseal.
+-- Needs either an explanation or a way to hide it.
 /- test_bin_incr4 -/
 unseal Nat.mul Nat.add in
 example : binToNat (.b0 (.b1 .z)) = 2 := by rfl  -- ADMITTED
@@ -1781,6 +1901,9 @@ end NatPlayground
   Use the tactics you have learned so far to prove the following
   theorem about boolean functions.
 -/
+-- TODO (Claude): This exercise quietly requires rewriting with a
+-- *universally quantified* hypothesis -- a real conceptual jump from
+-- rewriting with `h : n = m` that deserves a sentence of preparation.
 
 theorem identity_fn_applied_twice : ∀ f : Bool → Bool,
     (∀ x : Bool, f x = x) →
@@ -1800,6 +1923,9 @@ theorem identity_fn_applied_twice : ∀ f : Bool → Bool,
   function `f` has the property that `f x = !x`.
 -/
 
+-- TODO (Claude): The solution below uses `<;>`, although the text
+-- explicitly defers such combinators to Tactics.lean; students reading
+-- solutions will be confused.  Consider writing out both cases.
 -- SOLUTION
 theorem negation_fn_applied_twice : ∀ f : Bool → Bool,
     (∀ x : Bool, f x = !x) →
