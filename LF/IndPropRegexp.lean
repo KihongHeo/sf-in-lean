@@ -417,7 +417,7 @@ theorem weak_pumping_app : ∀ {α : Type}
     pumpingConstant re1 <= List.length s1 ∨ pumpingConstant re2 <= List.length s2 := by
   -- ADMITTED
     rw [app_length] at Hlen
-    apply plus_le_cases
+    apply add_le_cases
     apply Hlen
   -- /ADMITTED
   . specialize IH1 H

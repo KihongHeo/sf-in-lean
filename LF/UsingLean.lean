@@ -250,6 +250,7 @@ def minustwo (n : Nat) : Nat :=
   | .succ (.zero) => .zero
   | .succ (.succ n') => n'
 
+@[irreducible]
 def double (n : Nat) : Nat :=
   match n with
   | .zero => 0
@@ -265,3 +266,42 @@ theorem even_S : ∀ n : Nat,
     rewrite [even, ih, NatPlayground.Nat.notb_involutive]; rfl
 
   -- TODO: talk about using Nat.add_zero and friends from now on.
+
+  -- (OA) : added lemmas proved for our Nat for Lean's Nat to prevent
+  --        later files from breaking.
+
+theorem even_zero : even 0 = true := by rfl
+
+theorem even_succ : ∀ n : Nat, even (n + 1) = !even n :=
+  even_S
+
+unseal double in
+theorem double_zero : double 0 = 0 := by rfl
+
+unseal double in
+theorem double_succ (n : Nat) : double (n + 1) = double n + 2 := by rfl
+
+theorem double_add (n : Nat) : double n = n + n := by
+  induction n with
+  | zero => rw [double_zero]
+  | succ n' ih => rw [double_succ, ih, Nat.succ_add n' (n' + 1), Nat.add_succ n' n']
+
+theorem beq_succ (n m : Nat) : (n + 1 == m + 1) = (n == m) := by simp
+theorem eqb_refl (n : Nat) : (n == n) = true := by simp
+
+def leb (n m : Nat) : Bool :=
+  match n, m with
+  | 0, _ => true
+  | _ + 1, 0 => false
+  | n' + 1, m' + 1 => leb n' m'
+
+infix:65 (priority := high) " ≤? " => leb
+
+theorem zero_leb (n : Nat) : leb 0 n = true := by rfl
+theorem succ_leb_zero (n : Nat) : leb (n + 1) 0 = false := by rfl
+theorem succ_leb_succ (n m : Nat) : leb (n + 1) (m + 1) = leb n m := by rfl
+
+def ltb (n m : Nat) : Bool :=
+  leb (n + 1) m
+
+infix:65 (priority := high) " <? " => ltb

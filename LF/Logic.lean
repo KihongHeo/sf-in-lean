@@ -15,6 +15,8 @@ import LF.Poly
 import LF.Tactics
 import LF.CustomTactics
 open Nat hiding add_succ mul_succ beq beq_eq
+-- (OA) : added these to use Lean's Nat.
+open Nat (add add_comm add_assoc add_zero zero_add mul_zero mul_one zero_mul)
 -- /HIDEFROMHTML
 
 /- FULL: We have now seen many examples of factual claims (i.e.,
@@ -261,7 +263,7 @@ theorem add_is_zero (n m : Nat) : n + m = 0 → n = 0 ∧ m = 0 := by
     case left => exact h
     case right => rfl
   case succ =>
-    rw [add_succ]
+    rw [Nat.add_succ]
     contradiction
   -- FULL: /ADMITTED
   -- TERSE: /WORKINCLASS
@@ -445,7 +447,7 @@ theorem mul_is_zero (n m : Nat) (h : n * m = 0) : n = 0 ∨ m = 0 := by
     cases n
     case zero => left; rfl
     case succ n' =>
-      rw [mul_succ, add_succ] at h
+      rw [Nat.mul_succ, Nat.add_succ] at h
       contradiction
   -- /ADMITTED
 -- []
@@ -1035,7 +1037,7 @@ theorem leb_plus_exists : ∀ n m : Nat, (n ≤? m = true) → ∃ x, m = x + n 
 theorem leb_plus (n m : Nat) : (n ≤? (m + n)) = true := by
   induction n
   case zero => rfl
-  case succ n' ih => rw [add_succ m, succ_leb_succ]; exact ih
+  case succ n' ih => rw [Nat.add_succ m, succ_leb_succ]; exact ih
 -- /QUIETSOLUTION
 
 theorem add_exists_leb (n m : Nat) (h : ∃ x, m = x + n) : n ≤? m = true := by
@@ -1052,7 +1054,7 @@ theorem add_exists_leb' : ∀ n m, (∃ x, m = x + n) → n ≤? m = true := by
   case zero => intro m H; rfl
   case succ n' ih =>
     intro m ⟨x, hx⟩
-    rw [hx, add_succ x, succ_leb_succ]
+    rw [hx, Nat.add_succ x, succ_leb_succ]
     apply ih; exists x
 -- /HIDE
 -- []
@@ -1309,11 +1311,11 @@ theorem combined_odd_even_elim_even Podd Peven n
 
 /- We can also use it to check what theorem a particular identifier refers to: -/
 
-/-- info: add_comm (n m : Nat) : n + m = m + n -/
+/-- info: Nat.add_comm (n m : Nat) : n + m = m + n -/
 #guard_msgs in
 #check add_comm
 
-/-- info: add_assoc (n m p : Nat) : n + (m + p) = n + m + p -/
+/-- info: Nat.add_assoc (n m k : Nat) : n + m + k = n + (m + k) -/
 #guard_msgs in
 #check add_assoc
 

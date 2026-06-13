@@ -612,7 +612,7 @@ unseal member in
 theorem member_add_same v t : member v (add v t) = true := by
   -- ADMITTED
   dsimp [add, member]
-  rw [Nat.beq_refl]
+  rw [eqb_refl]
   dsimp
   -- /ADMITTED
 
@@ -711,7 +711,7 @@ unseal remove_all in
 theorem remove_all_add_same v t : remove_all v (add v t) = remove_all v t := by
   -- ADMITTED
   dsimp [add, remove_all]
-  rw [Nat.beq_refl]
+  rw [eqb_refl]
   dsimp
   -- /ADMITTED
 
@@ -775,7 +775,7 @@ theorem add_inc_count (s : Bag) (v : Nat) :
     count v (add v s) = (count v s) + 1 := by
   dsimp [add]
   rw [count_cons_same]
-  exact (Nat.beq_refl v)
+  exact (eqb_refl v)
 -- /QUIETSOLUTION
 -- GRADE_MANUAL 2: add_inc_count
 -- []
@@ -1027,7 +1027,7 @@ theorem app_length (l1 l2 : NatList) :
   induction l1
   case nil => rw [nil_append, nil_length, Nat.zero_add]
   case cons n l1' ih =>
-    rw [cons_append, cons_length, ih, cons_length, ←Nat.add_assoc, ←Nat.add_assoc, Nat.add_comm 1]
+    rw [cons_append, cons_length, ih, cons_length, Nat.succ_add]
   -- /WORKINCLASS
 
 -- HIDEFROMADVANCED
@@ -1258,7 +1258,7 @@ theorem eqblist_nil : eqblist [] [] = true := by rfl
 unseal eqblist in
 theorem eqblist_cons_same h t1 t2 : eqblist (h :: t1) (h :: t2) = eqblist t1 t2 := by
   dsimp [eqblist]
-  rw [Nat.beq_refl, Bool.true_and]
+  rw [eqb_refl, Bool.true_and]
 
 unseal eqblist in
 theorem eqblist_cons_diff h1 h2 t1 t2 : (h1 == h2) = false -> eqblist (h1 :: t1) (h2 :: t2) = false := by
@@ -1639,7 +1639,7 @@ def eqb_id (x1 x2 : MyId) : Bool :=
 theorem eqb_id_refl (x : MyId) : eqb_id x x = true := by
   -- ADMITTED
   dsimp [eqb_id]
-  rw [Nat.beq_refl]
+  rw [eqb_refl]
 -- /ADMITTED
 -- []
 

@@ -199,8 +199,8 @@ theorem update_same (m : PartialMap α β) (a : α) (b : β) (h : m[a] = some b)
 
 theorem update_permute (m : PartialMap α β) (a₁ a₂ : α) (b₁ b₂ : β) (h : a₁ ≠ a₂) :
     (a₁ →ₚ b₁; a₂ →ₚ b₂; m) = (a₂ →ₚ b₂; a₁ →ₚ b₁; m) := by
-simp only [totalMap_eq]
-exact TotalMap.update_permute m a₁ a₂ (some b₁) (some b₂) h
+  simp only [totalMap_eq]
+  exact TotalMap.update_permute m a₁ a₂ (some b₁) (some b₂) h
 
 def Subset (m₁ m₂ : PartialMap α β) : Prop :=
   ∀ (a : α) (b : β), m₁[a] = some b → m₂[a] = some b

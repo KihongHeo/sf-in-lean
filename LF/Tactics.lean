@@ -30,6 +30,11 @@
 import LF.Poly
 import LF.CustomTactics
 
+-- Core `add_comm`/`add_succ`/… are `protected`, so a plain `open Nat`
+-- doesn't expose them; bring the ones we use in by name so we can write
+-- them unprefixed (like the lemmas we prove ourselves, e.g. `double_zero`).
+open Nat (add_comm add_assoc add_zero add_succ mul_one succ_sub_succ)
+
 -- ######################################################
 -- # The `apply` Tactic *
 
@@ -1475,9 +1480,9 @@ theorem app_length_twice {α : Type} (n : Nat) (l : List α) :
     rw [List.length_cons] at *
     have h : (tl ++ tl).length + 1 = (tl ++ hd :: tl).length := by
       apply app_length_cons _ _ hd _; rfl
-    rw [← heq, ← h, ih tl.length, add_assoc]
+    rw [← heq, ← h, ih tl.length, ← add_assoc]
     congr 1
-    rw [← add_assoc, ← add_assoc]
+    rw [add_assoc, add_assoc]
     congr 1
     rw [add_comm]
     rfl
