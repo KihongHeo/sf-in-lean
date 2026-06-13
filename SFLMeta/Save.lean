@@ -17,19 +17,20 @@ open SubVerso.Highlighting
 open Verso.Genre.Manual.InlineLean.Scopes (getScopes setScopes)
 open Verso (BuildLogT reportError)
 
+namespace SFLMeta
+
 /--
 When `true`, `lean` code blocks render with the teacher (solution-filled)
 source in the HTML and TeX output. When `false` (the default), the rendered
 output shows the student form: each `solution!(…)` is replaced by `sorry` and
 each `-- SOLUTION … -- END SOLUTION` region is collapsed to `-- FILL IN HERE`.
-The teacher source is always also elaborated, so author errors in solutions
-are reported during the book build regardless of this setting. -/
-register_option sf.showSolutions : Bool := {
-  defValue := false
-  descr := "When true, show the teacher (solution-filled) version of `lean` code blocks in the rendered HTML output."
-}
 
-namespace SFLMeta
+Both variants are elaborated and highlighted when the chapter is compiled (so
+author errors in solutions are always reported); this flag merely selects
+which variant survives traversal.  Each `Main*.lean` executable sets it before
+calling `manualMain`, which is what makes the student and solutions builds two
+runs of the same compiled document rather than two compilations. -/
+initialize showSolutions : IO.Ref Bool ← IO.mkRef false
 
 /-! ## Block extensions used by the saver -/
 
@@ -94,6 +95,48 @@ partial def inlineToText : Verso.Doc.Inline Manual → String
 def inlinesToText (inls : Array (Verso.Doc.Inline Manual)) : String :=
   String.join (inls.toList.map inlineToText)
 
+/--
+Strip leading whitespace from the continuation lines of a soft-wrapped
+paragraph. Verso keeps the source's continuation-line indentation inside the
+paragraph's inline text, which would otherwise compound with the indentation
+we add when rendering list items. -/
+private def stripSoftBreakIndent (s : String) : String :=
+  String.intercalate "\n" ((s.splitOn "\n").map (·.trimAsciiStart.toString))
+
+/-- Pretty-print a paragraph's inlines, normalising soft-wrap indentation. -/
+def paraToText (inls : Array (Verso.Doc.Inline Manual)) : String :=
+  stripSoftBreakIndent (inlinesToText inls)
+
+/--
+Render a Verso block to a Markdown-like string for inclusion in a `/-! … -/`
+comment.  List items are prefixed with `- ` / `N. `; continuation lines are
+indented to align under the item text. -/
+private partial def blockToText : Verso.Doc.Block Manual → String
+  | .para inlines => paraToText inlines
+  | .code s => "`" ++ s.trimAscii.toString ++ "`"
+  | .concat bs | .blockquote bs =>
+    String.intercalate "\n\n" (bs.toList.map blockToText)
+  | .ul lis =>
+    let items := lis.toList.map fun li =>
+      let body := String.intercalate "\n\n" (li.contents.toList.map blockToText)
+      "- " ++ body.replace "\n" "\n  "
+    -- Blank lines between items only when some item is itself multi-line.
+    let sep := if items.any (·.contains '\n') then "\n\n" else "\n"
+    String.intercalate sep items
+  | .ol start lis =>
+    let items := lis.toList.mapIdx fun i li =>
+      let pfx := s!"{start + i}. "
+      let indent := String.ofList (List.replicate pfx.length ' ')
+      let body := String.intercalate "\n\n" (li.contents.toList.map blockToText)
+      pfx ++ body.replace "\n" s!"\n{indent}"
+    let sep := if items.any (·.contains '\n') then "\n\n" else "\n"
+    String.intercalate sep items
+  | .dl dis =>
+    String.intercalate "\n" (dis.toList.map fun di =>
+      inlinesToText di.term ++ "\n:   " ++
+      String.intercalate "\n    " (di.desc.toList.map blockToText))
+  | .other _ bs => String.intercalate "\n\n" (bs.toList.map blockToText)
+
 /-! ## Lake project scaffold templates -/
 
 /-- Contents of the generated project's `lakefile.toml`. -/
@@ -119,8 +162,14 @@ private def appendTeacherStudent
   buf.insert file (t ++ teacher, st ++ student)
 
 /-- Wrap a string in `/-! … -/` module-doc comment form, normalising trailing whitespace. -/
+-- To extend the inline treatment to multi-line blocks, replace the branch with
+-- just `"/-! " ++ t ++ " -/\n\n"` (the else branch below) for all cases.
+-- That puts the first content line on the `/-!` line and the last on the `-/` line.
 private def asModuleDoc (s : String) : String :=
-  "/-!\n" ++ s.trimAscii.toString ++ "\n-/\n\n"
+  let t := s.trimAscii.toString
+  -- if t.contains '\n' then "/-!\n" ++ t ++ "\n-/\n\n"
+  -- else
+  "/-! " ++ t ++ " -/\n\n"
 
 /-- Merge adjacent `/-! … -/` blocks into one, separating their contents with a blank line. -/
 private def mergeAdjacentModuleDocs (s : String) : String :=
@@ -142,21 +191,32 @@ private def decodeExercise? (data : Json) : Option (Nat × String) :=
 
 /-!
 `Block.leanSaved` wraps an elaborated `lean` block and records both the teacher
-and student source variants computed at elaboration time. HTML/TeX rendering
-passes through to the inner block; the saver consumes the recorded strings
+and student source variants computed at elaboration time. Its two children are
+the teacher-rendered and student-rendered forms of the block; traversal keeps
+the one selected by the `showSolutions` flag, so the same compiled document
+serves both the student and solutions builds. HTML/TeX rendering passes
+through to the surviving child; the saver consumes the recorded strings
 directly without re-parsing anything. -/
-
-block_extension Block.leanSaved (teacher : String) (student : String) where
-  data := Json.arr #[.str teacher, .str student]
-  traverse _ _ _ := pure none
-  toHtml := some fun _ goB _ _ contents => contents.mapM goB
-  toTeX  := some fun _ goB _ _ contents => contents.mapM goB
 
 /-- Decode a `Block.leanSaved` payload `(teacher, student)`. -/
 private def decodeLeanSaved? (data : Json) : Option (String × String) :=
   match data with
   | .arr #[.str t, .str s] => some (t, s)
   | _ => none
+
+block_extension Block.leanSaved (teacher : String) (student : String) where
+  data := Json.arr #[.str teacher, .str student]
+  traverse _ data contents := do
+    -- Two children = still unselected: keep the teacher or student variant.
+    -- One child (or anything else) = already selected; nothing to do.
+    if h : contents.size = 2 then
+      let some (t, s) := decodeLeanSaved? data | return none
+      let chosen := if ← showSolutions.get then contents[0] else contents[1]
+      return some (.other (Block.leanSaved t s) #[chosen])
+    else
+      return none
+  toHtml := some fun _ goB _ _ contents => contents.mapM goB
+  toTeX  := some fun _ goB _ _ contents => contents.mapM goB
 
 /-! ## Syntactic rewriting of `solution!` markers
 
@@ -311,13 +371,12 @@ Wraps each ` ```lean … ``` ` code block. The pipeline is:
    `teacherEditRef` with the source ranges of every `solution!(…)` invocation.
 3. Convert those absolute source ranges to offsets relative to the block's
    own source string and compute the teacher and student variants.
-4. If the `sf.showSolutions` option is `true`, return the upstream block
-   unchanged so the rendered HTML shows the teacher form.
-5. Otherwise, run `elabAndHighlightStudent` on the student source (starting
-   from the pre-teacher environment, so prior chapter definitions are
-   available but this block's teacher-side defs are not) and emit a
-   `Block.lean` wrapping the resulting `Highlighted` so the rendered HTML
-   shows the student form. -/
+4. Run `elabAndHighlightStudent` on the student source (starting from the
+   pre-teacher environment, so prior chapter definitions are available but
+   this block's teacher-side defs are not).
+5. Emit a `Block.leanSaved` with two children: the upstream (teacher-rendered)
+   block and a `Block.lean` wrapping the student `Highlighted`. Traversal
+   later drops one of the two according to the `showSolutions` flag. -/
 
 @[code_block]
 def lean : CodeBlockExpanderOf Verso.Genre.Manual.InlineLean.LeanBlockConfig
@@ -347,22 +406,18 @@ def lean : CodeBlockExpanderOf Verso.Genre.Manual.InlineLean.LeanBlockConfig
           }
     let teacher := stripFillInMarkers (applyEdits src teacherRanges)
     let student := applyFillInForStudent (applyEdits src studentRanges)
-    if sf.showSolutions.get (← getOptions) then
-      ``(Verso.Doc.Block.other
-          (SFLMeta.Block.leanSaved $(quote teacher) $(quote student))
-          #[$underlying])
-    else
-      let studentHls ← elabAndHighlightStudent preEnv preScopes student
-      let range := Syntax.getRange? str
-      let lspRange := range.map (← getFileMap).utf8RangeToLspRange
-      ``(Verso.Doc.Block.other
-          (SFLMeta.Block.leanSaved $(quote teacher) $(quote student))
-          #[Verso.Doc.Block.other
-              (Verso.Genre.Manual.InlineLean.Block.lean
-                $(quote studentHls)
-                (some $(quote (← getFileName)))
-                $(quote lspRange))
-              #[Verso.Doc.Block.code $(quote student)]])
+    let studentHls ← elabAndHighlightStudent preEnv preScopes student
+    let range := Syntax.getRange? str
+    let lspRange := range.map (← getFileMap).utf8RangeToLspRange
+    ``(Verso.Doc.Block.other
+        (SFLMeta.Block.leanSaved $(quote teacher) $(quote student))
+        #[$underlying,
+          Verso.Doc.Block.other
+            (Verso.Genre.Manual.InlineLean.Block.lean
+              $(quote studentHls)
+              (some $(quote (← getFileName)))
+              $(quote lspRange))
+            #[Verso.Doc.Block.code $(quote student)]])
 
 /-- Find the first `Block.code` source string in `contents`. -/
 private def findCodeSource? (contents : Array (Block Manual)) : Option String :=
@@ -379,15 +434,17 @@ private def findAlt? (contents : Array (Verso.Doc.Block Manual)) : Option String
 mutual
 
 /--
-Walk a list of blocks, batching consecutive `.para` blocks into a single
-`/-! … -/` comment instead of emitting one per paragraph. -/
+Walk a list of blocks, batching consecutive `.para`, `.ul`, and `.ol` blocks
+into a single `/-! … -/` comment instead of emitting one per block, so a list
+stays in the same comment as its lead-in paragraph. -/
 partial def walkBlocks (file : String) (bs : Array (Verso.Doc.Block Manual))
     (buf : SaveBuffers) : SaveBuffers := Id.run do
   let mut buf := buf
   let mut pending : Array String := #[]
   for b in bs do
     match b with
-    | .para inls => pending := pending.push (inlinesToText inls)
+    | .para inls => pending := pending.push (paraToText inls)
+    | .ul _ | .ol _ _ => pending := pending.push (blockToText b)
     | _ =>
       if !pending.isEmpty then
         buf := appendBoth buf file (asModuleDoc (String.intercalate "\n\n" pending.toList))
@@ -458,14 +515,13 @@ partial def walkBlock (file : String) (b : Verso.Doc.Block Manual)
       return buf
     -- Unknown extension block: recurse into children as a best-effort.
     walkBlocks file contents buf
-  | .para inls => return appendBoth buf file (asModuleDoc (inlinesToText inls))
+  | .para inls => return appendBoth buf file (asModuleDoc (paraToText inls))
   | .code s => return appendBoth buf file (asModuleDoc s.trimAscii.toString)
   | .concat bs | .blockquote bs => walkBlocks file bs buf
-  | .ul lis | .ol _ lis =>
-    let mut buf := buf
-    for li in lis do
-      buf := walkBlocks file li.contents buf
-    return buf
+  | .ul _ | .ol _ _ =>
+    -- Normally batched with adjacent paragraphs in `walkBlocks`; this case is
+    -- only reached for a list arriving outside that batching.
+    return appendBoth buf file (asModuleDoc (blockToText b))
   | .dl dis =>
     let mut buf := buf
     for di in dis do
@@ -523,7 +579,8 @@ def walkOuter (rootFile : String) (text : Part Manual) (buf : SaveBuffers) :
     buf := appendBoth buf rootFile s!"import {chapterModule p}\n"
   for p in subParts do
     let chapterFile := chapterPath p
-    buf := appendBoth buf chapterFile "import Lean\n\nopen Lean\n\n"
+    -- BCP: Maybe this is not needed?
+    -- buf := appendBoth buf chapterFile "import Lean\n\nopen Lean\n\n"
     buf := walkSection 1 chapterFile p buf
   return buf
 
@@ -568,41 +625,31 @@ private def buildProject (dest : System.FilePath) (kind : String) :
     IO.println s!"Generated {kind} project built successfully."
 
 /--
-Shared implementation for `emitSaved` and `emitSavedTerse`. Walks the document
-tree, accumulates per-file content, writes teacher and student Lake projects
-under `dest/generated/{teacherName,studentName}/`, and verifies they compile. -/
-private def emitSavedImpl (teacherName studentName : String) :
+Shared implementation. Writes the extracted Lean project for one variant of
+the book to `_out/<variant>/lean/`, next to that variant's `html-multi/`
+(which `manualMain` writes via `cfg.destination := "_out/<variant>"`).
+`isTeacher` selects the solution-filled or student form of the code. -/
+private def emitSavedImpl (variant : String) (isTeacher : Bool) :
     Mode → Config → TraverseState → Part Manual → BuildLogT IO Unit :=
-  fun _mode cfg _state text => do
+  fun _mode _cfg _state text => do
     let buf : SaveBuffers := walkOuter "LF.lean" text ({} : SaveBuffers)
     let toolchain ← (IO.FS.readFile "lean-toolchain").toBaseIO >>= fun
       | .ok s => pure s
       | .error _ => pure "leanprover/lean4:v4.30.0-rc2\n"
-    let teacherFiles : Array (String × String) :=
-      buf.fold (init := #[]) fun acc file (teacher, _student) =>
-        acc.push (file, mergeAdjacentModuleDocs teacher)
-    let studentFiles : Array (String × String) :=
-      buf.fold (init := #[]) fun acc file (_teacher, student) =>
-        acc.push (file, mergeAdjacentModuleDocs student)
-    let teacherDest := cfg.destination / "generated" / teacherName
-    let studentDest := cfg.destination / "generated" / studentName
-    writeProject teacherDest toolchain teacherName teacherFiles
-    writeProject studentDest toolchain studentName studentFiles
-    buildProject teacherDest teacherName
-    buildProject studentDest studentName
+    let files : Array (String × String) :=
+      buf.fold (init := #[]) fun acc file (teacher, student) =>
+        acc.push (file, mergeAdjacentModuleDocs (if isTeacher then teacher else student))
+    let dest := System.FilePath.mk "_out" / variant / "lean"
+    writeProject dest toolchain variant files
+    buildProject dest variant
 
-/--
-The Verso `ExtraStep` for full builds. Walks the document tree (which has full
-content; terse blocks are absent after traversal) and writes teacher and student
-Lake projects under `<destination>/generated/{teacher,student}/`. -/
-def emitSaved : Mode → Config → TraverseState → Part Manual → BuildLogT IO Unit :=
-  emitSavedImpl "teacher" "student"
+/-- `ExtraStep` for the student build: `_out/student/lean/`, solutions elided. -/
+def emitSavedStudent := emitSavedImpl "student" false
 
-/--
-The Verso `ExtraStep` for terse builds. Walks the document tree (which has
-terse content; full blocks are absent after traversal) and writes teacher and
-student Lake projects under `<destination>/generated/{terse-teacher,terse-student}/`. -/
-def emitSavedTerse : Mode → Config → TraverseState → Part Manual → BuildLogT IO Unit :=
-  emitSavedImpl "terse-teacher" "terse-student"
+/-- `ExtraStep` for the solutions build: `_out/solutions/lean/`, solutions shown. -/
+def emitSavedSolutions := emitSavedImpl "solutions" true
+
+/-- `ExtraStep` for the terse build: `_out/terse/lean/`, solutions elided. -/
+def emitSavedTerse := emitSavedImpl "terse" false
 
 end SFLMeta

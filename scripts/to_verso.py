@@ -101,30 +101,99 @@ def _is_label_comment(text: str) -> bool:
     return (bool(re.match(r"^[\w.']+$", t)) or
             bool(re.match(r'^#{3,}\s*$', t)) or
             bool(re.match(r'^=+>', t)) or
-            bool(re.match(r'^(BCP|JC|MWH|CGH|RAB)[: ]', t)))
+            bool(re.match(r'^(BCP|JC|MWH|CGH|RAB|TODO)[: ]', t)))
 
-def _parse_section_header(text: str):
-    """If text is a section-header comment, return (level, title); else None.
+_SEPARATOR_LINE_RE = re.compile(r'^\s*#{4,}\s*$')   # ######... divider lines
+_HEADING_LINE_RE = re.compile(r'^\s{0,3}(#{1,6})\s+(.+)$')
+_DEV_NOTE_RE = re.compile(r'^\s*-- (BCP|JC|MWH|CGH|RAB|TODO)\b')
+_DEV_NOTE_CONT_RE = re.compile(r'^\s*--')
 
-    Recognised forms:
-      ########...# Title   → level 1  (the ######...# line is ignored;
-                                        the next non-blank line has # Title)
-      # Title              → level 1
-      ## Title             → level 2
-      ### Title            → level 3
+
+def _strip_dev_note_lines(text: str) -> str:
+    """Remove author/editor note lines (`-- BCP: ...`, `-- TODO ...`) embedded
+    inside block-comment prose, along with their `--` continuation lines."""
+    out = []
+    lines = text.splitlines()
+    i = 0
+    while i < len(lines):
+        if _DEV_NOTE_RE.match(lines[i]):
+            i += 1
+            while i < len(lines) and _DEV_NOTE_CONT_RE.match(lines[i]):
+                i += 1
+        else:
+            out.append(lines[i])
+            i += 1
+    return '\n'.join(out)
+
+
+def _md_bold_to_verso(text: str) -> str:
+    """Translate Markdown `**bold**` to Verso `*bold*` (Verso uses a single
+    `*` for bold and `_` for emphasis; doubled stars trip its markup linter)."""
+    return re.sub(r'\*\*([^*\n]+)\*\*', r'*\1*', text)
+
+
+def _comment_tokens(body: str):
+    """Split a block-comment body into header and prose tokens.
+
+    A comment may contain several `## Title` heading lines with prose between
+    them; each heading becomes a block_comment_header token and each prose run
+    becomes a block_comment_prose token (the old code kept only the first
+    heading and silently dropped everything after it).  `####...` divider
+    lines and embedded dev notes are stripped.
     """
-    lines = [l.strip() for l in text.splitlines() if l.strip()]
-    if not lines:
-        return None
-    # Strip a separator line made of # repeated
-    if re.match(r'^#{4,}\s*$', lines[0]):
-        lines = lines[1:]
-    if not lines:
-        return None
-    m = re.match(r'^(#{1,6})\s+(.+)$', lines[0])
-    if m:
-        return len(m.group(1)), m.group(2).strip()
-    return None
+    body = _strip_dev_note_lines(body)
+    lines = [l for l in body.splitlines() if not _SEPARATOR_LINE_RE.match(l)]
+    tokens = []
+    prose = []
+
+    def flush_prose():
+        seg = list(prose)
+        while seg and not seg[0].strip():
+            seg.pop(0)
+        while seg and not seg[-1].strip():
+            seg.pop()
+        if seg:
+            tokens.append(('block_comment_prose',
+                           _md_bold_to_verso('\n'.join(seg))))
+        prose.clear()
+
+    for l in lines:
+        m = _HEADING_LINE_RE.match(l)
+        if m:
+            flush_prose()
+            tokens.append(('block_comment_header',
+                           (len(m.group(1)), m.group(2).strip())))
+        else:
+            prose.append(l)
+    flush_prose()
+    return tokens if tokens else [('blank', None)]
+
+def _scan_block_comment(lines, i):
+    """Collect a block comment starting at lines[i] (whose first `/-` opens it),
+    tracking `/- ... -/` nesting.  Returns (raw_lines, next_index)."""
+    raw = []
+    depth = 0
+    n = len(lines)
+    while i < n:
+        line = lines[i]
+        j = 0
+        while j < len(line) - 1:
+            if line.startswith('/-', j):
+                depth += 1
+                j += 2
+            elif line.startswith('-/', j):
+                depth -= 1
+                j += 2
+                if depth == 0:
+                    break
+            else:
+                j += 1
+        raw.append(line)
+        i += 1
+        if depth <= 0:
+            break
+    return raw, i
+
 
 def _extract_comment_text(raw_lines):
     """Strip /- and -/ delimiters from a list of raw source lines and dedent."""
@@ -168,7 +237,7 @@ _EX_CLOSE_RE = re.compile(r'^-- \[\]$')
 _GRADE_RE = re.compile(r'^--\s+GRADE_')
 _SOLUTION_OPEN_RE = re.compile(r'^--\s+SOLUTION$')
 _SOLUTION_CLOSE_RE = re.compile(r'^--\s+/SOLUTION$')
-_AUTHOR_RE = re.compile(r'^-- (BCP|JC|MWH|CGH|RAB)[: ](.*)$')
+_AUTHOR_RE = re.compile(r'^-- (BCP|JC|MWH|CGH|RAB|TODO)[: (](.*)$')
 
 
 def tokenize(text: str):
@@ -202,44 +271,29 @@ def tokenize(text: str):
             continue
 
         # --- Block comment /- ... -/ ---
-        # Only treat as prose when /- starts at column 0.  Indented /- (inside
-        # theorem proofs) is left as a code line so proofs stay intact.
-        # Must not be /-- (docstring) or /-! (module docstring)
-        m_start = re.match(r'^/-(?![-!])', line)
+        # Must not be /-- (docstring) or /-! (module docstring).
+        # A comment that directly continues a code run (an indented /- with a
+        # code line right before it, e.g. commentary between tactics inside a
+        # proof) is kept as code so the proof stays intact.  Any other comment
+        # -- including indented but standalone ones -- becomes prose.
+        m_start = re.match(r'^\s*/-(?![-!])', line)
         if m_start:
-            # Single-line? /- ... -/  (already know line starts with /-)
-            m_single = re.match(r'^/-(.*?)-/\s*$', line)
-            if m_single:
-                body = m_single.group(1).strip()
-                hdr = _parse_section_header(body)
-                if hdr:
-                    tokens.append(('block_comment_header', hdr))
-                elif _is_label_comment(body):
-                    tokens.append(('block_comment_label', body))
-                else:
-                    tokens.append(('block_comment_prose', body))
-                i += 1
+            raw, i = _scan_block_comment(lines, i)
+            indented = bool(re.match(r'^\s', line))
+            prev_kind = tokens[-1][0] if tokens else None
+            if indented and prev_kind == 'code_line':
+                # Part of a code run: emit verbatim (blank lines inside the
+                # comment stay code lines, so the run is not split).
+                for l in raw:
+                    tokens.append(('code_line', l))
                 continue
-
-            # Multi-line: collect until -/
-            raw = [line]
-            i += 1
-            while i < n and '-/' not in lines[i]:
-                raw.append(lines[i])
-                i += 1
-            if i < n:
-                raw.append(lines[i])
-                i += 1
             body = _extract_comment_text(raw)
-            hdr = _parse_section_header(body)
-            if hdr:
-                tokens.append(('block_comment_header', hdr))
-            elif _is_label_comment(body):
+            if _is_label_comment(body):
                 tokens.append(('block_comment_label', body))
             elif not body.strip():
                 tokens.append(('blank', None))
             else:
-                tokens.append(('block_comment_prose', body))
+                tokens.extend(_comment_tokens(body))
             continue
 
         # --- Structural markers (check stripped) ---
@@ -333,6 +387,29 @@ def tokenize(text: str):
 
     return tokens
 
+def _strip_lean_comments(text: str) -> str:
+    """Return *text* with `--` line comments and (nested) `/- ... -/` block
+    comments removed; used to detect code blocks that contain no real code."""
+    out = []
+    depth = 0
+    j = 0
+    while j < len(text):
+        if text.startswith('/-', j):
+            depth += 1
+            j += 2
+        elif text.startswith('-/', j) and depth > 0:
+            depth -= 1
+            j += 2
+        elif depth == 0 and text.startswith('--', j):
+            nl = text.find('\n', j)
+            j = len(text) if nl == -1 else nl
+        else:
+            if depth == 0:
+                out.append(text[j])
+            j += 1
+    return ''.join(out)
+
+
 # ---------------------------------------------------------------------------
 # Renderer
 # ---------------------------------------------------------------------------
@@ -343,8 +420,9 @@ class Renderer:
     def __init__(self):
         self.parts = []       # completed output pieces
         self.code_buf = []    # lines awaiting code block flush
-        self.full_depth = 0
-        self.pending_full = False   # :::full has NOT been opened yet for current FULL block
+        self.full_depth = 0         # source-level FULL marker nesting
+        self.pending_full = False   # :::full requested but not yet emitted
+        self.full_open = False      # an emitted :::full is currently unclosed
         self.in_exercise = False
         self.in_solution = False    # inside -- SOLUTION / -- /SOLUTION (suppress output)
 
@@ -361,14 +439,11 @@ class Renderer:
         buf = list(self.code_buf)
         while buf and not buf[-1].strip():
             buf.pop()
-        if buf:
-            # Verso's InlineLean can't elaborate comment-only blocks — skip them.
-            has_command = any(
-                l.strip() and not l.strip().startswith('--')
-                for l in buf
-            )
-            if has_command:
-                self._append('```lean\n' + '\n'.join(buf) + '\n```\n\n')
+        # Verso's InlineLean can't elaborate comment-only blocks — skip any
+        # buffer that contains no actual code once `--` line comments and
+        # (possibly nested) /- ... -/ block comments are removed.
+        if buf and _strip_lean_comments('\n'.join(buf)).strip():
+            self._append('```lean\n' + '\n'.join(buf) + '\n```\n\n')
         self.code_buf = []
 
     def _open_full_if_pending(self):
@@ -376,6 +451,17 @@ class Renderer:
         if self.pending_full and not self.in_exercise:
             self._append(':::full\n\n')
             self.pending_full = False
+            self.full_open = True
+
+    def _close_full_if_open(self):
+        """Emit ::: if an emitted :::full is currently unclosed.
+
+        Tracking the emitted-but-unclosed state explicitly (rather than
+        deriving it from marker depth) keeps the output's :::full / :::
+        balanced even when the source's -- FULL / -- /FULL markers are not."""
+        if self.full_open:
+            self._append(':::\n\n')
+            self.full_open = False
 
     # --- Token handlers ---
 
@@ -396,19 +482,19 @@ class Renderer:
         level, title = hdr
         self._flush_code()
         # Headers always go at document level — Verso doesn't support
-        # headings nested inside block directives like :::full.
-        if self.pending_full:
-            # Keep pending_full=True so the NEXT prose/code opens :::full.
-            # The header itself goes at document level (no :::full wrapper).
-            pass
-        elif self.full_depth > 0 and not self.in_exercise:
-            # We're inside an open :::full; close it, emit the header at
-            # document level, and re-arm pending_full for subsequent content.
-            self._append(':::\n\n')
+        # headings nested inside block directives like :::full.  If a
+        # :::full is currently open, close it and re-arm pending_full so
+        # subsequent content opens a fresh one.
+        if self.full_open and not self.in_exercise:
+            self._close_full_if_open()
             self.pending_full = True
         self._append('#' * level + ' ' + title + '\n\n')
 
     def _on_code_line(self, line):
+        # Code is treated like prose with respect to :::full — it stays inside
+        # the directive.  NB: the terse build drops :::full content wholesale,
+        # so definitions that later (terse-visible) code depends on must sit
+        # outside -- FULL regions in the source.
         self._open_full_if_pending()
         self.code_buf.append(line)
 
@@ -416,29 +502,30 @@ class Renderer:
         self._flush_code()
         self.full_depth += 1
         # Don't open a :::full directive if we're already inside an exercise
-        if not self.in_exercise:
+        # or one is already open (stray double -- FULL in the source).
+        if not self.in_exercise and not self.full_open:
             self.pending_full = True
 
     def _on_full_close(self):
         self._flush_code()
-        # A :::full is currently open iff full_depth > 0 AND NOT pending_full
-        # AND NOT in_exercise.  Suppress the closing ::: in all other cases.
-        suppress = self.pending_full or self.in_exercise
-        self.pending_full = False
         self.full_depth = max(0, self.full_depth - 1)
-        if not suppress:
-            self._append(':::\n\n')
+        if self.full_depth == 0:
+            # Outermost close: drop any deferred open and close the emitted
+            # :::full if there is one (a stray -- /FULL emits nothing).
+            self.pending_full = False
+            if not self.in_exercise:
+                self._close_full_if_open()
 
     def _on_exercise_open(self, rating, name):
         self._flush_code()
-        # Exercises cannot be nested inside :::full.  If a :::full is currently
-        # open (full_depth > 0, pending_full=False), close it first and re-arm
-        # pending_full so that any content after the exercise (before -- /FULL)
-        # opens a new :::full.  If pending_full is still True (no :::full was
-        # opened yet), leave it True — _open_full_if_pending won't fire inside
-        # an exercise, so the :::full is still deferred.
-        if self.full_depth > 0 and not self.pending_full and not self.in_exercise:
-            self._append(':::\n\n')
+        # Exercises cannot be nested inside :::full.  If a :::full is
+        # currently open, close it first and re-arm pending_full so that any
+        # content after the exercise (before -- /FULL) opens a new :::full.
+        # If pending_full is still True (no :::full was opened yet), leave it
+        # True — _open_full_if_pending won't fire inside an exercise, so the
+        # :::full is still deferred.
+        if self.full_open and not self.in_exercise:
+            self._close_full_if_open()
             self.pending_full = True
         self.in_exercise = True
         self._append(f':::exercise (rating := {rating}) (name := "{name}")\n\n')
@@ -516,11 +603,24 @@ class Renderer:
         # Close any unclosed blocks (shouldn't happen in well-formed source)
         if self.in_exercise:
             self._append(':::\n\n')  # close unclosed exercise
-        if self.full_depth > 0 and not self.pending_full and not self.in_exercise:
-            self._append(':::\n\n')  # close unclosed full block
+            self.in_exercise = False
+        self._close_full_if_open()
 
     def result(self) -> str:
         return ''.join(self.parts)
+
+# ---------------------------------------------------------------------------
+# Post-processing
+# ---------------------------------------------------------------------------
+
+def _strip_directive_blanks(text: str) -> str:
+    """Remove blank lines immediately after :::foo opening lines and
+    immediately before standalone ::: closing lines."""
+    # Blank line(s) after an opening :::name line
+    text = re.sub(r'(:::[^\n]+)\n\n+', r'\1\n', text)
+    # Blank line(s) before a standalone ::: closing line
+    text = re.sub(r'\n\n+(:::[ \t]*\n)', r'\n\1', text)
+    return text
 
 # ---------------------------------------------------------------------------
 # Top-level converter
@@ -535,7 +635,7 @@ def convert(src_text: str, title: str, file_key: str) -> str:
     tokens = tokenize(body_src)
     renderer = Renderer()
     renderer.process(tokens)
-    body = renderer.result()
+    body = _strip_directive_blanks(renderer.result())
     return header + body + FOOTER
 
 # ---------------------------------------------------------------------------
