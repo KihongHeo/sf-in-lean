@@ -514,6 +514,8 @@ partial def walkBlock (file : String) (b : Verso.Doc.Block Manual)
       -- Slide-break marker: emit nothing in all generated .lean files.
       return buf
     -- Unknown extension block: recurse into children as a best-effort.
+    -- NB: :::dev / :::instructor blocks carry no children (their bodies are
+    -- dropped at elaboration), so this recursion is a no-op for them.
     walkBlocks file contents buf
   | .para inls => return appendBoth buf file (asModuleDoc (paraToText inls))
   | .code s => return appendBoth buf file (asModuleDoc s.trimAscii.toString)

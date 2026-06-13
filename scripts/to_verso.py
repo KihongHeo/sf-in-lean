@@ -41,6 +41,8 @@ import SFLMeta.Ignore
 import SFLMeta.Save
 import SFLMeta.Comment
 import SFLMeta.Exercise
+import SFLMeta.Hide
+import SFLMeta.Instructors
 import SFLMeta.SlideBreak
 import SFLMeta.Terse
 
@@ -48,10 +50,6 @@ open Verso.Genre Manual
 open SFLMeta
 
 open InlineLean hiding lean
-
-set_option maxRecDepth 100000
-
-noncomputable section
 
 #doc (Manual) "{title}" =>
 %%%
@@ -61,7 +59,7 @@ file := "{file}"
 
 """
 
-FOOTER = "end\n"
+FOOTER = ""
 
 # ---------------------------------------------------------------------------
 # Title extraction
@@ -237,7 +235,14 @@ _EX_CLOSE_RE = re.compile(r'^-- \[\]$')
 _GRADE_RE = re.compile(r'^--\s+GRADE_')
 _SOLUTION_OPEN_RE = re.compile(r'^--\s+SOLUTION$')
 _SOLUTION_CLOSE_RE = re.compile(r'^--\s+/SOLUTION$')
-_AUTHOR_RE = re.compile(r'^-- (BCP|JC|MWH|CGH|RAB|TODO)[: (](.*)$')
+_HIDE_OPEN_RE = re.compile(r'^-- HIDE$')
+_HIDE_CLOSE_RE = re.compile(r'^-- /HIDE$')
+# Author-only / developer comment markers.  These are swept into :::dev blocks
+# (discarded from generated outputs, preserved verbatim in the Verso source).
+# Add new author initials or task keywords here.  NB: INSTRUCTORS is handled
+# separately (-> :::instructor); TERSE/FULL have their own dedicated markers.
+_AUTHOR_RE = re.compile(
+    r'^-- (BCP|JC|MWH|CGH|RAB|CH|NB|TODO|TOFIX|LATER|SOONER)[: (](.*)$')
 
 
 def tokenize(text: str):
@@ -299,10 +304,15 @@ def tokenize(text: str):
         # --- Structural markers (check stripped) ---
 
         if _INSTRUCTOR_RE.match(stripped):
+            # Drop the '-- INSTRUCTORS:' marker; the :::instructors directive
+            # already conveys what the block is.  Keep the trailing text.
+            first = re.sub(r'^INSTRUCTORS:\s*', '', stripped[2:].strip())
+            body_lines = [first] if first else []
             i += 1
             while i < n and _INSTRUCTOR_CONT_RE.match(lines[i]):
+                body_lines.append(lines[i].strip()[2:].strip())
                 i += 1
-            tokens.append(('instructor', None))
+            tokens.append(('instructor', '\n'.join(body_lines)))
             continue
 
         if _FULL_OPEN_RE.match(stripped):
@@ -358,10 +368,30 @@ def tokenize(text: str):
             i += 1
             continue
 
+        if _HIDE_OPEN_RE.match(stripped):
+            # Capture the whole -- HIDE ... -- /HIDE region verbatim.  Hidden
+            # content is often deliberately broken/admitted, so it must never be
+            # elaborated; it is emitted as an opaque :::hide block (discarded at
+            # elaboration, preserved textually in the source).
+            i += 1
+            raw = []
+            while i < n and not _HIDE_CLOSE_RE.match(lines[i].strip()):
+                raw.append(lines[i])
+                i += 1
+            if i < n:
+                i += 1   # skip the closing -- /HIDE
+            while raw and not raw[0].strip():
+                raw.pop(0)
+            while raw and not raw[-1].strip():
+                raw.pop()
+            tokens.append(('hide', '\n'.join(raw)))
+            continue
+
         m = _AUTHOR_RE.match(stripped)
         if m:
-            author = m.group(1)
-            text_lines = [m.group(2).lstrip(': ').strip()]
+            # Preserve the original marker + text verbatim (e.g. 'BCP: ...',
+            # 'TODO Claude: ...') so the :::dev block keeps the authorship cue.
+            body_lines = [stripped[2:].strip()]   # drop '--', keep 'BCP: ...'
             i += 1
             # Consume continuation lines (standalone -- ... not matching any marker)
             while i < n:
@@ -374,11 +404,11 @@ def tokenize(text: str):
                             _GRADE_RE, _SOLUTION_OPEN_RE, _SOLUTION_CLOSE_RE,
                             _AUTHOR_RE]) and
                         cont != '--'):
-                    text_lines.append(cont[2:].lstrip())
+                    body_lines.append(cont[2:].lstrip())
                     i += 1
                 else:
                     break
-            tokens.append(('author_comment', (author, '\n'.join(text_lines))))
+            tokens.append(('author_comment', '\n'.join(body_lines)))
             continue
 
         # --- Default: code line ---
@@ -413,6 +443,22 @@ def _strip_lean_comments(text: str) -> str:
 # ---------------------------------------------------------------------------
 # Renderer
 # ---------------------------------------------------------------------------
+
+# Container directives (:::exercise, :::full) may hold leaf directives such as
+# :::dev / :::instructor / :::terse.  Verso requires an outer directive's fence
+# to be strictly longer than any directive nested inside it, so containers use a
+# 4-colon fence while leaves use the usual 3.
+_CONTAINER_FENCE = '::::'
+
+
+def _verbatim_block(text: str) -> str:
+    """Wrap *text* in a fenced code block so arbitrary author prose (which may
+    contain `*`, `_`, `:::`, backticks, ...) can never derail Verso's directive
+    parser.  The fence is grown to outrun any backtick run inside *text*."""
+    longest = max((len(m) for m in re.findall(r'`+', text)), default=0)
+    fence = '`' * max(3, longest + 1)
+    return fence + '\n' + text + '\n' + fence
+
 
 class Renderer:
     """Convert a token stream to a Verso document body."""
@@ -449,7 +495,7 @@ class Renderer:
     def _open_full_if_pending(self):
         """Emit :::full if pending and we are not inside an exercise."""
         if self.pending_full and not self.in_exercise:
-            self._append(':::full\n\n')
+            self._append(_CONTAINER_FENCE + 'full\n\n')
             self.pending_full = False
             self.full_open = True
 
@@ -460,18 +506,28 @@ class Renderer:
         deriving it from marker depth) keeps the output's :::full / :::
         balanced even when the source's -- FULL / -- /FULL markers are not."""
         if self.full_open:
-            self._append(':::\n\n')
+            self._append(_CONTAINER_FENCE + '\n\n')
             self.full_open = False
 
     # --- Token handlers ---
 
     def _on_blank(self):
-        # A blank line ends the current code accumulation
-        self._flush_code()
+        # A blank line no longer flushes the code buffer.  If we are
+        # accumulating code, the blank is kept *inside* the buffer so that
+        # consecutive code runs separated only by blank lines merge into a
+        # single ```lean block (consecutive runs of blanks collapse to one).
+        # Non-code tokens still end the block: their handlers call _flush_code,
+        # so blocks break at prose, directives, headers, and label comments.
+        # Trailing blanks are dropped when the buffer is flushed.
+        if self.code_buf and self.code_buf[-1].strip():
+            self.code_buf.append('')
 
     def _on_block_comment_label(self):
-        # Label comment acts as code-block separator; emit nothing
-        self._flush_code()
+        # Label comments (/- ident -/) render as nothing and no longer break the
+        # code block, so code groups separated only by labels (or blanks) merge
+        # into a single ```lean block.  Prose, headers, and directives still
+        # flush, so blocks break at every meaningful boundary.
+        pass
 
     def _on_block_comment_prose(self, text):
         self._flush_code()
@@ -528,12 +584,13 @@ class Renderer:
             self._close_full_if_open()
             self.pending_full = True
         self.in_exercise = True
-        self._append(f':::exercise (rating := {rating}) (name := "{name}")\n\n')
+        self._append(
+            f'{_CONTAINER_FENCE}exercise (rating := {rating}) (name := "{name}")\n\n')
 
     def _on_exercise_close(self):
         self._flush_code()
         self.in_exercise = False
-        self._append(':::\n\n')
+        self._append(_CONTAINER_FENCE + '\n\n')
 
     def _on_slidebreak(self):
         self._flush_code()
@@ -543,10 +600,37 @@ class Renderer:
         self._flush_code()
         self._append(f':::terse\n{text}\n:::\n\n')
 
-    def _on_author_comment(self):
-        # Author/editor notes (BCP, JC, etc.) are stripped from the Verso output;
-        # they live in the source Basics.lean.
+    def _on_hide(self, text):
+        # -- HIDE / -- /HIDE regions become :::hide blocks, processed identically
+        # to :::dev / :::instructor (body dropped at elaboration, preserved
+        # verbatim in the source).  Emitted as a 4-colon container wrapping a
+        # verbatim code fence, so its arbitrary content is never elaborated and
+        # can't perturb the parser.
+        self._flush_code()
+        if not text.strip():
+            return  # empty hide region: emit nothing
+        # A :::hide cannot nest inside an emitted :::full (same fence width):
+        # close the full first and re-arm it so content after the hide reopens.
+        if self.full_open and not self.in_exercise:
+            self._close_full_if_open()
+            self.pending_full = True
+        self._append(_CONTAINER_FENCE + 'hide\n' + _verbatim_block(text)
+                     + '\n' + _CONTAINER_FENCE + '\n\n')
+
+    def _emit_noop_directive(self, directive, text):
+        # Author notes become noop annotation directives (:::dev / :::instructors).
+        # The text is preserved in the Verso source, but the directive discards
+        # its body so it never reaches the generated outputs.  :::dev and
+        # :::instructors are processed identically (see SFLMeta); they differ only
+        # in name so instructor notes can be treated differently later.
+        #
+        # NB: the body is emitted *unfenced*, so it is parsed as Verso markup.
+        # Author comments must therefore avoid raw Verso specials (unbalanced
+        # `*`, `[...]`, stray backticks, a leading `#`); offending text breaks the
+        # build at parse time.  (:::hide keeps a verbatim fence -- see _on_hide --
+        # because it wraps raw code, not prose.)
         self._flush_code()  # still acts as a code-block separator
+        self._append(f':::{directive}\n' + text + '\n:::\n\n')
 
     def _on_solution_open(self):
         self._flush_code()
@@ -592,8 +676,12 @@ class Renderer:
             elif kind == 'terse_inline':
                 self._on_terse_inline(content)
             elif kind == 'author_comment':
-                self._on_author_comment()
-            elif kind in ('instructor', 'grade_theorem'):
+                self._emit_noop_directive('dev', content)
+            elif kind == 'instructor':
+                self._emit_noop_directive('instructors', content)
+            elif kind == 'hide':
+                self._on_hide(content)
+            elif kind == 'grade_theorem':
                 pass  # strip
             # else: unknown token — ignore
 
@@ -602,7 +690,7 @@ class Renderer:
 
         # Close any unclosed blocks (shouldn't happen in well-formed source)
         if self.in_exercise:
-            self._append(':::\n\n')  # close unclosed exercise
+            self._append(_CONTAINER_FENCE + '\n\n')  # close unclosed exercise
             self.in_exercise = False
         self._close_full_if_open()
 
@@ -616,10 +704,14 @@ class Renderer:
 def _strip_directive_blanks(text: str) -> str:
     """Remove blank lines immediately after :::foo opening lines and
     immediately before standalone ::: closing lines."""
-    # Blank line(s) after an opening :::name line
-    text = re.sub(r'(:::[^\n]+)\n\n+', r'\1\n', text)
-    # Blank line(s) before a standalone ::: closing line
-    text = re.sub(r'\n\n+(:::[ \t]*\n)', r'\n\1', text)
+    # Blank line(s) after an *opening* :::name line (3 or more colons).  The
+    # char after the colons must be a directive-name char (non-colon,
+    # non-space) so this does not match a bare closing line like `::::`, whose
+    # extra colons would otherwise satisfy a looser pattern and get its trailing
+    # blank lines (wrongly) stripped.
+    text = re.sub(r'(:::+[^\s:][^\n]*)\n\n+', r'\1\n', text)
+    # Blank line(s) before a standalone ::: closing line (3 or more colons)
+    text = re.sub(r'\n\n+(:::+[ \t]*\n)', r'\n\1', text)
     return text
 
 # ---------------------------------------------------------------------------

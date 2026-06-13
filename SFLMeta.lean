@@ -3,7 +3,9 @@ import SFLMeta.Bnf
 import SFLMeta.Comment
 import SFLMeta.Details
 import SFLMeta.Exercise
+import SFLMeta.Hide
 import SFLMeta.Ignore
+import SFLMeta.Instructors
 import SFLMeta.Save
 import SFLMeta.SlideBreak
 import SFLMeta.Terse

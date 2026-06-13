@@ -2235,9 +2235,3 @@ theorem existsbF_existsb {α : Type} (test : α → Bool) (l : List α) :
     rw [ih]
 -- /HIDE
 -- /FULL
--- HIDE
-
--- Local Variables:
--- fill-column: 70
--- End:
--- /HIDE

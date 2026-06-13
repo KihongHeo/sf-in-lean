@@ -22,10 +22,15 @@ block_extension Block.devcomment where
   toHtml := some fun _ _ _ _ _ => pure .empty
   toTeX := none
 
-/-! ## `:::diagramWithAlt` directive -/
+/-- Shared expander for noop annotation directives.  The directive body is
+dropped at elaboration (`#[]`), so the block renders nothing and never reaches
+the generated outputs — the original text survives only in the Verso source.
+Both `:::dev` and `:::instructor` use this; they differ only in their block
+name, so a later build can treat instructor notes differently. -/
+def noopDirectiveFor (blockName : Name) : DirectiveExpanderOf Unit
+  | (), _ => ``(Verso.Doc.Block.other $(mkIdent blockName) #[])
 
-/--
-A `:::devcomment` directive is a noop for inline developer comments. -/
+/-- A `:::dev` directive is a noop for author/developer comments. -/
 @[directive]
 def dev : DirectiveExpanderOf Unit
-  | (), _ => ``(Verso.Doc.Block.other SFLMeta.Block.devcomment #[])
+  | args, contents => noopDirectiveFor ``Block.devcomment args contents

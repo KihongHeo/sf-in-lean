@@ -394,7 +394,6 @@ def notb (b : MyBool) : MyBool :=
   | .false => .true
 
 -- TERSE: /- *** -/
--- BCP: These *** comments should be replaced with whatever Verso uses for slide breaks.
 
 def andb (b1 : MyBool) (b2 : MyBool) : MyBool :=
   match b1 with
@@ -1010,7 +1009,6 @@ example : succ (succ (succ (succ zero))) = 4 := by rfl
   simple definition, and introduce the Lean one shortly after.
 -/
 
-
 /-
   We can also write computations functions on `Nat`.
 -/
@@ -1091,7 +1089,7 @@ example : odd 4 = false := by rfl
 
 
 -- TODO (Claude): The sealing strategy needs to be acknowledged in the
--- text.  `add` and `mul` are @[irreducible] (so `rfl` won't prove
+-- text.  `add` and `mul` are irreducible (so `rfl` won't prove
 -- `1 + 1 = 2`, usefully forcing rewrite practice), but `even`, `beq`,
 -- and `leb` are not, so `rfl` blasts right through `leb 2 2 = true`.
 -- A beginner will inevitably ask why `rfl` works on some computations
