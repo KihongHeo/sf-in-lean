@@ -25,9 +25,13 @@ name = "LF"
 # globs = ["LF.+"]
 
 [[lean_exe]]
-name = "lf_verso"
-root = "Main"
+name = "lf_student"
+root = "MainStudent"
 
 [[lean_exe]]
-name = "lf_verso_terse"
-root = "MainTerseLF"
+name = "lf_solutions"
+root = "MainSolutions"
+
+[[lean_exe]]
+name = "lf_terse"
+root = "MainTerse"
