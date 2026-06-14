@@ -571,10 +571,10 @@ namespace TuplePlayground
 /-
   A single constructor with multiple parameters can be used
   to create a tuple type. As an example, consider representing
-  the four bits in a nybble (half a byte). We first define
+  the four bits in a nibble (half a byte). We first define
   a datatype `Bit` that resembles `Bool` (using the
   constructors `b1` and `b0` for the two possible bit values)
-  and then define the datatype `Nybble`, which is essentially
+  and then define the datatype `Nibble`, which is essentially
   a tuple of four bits.
 -/
 
@@ -583,20 +583,20 @@ inductive Bit : Type where
   | b1
   | b0
 
-inductive Nybble : Type where
+inductive Nibble : Type where
   | bits (x0 x1 x2 x3 : Bit)
 
-#check (.bits .b1 .b0 .b1 .b0 : Nybble)
+#check (.bits .b1 .b0 .b1 .b0 : Nibble)
 
 /-
   The `bits` constructor acts as a wrapper for its contents.
   Unwrapping can be done by pattern-matching, as in the `allZero`
-  function below, which tests a nybble to see if all its bits are
+  function below, which tests a nibble to see if all its bits are
   `b0`.
 -/
 
 
-def allZero (nb : Nybble) : Bool :=
+def allZero (nb : Nibble) : Bool :=
   match nb with
   | .bits .b0 .b0 .b0 .b0 => true
   | .bits _   _   _   _   => false
@@ -630,7 +630,7 @@ namespace NatPlayground
 /-
   All the types we have defined so far -- both "enumerated
   types" such as `Day`, `Bool`, and `Bit` and tuple types such as
-  `Nybble` built from them -- are finite.  The natural numbers, on
+  `Nibble` built from them -- are finite.  The natural numbers, on
   the other hand, are an infinite set, so we'll need to use a
   slightly richer form of type declaration to represent them.
 -/

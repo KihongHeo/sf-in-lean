@@ -576,14 +576,14 @@ namespace TuplePlayground
 
   A single constructor with multiple parameters can be used
   to create a tuple type. As an example, consider representing
-  the four bits in a nybble (half a byte). We first define
+  the four bits in a nibble (half a byte). We first define
   a datatype `Bit` that resembles `Bool` (using the
   constructors `b1` and `b0` for the two possible bit values)
-  and then define the datatype `Nybble`, which is essentially
+  and then define the datatype `Nibble`, which is essentially
   a tuple of four bits.
 
 :::dev
-RAB: Is this called a Nybble, not a Nibble? Whatever the Penn systems course
+RAB: Is this called a Nibble, not a Nibble? Whatever the Penn systems course
 calls it, we should follow suite, I guess.
 :::
 
@@ -592,19 +592,19 @@ inductive Bit : Type where
   | b1
   | b0
 
-inductive Nybble : Type where
+inductive Nibble : Type where
   | bits (x0 x1 x2 x3 : Bit)
 
-#check (.bits .b1 .b0 .b1 .b0 : Nybble)
+#check (.bits .b1 .b0 .b1 .b0 : Nibble)
 ```
 
   The `bits` constructor acts as a wrapper for its contents.
   Unwrapping can be done by pattern-matching, as in the `allZero`
-  function below, which tests a nybble to see if all its bits are
+  function below, which tests a nibble to see if all its bits are
   `b0`.
 
 ```lean
-def allZero (nb : Nybble) : Bool :=
+def allZero (nb : Nibble) : Bool :=
   match nb with
   | .bits .b0 .b0 .b0 .b0 => true
   | .bits _   _   _   _   => false

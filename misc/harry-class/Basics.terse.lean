@@ -329,22 +329,22 @@ end
 namespace TuplePlayground
 
 
-/- A nybble is half a byte -- four bits. -/
+/- A nibble is half a byte -- four bits. -/
 
 inductive Bit : Type where
   | b1
   | b0
 
-inductive Nybble : Type where
+inductive Nibble : Type where
   | bits (x0 x1 x2 x3 : Bit)
 
-#check (.bits .b1 .b0 .b1 .b0 : Nybble)
+#check (.bits .b1 .b0 .b1 .b0 : Nibble)
 
 
 /- *** -/
-/- We can deconstruct a nybble by pattern-matching. -/
+/- We can deconstruct a nibble by pattern-matching. -/
 
-def allZero (nb : Nybble) : Bool :=
+def allZero (nb : Nibble) : Bool :=
   match nb with
   | .bits .b0 .b0 .b0 .b0 => true
   | .bits _   _   _   _   => false
@@ -749,5 +749,3 @@ theorem andb3_exchange : ∀ b c d : Bool,
 /- As you can see, proofs by cases can become very verbose.
   We will introduce some tactics for writing shorter proofs
   by case analysis in `Tactics.lean`. -/
-
-

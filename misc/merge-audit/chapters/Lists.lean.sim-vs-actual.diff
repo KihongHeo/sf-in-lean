@@ -100,7 +100,7 @@
 < 
 < /- FULL: In an `inductive` type definition, each constructor can take
 <    any number of arguments -- none (as with `true` and `0`),
-<    one (as with `succ`), or more than one (as with `Nybble` and
+<    one (as with `succ`), or more than one (as with `Nibble` and
 <    the following): -/
 < /- TERSE: An inductive definition of pairs of numbers.  It has just
 <    one constructor, taking two arguments: -/
