@@ -733,8 +733,6 @@ def isRed' (c : Color) : Bool :=
   ## Namespaces and Sections
 -/
 
--- BCP STOPPED HERE
-
 -- JC: I edited a lot of the contents and comments in just this section,
 -- I hope it makes sense.
 
@@ -748,28 +746,32 @@ def isRed' (c : Color) : Bool :=
   of definitions so that we are free to reuse names (in particular,
   names from the standard library).
 -/
+-- BCP: This doesn't explain why we *want* to reuse names freely?
 -- /FULL
 -- TERSE: /- `namespace` declarations create separate namespaces. -/
 
+def myFoo : Bool := true
 namespace Playground
 def myFoo : RGB := RGB.blue
 end Playground
 
-def myFoo : Bool := true
-
-#check Playground.myFoo  -- RGB
 #check myFoo             -- Bool
+#check Playground.myFoo  -- RGB
 
 -- FULL
 /-
-  Inside of a namespace, definitions from the same namespace can be
-  referenced without prefixes. Definitions can also be prefixed by a
-  namespace to put them in the namespace "from the outside," without
-  having to open and close it.
+  When inside a `namespace` region, definitions from the same
+  namespace can be referenced without prefixes.
+
+  Top-level definitions can also be prefixed by a namespace to put
+  them in the namespace "from the outside," without having to open and
+  close it.
 -/
 -- /FULL
 
 namespace RGB
+-- BCP: RGB was declared as an inductive type, and it's used here in
+-- both senses. Is this intentional?
 def myBlue : RGB := blue
 end RGB
 
@@ -778,13 +780,15 @@ def RGB.myOtherBlue : RGB := myBlue
 /-
   #check myBlue -- unknown identifier
 -/
+-- BCP: Huh? We just used `myBlue` as a top-level id, didn't we?  So
+-- why is it unknown?
 #check RGB.myBlue      -- RGB
 #check RGB.myOtherBlue -- RGB
 
 -- FULL
 /-
   We can also use `open` to bring the definitions of a namespace into
-  the current scope; then we can refer to any of the namespace's
+  the current scope; after that, we can refer to any of the namespace's
   definitions without a prefix.
 
   Definitions of the same name declared prior to the `open` can be
@@ -794,7 +798,7 @@ def RGB.myOtherBlue : RGB := myBlue
   and `infix` notations for MyBool; there are also `postfix`
   notations.
 -/
--- BCP: That goes by too fast!
+-- BCP: That goes by *waaay* too fast!
 -- BCP: Is the `_root_` thing something that readers actually need to know?
 -- /FULL
 -- TERSE: /- `section` declarations delimit the scope of `open` and `local`. -/
