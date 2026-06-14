@@ -825,24 +825,17 @@ end
   ## Constructors with Multiple Arguments
 -/
 
--- BCP: Maybe we should not call them "tuples"?
-namespace TuplePlayground
+namespace Playground
 
 -- FULL
 /-
-  A single constructor with multiple parameters can be used
-  to create a tuple type. As an example, consider representing
-  the four bits in a nibble (half a byte). We first define
-  a datatype `Bit` that resembles `Bool` (using the
-  constructors `b1` and `b0` for the two possible bit values)
-  and then define the datatype `Nibble`, which is essentially
-  a tuple of four bits.
+  A single constructor with multiple parameters can be used to create
+  a tuple type. As an example, consider representing the four bits in
+  a nibble (half a byte). We first define a datatype `Bit` that
+  resembles `Bool` (using the constructors `b1` and `b0` for the two
+  possible bit values) and then define the datatype `Nibble`, which is
+  essentially a tuple of four bits.
 -/
-
--- RAB: Is this called a Nibble, not a Nibble? Whatever the Penn systems course
--- calls it, we should follow suite, I guess.
--- BCP: Nibble seems to be standard nowadays.
-
 -- /FULL
 
 -- TERSE: /- A nibble is half a byte -- four bits. -/
@@ -863,14 +856,13 @@ inductive Nibble : Type where
   of writing `(x0 : Bit) (x1 : Bit) ...` we write `(x0 x1 ... : Bit)`
   since all of the variables have the same type. We could have done
   the same with the function definition `orb` above, writing
-  `orb (b1 b2 : MyBool)` rather than `orb (b1 : MyBool) (b2 : MyBool)`
+  `orb (b1 b2 : MyBool)` rather than `orb (b1 : MyBool) (b2 : MyBool)`.
 -/
 
 /-
   The `bits` constructor acts as a wrapper for its contents.
-  Unwrapping can be done by pattern-matching, as in the `allZero`
-  function below, which tests a nibble to see if all its bits are
-  `b0`.
+  Unwrapping is done by pattern matching, as in the `allZero` function
+  below, which tests a nibble to see if all its bits are `b0`.
 -/
 -- /FULL
 
@@ -887,11 +879,11 @@ def allZero (nb : Nibble) : Bool :=
 #eval allZero (.bits .b0 .b0 .b0 .b0)
 /- ===> true -/
 
-end TuplePlayground
+end Playground
 
 /-
   ######################################################################
-  ## Numbers
+  ## Natural Numbers
 -/
 
 -- FULL
@@ -902,8 +894,9 @@ end TuplePlayground
 -/
 -- /FULL
 
--- BCP: Why do we need both namespaces and sections
--- (particularly in this first chapter)?
+-- BCP: Is "section" used in a technical sense in that paragraph? Why
+-- do we need both namespaces and sections (particularly in this first
+-- chapter)?
 
 namespace NatPlayground
 
@@ -918,49 +911,46 @@ namespace NatPlayground
 
 /-
   There are many representations of numbers to choose from. You are
-  certainly familiar with decimal notation (base 10), using the
-  digits 0 through 9, for example, to form the number 123. You may
-  also have encountered hexadecimal notation (base 16),
-  in which the same number is represented as 7B, or octal (base 8),
-  where it is 173, or binary (base 2), where it is 1111011. Using an
-  enumerated type to represent digits, we could use any of these as
-  our representation natural numbers.
--/
--- TODO (Claude): Garbled sentences in this stretch: "as our
--- representation natural numbers" (missing "of") just above, and in the
--- next paragraph "...that is even simpler than binary, makes proofs
--- simpler" (dangling clause).
+  certainly familiar with decimal notation (base 10), using the digits
+  0 through 9, for example, to form the number 123. You have likely
+  also encountered hexadecimal notation (base 16), in which the same
+  number is represented as 7B, or octal (base 8), where it is 173, or
+  binary (base 2), where it is 1111011. Using an enumerated type to
+  represent digits, we could use any of these as our representation of
+  natural numbers.
 
-/-
-  There are circumstances where each of these choices would
-  be useful. The binary representation is valuable in computer hardware
-  because the digits can be represented with just two distinct voltage
-  levels, resulting in simple circuitry. Here we choose a _unary_
-  (base 1) representation that is even simpler than binary, makes proofs
-  simpler. In this representation, only a single digit
-  is used. As a Lean datatype, we use two constructors. The
-  `zero` constructor represents zero. The `succ` constructor can be
-  applied to the representation of the natural number `n`, yielding
-  the representation of `n+1`, where `succ` stands for "successor."
+  There are circumstances in which each of these choices is useful.
+  The binary representation is valuable in computer hardware because
+  the digits can be represented with just two distinct voltage levels,
+  resulting in simple circuitry.
+
+  Here we choose an even simpler _unary_ (base 1) representation, for
+  the sake of streamlining proofs. As a Lean datatype, it uses two
+  constructors. The `zero` constructor represents the number zero. The
+  `succ` constructor can be applied to the representation of the
+  natural number `n`, yielding the representation of `n+1`, where
+  `succ` stands for "successor." The number `n` is then represented by
+  `n` applications of `succ` to `zero`.
+
   Here is the complete datatype definition:
 -/
 
 -- /FULL
 
--- TERSE: /- For simplicity in proofs, we choose unary representation. -/
+-- TERSE: For simplicity in proofs, we choose a _unary_
+-- representation.
 
 inductive Nat : Type where
   | zero
   | succ (n : Nat)
 
--- TODO (Claude): The instructor advice at the top says to work directly
--- in this .lean file, but the "hidden" scaffolding (this attribute, the
--- OfNat instance, `unseal`, `@[irreducible]`, `#guard_msgs`, the BEq
--- instance) is fully visible to anyone reading the source, and far beyond
--- a beginner's reach.  Until a rendered pipeline hides these blocks,
--- consider stating once near the top a convention like "you can safely
--- ignore anything marked ASSUME THIS IS HIDDEN."
--- ASSUME THIS IS HIDDEN
+-- TODO (Claude): The instructor advice at the top says to work
+-- directly in this .lean file, but the "hidden" scaffolding (this
+-- attribute, the OfNat instance, `unseal`, `@[irreducible]`,
+-- `#guard_msgs`, the BEq instance) is fully visible to anyone reading
+-- the source, and far beyond a beginner's reach. BCP: Same question
+-- as Claude here: Do we really need this?  If so, how / where do we
+-- explain it?
 attribute [pp_nodot] Nat.succ
 
 namespace Nat
@@ -976,7 +966,6 @@ instance instOfNat {n : _root_.Nat} : OfNat Nat n where
   ofNat := ofNat n
 
 theorem zero_eq_0 : zero = 0 := rfl
--- END ASSUME
 
 /-
   With this definition, 0 is represented by `zero`, 1 by `succ zero`, 2 by `succ
@@ -986,7 +975,9 @@ theorem zero_eq_0 : zero = 0 := rfl
   etc. instead of `zero`, `succ zero`, etc., for our custom definition of `Nat`.
   This is just syntactic sugar, and the two forms are interchangeable.
 -/
+-- BCP: Can we be more explicit about the machinery?
 
+-- BCP: What are these RULES comments for?
 -- RULES
 theorem one_eq_succ_zero : 1 = succ 0 := rfl
 -- RULES
@@ -1001,6 +992,7 @@ example : succ (succ (succ (succ zero))) = 4 := by rfl
 /-
   Naturally, Lean has its own definition of natural numbers.
 -/
+-- BCP: We already said that, no?
 
   #check Nat
   /- ==> NatPlayground.Nat : Type -/ /- ← this is our `Nat`... -/
@@ -1008,16 +1000,16 @@ example : succ (succ (succ (succ zero))) = 4 := by rfl
   /- ==> _root_.Nat : Type -/ /- ← ...this is Lean's `Nat`. -/
 
 /-
-  Lean's `Nat` comes with powerful built-in reasoning and notation.
+  Lean's `Nat` comes with some powerful built-in features for reasoning and
+  notation.
+
   As we are just beginning to reason about natural numbers, we use our own
-  simple definition, and introduce the Lean one shortly after.
+  definition here and introduce the Lean one in a later chapter.
 -/
 
 /-
-  We can also write computations functions on `Nat`.
+  We can also write functions on `Nat`.
 -/
--- TODO (Claude): Garbled: "write computations functions on `Nat`".
-
 def pred (n : Nat) : Nat :=
   match n with
   | zero => zero
@@ -1035,9 +1027,9 @@ def minustwo (n : Nat) : Nat :=
 -- TODO:
 -- Lean user question: how to get (succ (succ zero)) rather than
 -- NatPlayground.Nat.succ (NatPlayground.Nat.succ (NatPlayground.Nat.zero))
--- TODO (Claude): Until the display issue is fixed, the response comment
--- above should show what Lean actually prints; "what I see doesn't match
--- the book" reads to a beginner as "I broke something."
+-- BCP: Yes!
+
+-- BCP: Missing transition
 
 -- FULL
 #check Nat.succ  -- Nat → Nat
@@ -1046,14 +1038,14 @@ def minustwo (n : Nat) : Nat :=
 
 /-
   These are all things that can be applied to a number to yield a
-  number. However, there is a fundamental difference between `Nat.succ`
-  and the other two: functions like `Nat.pred` and `Nat.minustwo` are
-  defined by giving _computation rules_ -- e.g., the definition of
-  `Nat.pred` says that `Nat.pred (succ (succ zero))` can be simplified to
-  `succ zero` -- while the definition of `Nat.succ` has no such behavior attached.
-  Although it is _like_ a function in the sense that it can be applied to an
-  argument, it does not _do_ anything at all!  It is just a way of
-  writing down numbers.
+  number. However, there is a fundamental difference between
+  `Nat.succ` and the other two: functions like `Nat.pred` and
+  `Nat.minustwo` are defined by giving _computation rules_ -- e.g.,
+  the definition of `Nat.pred` says that `Nat.pred (succ (succ zero))`
+  can be simplified to `succ zero` -- while the definition of
+  `Nat.succ` has no such behavior attached. Although it is like a
+  function in the sense that it can be applied to an argument, it does
+  not _do_ anything at all! It is just the way we write down numbers.
 -/
 -- /FULL
 
@@ -1066,10 +1058,6 @@ def even (n : Nat) : Bool :=
   | succ (zero) => false
   | succ (succ n') => even n'
 
--- BCP asked whether even_zero / even_one / even_succ_succ had been deleted
--- here.  They had -- lost in the 7b10256 path-split merge (the same merge
--- that dropped the VS Code fix), not an intentional nats-port change.
--- Restored, re-expressed in the current constructor style:
 theorem even_zero : even zero = true := rfl
 theorem even_one : even (succ zero) = false := rfl
 theorem even_succ_succ n : even (succ (succ n)) = even n := rfl
@@ -1091,7 +1079,6 @@ example : odd 4 = false := by rfl
 -- TERSE: /- *** -/
 -- TERSE: /- A multi-argument recursive function. -/
 
-
 -- TODO (Claude): The sealing strategy needs to be acknowledged in the
 -- text.  `add` and `mul` are irreducible (so `rfl` won't prove
 -- `1 + 1 = 2`, usefully forcing rewrite practice), but `even`, `beq`,
@@ -1108,36 +1095,29 @@ def add (n : Nat) (m : Nat) : Nat :=
 
 instance instAdd : Add Nat where add := add
 
--- FULL
+-- BCP STOPPED HERE
 
+-- FULL
 /-
   ######################################################################
   # Proof by Rewriting
 
-  -- BCP: Why do we jump from # to ### here?
-  -- TODO (Claude): Heading levels are inconsistent throughout this
-  -- region ("# Proof state and tactics" below should be a subsection),
-  -- and from `add_zero_zero_explained` onward whole theorem blocks drift
-  -- into two-space indentation.  Since whitespace is significant in
-  -- tactic blocks, the file itself should model clean indentation.
-
   ## Proving properties about functions in Lean
 
-  Being recursive, `add` is our first of a more sophisticated class of
-  functions. In this chapter and onwards, we will _prove_ properties about
-  recursive functions and inductive data, like `add` and `Nat`, using
-  _simplification rules_ about their behavior.
+  Being recursive, `add` is our first example of a more sophisticated
+  class of functions. In this chapter and beyond, we will _prove_
+  properties about recursive functions like `add` over inductive
+  datatypes like `Nat` using _simplification rules_ about their
+  behavior.
 
-  Here is a simple rule about `add`, called `add_zero`:
+  Here are two simple rules about `add`:
 
-  `add_zero (n : Nat) : n + 0 = n`
+  - `n + 0 = n`
+  - `n + succ m = succ (n + m)`
 
-  We can see it is a real rule in lean:
+  In Lean, these rules look like this:
 -/
 -- /FULL
--- NB: this block must stay outside -- FULL regions: the terse variant
--- omits FULL content, but these rules are needed by terse-visible code.
--- ASSUME THIS IS HIDDEN
 unseal add in
 theorem add_zero : ∀ n : Nat, n + 0 = n := by
   intro n
@@ -1146,19 +1126,25 @@ unseal add in
 theorem add_succ : ∀ n m : Nat, n + succ m = succ (n + m) := by
   intro n m
   rfl
--- END ASSUME
 -- FULL
 
 #check add_zero
 /- ==> NatPlayground.Nat.add_zero (n : Nat) : n + 0 = n -/
+-- BCP: We will probably want to remove the "NatPlayground" stuff from
+-- all these comments when we fix the printing.
 
-/- And we can use it for a simple proof about natural numbers! -/
+/-
+   We can then use the `add_zero` rule to carry out a simple proof
+   about natural numbers!
+-/
 
 theorem add_zero_zero (n : Nat) : n + 0 + 0 = n := by
   rewrite [add_zero]
   rewrite [add_zero]
   rfl
 
+-- BCP: We need a consistent convention about **boldface** vs _italic_
+-- for emphasis.
 /-
   ## Proof state and tactics
 
@@ -1196,8 +1182,7 @@ theorem add_zero_zero_explained (n : Nat) : n + 0 + 0 = n := by
   rfl
   /- The proof is now done! The Lean InfoView tells us there are "No Goals". -/
 
-/- We'll give you a simple proof to try.
-   Try completing this proof of `add_zero_zero_zero`, following the model above. -/
+/-! Here's a simple proof for you to try. Follow the model above. -/
 
 theorem add_zero_zero_zero (n : Nat) : n + 0 + 0 + 0 = n := by
   -- ADMITTED
@@ -1208,7 +1193,6 @@ theorem add_zero_zero_zero (n : Nat) : n + 0 + 0 + 0 = n := by
   -- /ADMITTED
 
 /-
-
  ## The `rewrite` tactic
 
    As we saw above, the tactic that tells Lean to rewrite (part of) a goal or
@@ -1316,7 +1300,6 @@ instance instMul : Mul Nat where mul := mul
 /- Multiplication, like almost any function we will prove properties about,
    also has simplification rules. -/
 
--- ASSUME THIS IS HIDDEN
 unseal mul in
 theorem mul_zero : ∀ n : Nat, n * 0 = 0 := by
   intro n
@@ -1326,7 +1309,6 @@ unseal mul add in
 theorem mul_succ : ∀ n m : Nat, n * succ m = n * m + n := by
   intro n m
   rfl
--- END ASSUME
 
 /- Prove this property. We have given you the first line. Notice how `rewrite`
    can take any number of arguments. You can use this rewrite with all of the
@@ -1350,7 +1332,6 @@ theorem test_mult1 : (3 * 3 : Nat) = 9 := by
 -- /ADMITTED
 
 -- TERSE: /- *** -/
-
 
 /-
   We can pattern-match two values at the same time:
