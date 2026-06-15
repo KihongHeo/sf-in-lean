@@ -296,6 +296,41 @@ def stripFillInMarkers (src : String) : String :=
   let kept := lines.filter fun line => !isSolutionStart line && !isSolutionEnd line
   String.intercalate "\n" kept
 
+/-! ## `#guard_msgs` stripping
+
+`#guard_msgs(…) in <cmd>` modifiers (with their preceding `/-- … -/` expected-
+message docstring) verify Lean's output to catch bitrot. They run during the
+Verso build — this only removes them from the *rendered* (`.html`) and
+*extracted* (`.lean`) forms, leaving the wrapped command in place. -/
+
+/-- Remove `#guard_msgs … in` command-modifier lines and the `/-- … -/`
+expected-message docstring immediately preceding them. -/
+partial def stripGuardMsgs (src : String) : String := Id.run do
+  let lines := (src.splitOn "\n").toArray
+  let n := lines.size
+  let mut out : Array String := #[]
+  let mut i := 0
+  while i < n do
+    let line := lines[i]!
+    let t := line.trimAscii.toString
+    if t.startsWith "/--" then
+      -- A docstring: scan to the line that closes it (`… -/`).
+      let mut j := i
+      while j < n && !(lines[j]!.trimAscii.toString.endsWith "-/") do
+        j := j + 1
+      if j + 1 < n && (lines[j + 1]!.trimAscii.toString.startsWith "#guard_msgs") then
+        -- Expected-message docstring for a `#guard_msgs`: drop it and the modifier.
+        i := j + 2
+      else
+        for k in [i:j+1] do out := out.push lines[k]!
+        i := j + 1
+    else if t.startsWith "#guard_msgs" then
+      i := i + 1   -- a `#guard_msgs … in` with no docstring: drop the modifier line
+    else
+      out := out.push line
+      i := i + 1
+  return String.intercalate "\n" out.toList
+
 /-! ## Student elaboration & highlighting
 
 `elabAndHighlightStudent` runs the student variant of a `lean` block through a
@@ -409,14 +444,32 @@ def lean : CodeBlockExpanderOf Verso.Genre.Manual.InlineLean.LeanBlockConfig
           range.start.byteIdx := r.range.start.byteIdx - str.raw.getPos!.byteIdx
           range.stop.byteIdx := r.range.stop.byteIdx - str.raw.getPos!.byteIdx
           }
-    let teacher := stripFillInMarkers (applyEdits src teacherRanges)
-    let student := applyFillInForStudent (applyEdits src studentRanges)
+    let teacherRaw := stripFillInMarkers (applyEdits src teacherRanges)
+    let studentRaw := applyFillInForStudent (applyEdits src studentRanges)
+    -- Strip `#guard_msgs` wrappers from the rendered/extracted forms.  They
+    -- still ran during the upstream elaboration above (verification intact).
+    let teacher := stripGuardMsgs teacherRaw
+    let student := stripGuardMsgs studentRaw
     let studentHls ← elabAndHighlightStudent preEnv preScopes student
     let range := Syntax.getRange? str
     let lspRange := range.map (← getFileMap).utf8RangeToLspRange
+    -- The upstream `underlying` block highlights the original source, which
+    -- still shows the `#guard_msgs` wrapper.  When stripping changed the teacher
+    -- form, re-highlight the stripped form for the teacher-side HTML instead.
+    let teacherChild ← do
+      if teacher != teacherRaw then
+        let teacherHls ← elabAndHighlightStudent preEnv preScopes teacher
+        `(Verso.Doc.Block.other
+            (Verso.Genre.Manual.InlineLean.Block.lean
+              $(quote teacherHls)
+              (some $(quote (← getFileName)))
+              $(quote lspRange))
+            #[Verso.Doc.Block.code $(quote teacher)])
+      else
+        pure underlying
     ``(Verso.Doc.Block.other
         (SFLMeta.Block.leanSaved $(quote teacher) $(quote student))
-        #[$underlying,
+        #[$teacherChild,
           Verso.Doc.Block.other
             (Verso.Genre.Manual.InlineLean.Block.lean
               $(quote studentHls)
