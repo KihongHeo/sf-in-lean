@@ -1142,20 +1142,18 @@ theorem add_zero_zero (n : Nat) : n + 0 + 0 = n := by
 
 -- Let's walk through this proof.
 
--- BCP: We need a consistent convention about **boldface** vs _italic_
--- for emphasis.
 /-
   ## Proof state and tactics
 
   The "proof commands" -- `rewrite`, `rfl`, etc. -- are called
-  **tactics**. The `add_zero` in brackets is an _argument_ to the
+  _tactics_. The `add_zero` in brackets is an _argument_ to the
   `rewrite` tactic.
 
   Hovering with the cursor over each line of the proof, we can see the
-  **proof state** in the Lean InfoView panel.
+  _proof state_ in the Lean InfoView panel.
 
-  The proof state is divided into the **context**, before the ⊢,
-  and the **goal**, after the ⊢. The context is what we know at each point, while
+  The proof state is divided into the _context_, before the ⊢,
+  and the _goal_, after the ⊢. The context is what we know at each point, while
   the goal is what we are trying to prove.
 
   A tactic manipulates both the goal and the context to get the goal
