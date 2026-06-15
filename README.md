@@ -39,9 +39,70 @@ We should be following the [style guide](https://leanprover-community.github.io/
 
 https://github.com/orgs/plclub/projects/2
 
+## Development workflow
+
+`main` must always build. To keep it that way we use a standard
+[GitHub flow](https://docs.github.com/en/get-started/using-github/github-flow)
+plus a small continuous-integration (CI) check. **Do not commit directly to
+`main`** — every change goes through a pull request:
+
+1. Update your local `main`:
+   ```
+   git switch main
+   git pull
+   ```
+2. Create a branch for your change:
+   ```
+   git switch -c my-change
+   ```
+3. Make commits, then push the branch:
+   ```
+   git push -u origin my-change
+   ```
+4. Open a Pull Request against `main` on GitHub.
+5. CI automatically builds the book on your PR. Once it is green (and the PR
+   has been reviewed), merge it.
+
+Before opening a PR, run the same checks CI runs, to catch problems early:
+
+```
+make verso     # regenerate generated Verso sources (LF/BasicsVerso.lean, ...)
+lake build     # build the book; fails if anything does not compile
+```
+
+### Continuous integration
+
+CI is a single, deliberately tiny GitHub Actions workflow:
+[.github/workflows/ci.yml](.github/workflows/ci.yml). It runs exactly the two
+commands above on every pull request and on every push to `main`. The file is
+commented; to add a check, add a step.
+
+### Branch protection (one-time GitHub setting)
+
+So that a failing CI actually *blocks* merging, branch protection must be
+enabled once on `main`, under **GitHub → Settings → Branches → Add rule**:
+
+- ☑ Require a pull request before merging
+- ☑ Require status checks to pass before merging → select the **build** check
+
+(Optionally also ☑ "Require approvals" if you want a review before every merge.)
+
 ## Building the Verso Documentation
 
-1. Build the volume modules: `lake build LF`
-2. Build the verso docs: `lake exe lf_verso`
-3. Run a local server: `python3 -m http.server 8000 -d _out/`
-4. Visit http://localhost:8000
+`make` builds the book. It regenerates the generated sources and produces three
+HTML variants under `_out/`:
+
+- `_out/student/`   — full prose, solutions elided
+- `_out/solutions/` — full prose, solutions shown
+- `_out/terse/`     — lecture/live-coding prose, solutions elided
+
+To build everything and preview it locally:
+
+```
+make serve
+```
+
+then visit http://localhost:8000 (`make serve` builds, then serves `_out/` on
+port 8000).
+
+To build a single variant without serving, run e.g. `make lf-student`.
