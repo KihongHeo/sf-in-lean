@@ -2,5 +2,5 @@
 .DS_Store
 _out/
 __pycache__/
-LF/BasicsVerso.lean
+LF/*Verso.lean
 .claude/settings.json
