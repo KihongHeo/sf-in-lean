@@ -1,13 +1,11 @@
 # Continuous integration for Software Foundations in Lean.
 #
 # WHAT THIS DOES
-#   On every pull request, and on every push to `main`, it regenerates the
-#   generated Verso sources and builds the book. If anything fails to compile
-#   the check turns red; with branch protection enabled (see README.md) a red
-#   check blocks merging, so `main` always builds.
+#   On every pull request, and on every push to `main`, it builds the book.
+#   If anything fails to compile the check turns red; with branch protection
+#   enabled (see README.md) a red check blocks merging, so `main` always builds.
 #
 # RUN THE SAME CHECK LOCALLY
-#   make verso        # regenerate generated sources (LF/BasicsVerso.lean, ...)
 #   lake build        # build the book
 #
 # MAINTAINING THIS FILE
@@ -24,13 +22,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # 1. Get the source code.
+      # Get the source code.
       - uses: actions/checkout@v4
 
-      # 2. Regenerate the generated Verso sources. This is plain Python
-      #    (scripts/to_verso.py), so it needs no Lean toolchain.
-      - run: make verso
-
-      # 3. Install the Lean toolchain pinned in `lean-toolchain` (with build
-      #    caching) and run `lake build`, which builds the book.
+      # Install the Lean toolchain pinned in `lean-toolchain` (with build
+      # caching) and run `lake build`, which builds the book.
       - uses: leanprover/lean-action@v1

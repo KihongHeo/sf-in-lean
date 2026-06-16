@@ -63,19 +63,36 @@ plus a small continuous-integration (CI) check. **Do not commit directly to
 5. CI automatically builds the book on your PR. Once it is green
    (and the PR has been reviewed if appropriate), merge it.
 
-Before opening a PR, run the same checks CI runs, to catch problems early:
+Before opening a PR, build locally to catch problems early — the same check CI runs:
 
 ```
-make verso     # regenerate generated Verso sources (LF/BasicsVerso.lean, ...) -- temporary!
 lake build     # build the book; fails if anything does not compile
+```
+
+### Keeping branches tidy
+
+So old branches don't pile up, set these once:
+
+- Repo **Settings → General → Pull Requests → ☑ Automatically delete head
+  branches** — deletes a branch on GitHub when its PR is merged.
+- `git config --global fetch.prune true` — every `git fetch`/`pull` then drops
+  your local references to branches that were deleted on the server.
+
+After your PR merges, delete the local branch (the GitHub Pull Requests
+extension offers to do this for you):
+
+```
+git switch main
+git pull
+git branch -d my-change     # -d is safe: only deletes a fully-merged branch
 ```
 
 ### Continuous integration
 
 CI is a single, deliberately tiny GitHub Actions workflow:
-[.github/workflows/ci.yml](.github/workflows/ci.yml). It runs exactly the two
-commands above on every pull request and on every push to `main`. The file is
-commented; to add a check, add a step.
+[.github/workflows/ci.yml](.github/workflows/ci.yml). It runs `lake build` on
+every pull request and on every push to `main`. The file is commented; to add a
+check, add a step.
 
 ### Branch protection (one-time GitHub setting)
 
