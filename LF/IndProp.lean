@@ -528,14 +528,14 @@ inductive Le : Nat → Nat → Prop where
   | refl (n : Nat)              : Le n n
   | step (n m : Nat) : Le n m → Le n (m + 1)
 
-infix:50 " ⊑ " => Le
+scoped infix:50 (priority := high) " ≤ " => Le
 
 /- FULL: This definition is a bit simpler and more elegant than the
    Boolean function `leb` we defined in `Basics`.  As usual, `Le`
    and `leb` are equivalent, and there is an exercise about that
    later. -/
 
-example : 3 ⊑ 5 := by
+example : 3 ≤ 5 := by
   apply Le.step; apply Le.step; exact Le.refl 3
 
 -- HIDEFROMHTML
@@ -545,10 +545,10 @@ end LePlayground
 -- ##############################################
 /- ** Example: Transitive Closure -/
 
-/- Another example: The _reflexive and transitive closure_ of a
+/- Another example: The _transitive closure_ of a
     relation [R] is the smallest relation that contains [R] and that
-    is reflexive and transitive. This can be defined by the following
-    three rules (where we added a reflexivity rule to [ClosTrans]):
+    is transitive. This can be defined by the following
+    two rules:
 [[[
                      R x y
                 ---------------- (t_step)
@@ -677,7 +677,7 @@ def cs (n m : Nat) : Prop := csf n = m
     reaches another number `m` in zero or more Collatz steps: -/
 
 def cms (n m : Nat) : Prop := ClosReflTrans cs n m
-def collatz' : Prop := forall (n : Nat), n ≠ 0 → cms n 1
+def collatz' : Prop := ∀ (n : Nat), n ≠ 0 → cms n 1
 
 
 /- FULL: This `cms` relation defined in terms of
@@ -730,7 +730,7 @@ inductive ClosReflTransSym {α: Type} (R: α→α→Prop) : α→α→Prop where
     let's focus on permutations of lists with exactly three
     elements.
 
-    We can define such permulations by the following rules:
+    We can define such permutations by the following rules:
 [[[
                --------------------- (perm3_swap12)
                Perm3 [a;b;c] [b;a;c]
@@ -793,7 +793,7 @@ inductive Perm3 {α : Type} : List α → List α → Prop where
 
       (1) `even n = true` (using the recursive boolean function `even`), or
 
-      (2) `exists k, n = double k` (using an existential quantifier). -/
+      (2) `∃ k, n = double k` (using an existential quantifier). -/
 
 -- TERSE: ***
 
@@ -924,7 +924,7 @@ inductive WrongEv (n : Nat) : Prop where
     constructors": -/
 
 #check (Ev.ev_0) -- Ev 0
-#check Ev.ev_succ_succ -- forall (n : Nat) (H : Ev n) : Ev (n + 2)
+#check Ev.ev_succ_succ -- ∀ (n : Nat) (H : Ev n) : Ev (n + 2)
 
 -- FULL
 /- Indeed, Lean also accepts the following equivalent definition of `Ev` -/
@@ -933,7 +933,7 @@ namespace EvPlayground
 
 inductive Ev : Nat → Prop where
   | ev_0  : Ev 0
-  | ev_succ_succ : forall (n : Nat), Ev n → Ev (n + 2)
+  | ev_succ_succ : ∀ (n : Nat), Ev n → Ev (n + 2)
 
 end EvPlayground
 -- /FULL
@@ -963,14 +963,14 @@ theorem ev_4'' : Ev 4 := by
 /- In this way, we can also prove theorems that have hypotheses
     involving `Ev`. -/
 
-theorem ev_plus4 : forall n, Ev n → Ev (4 + n) := by
+theorem ev_plus4 : ∀ n, Ev n → Ev (4 + n) := by
   intro n Hn
   rw [Nat.add_comm]
   exact (Ev.ev_succ_succ _ (Ev.ev_succ_succ _ Hn))
 
 -- FULL
 -- EX1 (ev_double)
-theorem ev_double : forall n, Ev (double n) := by
+theorem ev_double : ∀ n, Ev (double n) := by
   -- ADMITTED
   intros n; induction n
   case zero =>
@@ -1006,7 +1006,7 @@ theorem Perm3_rev' : Perm3 [1, 2, 3] [3, 2, 1] := by
             (Perm3.perm3_swap23 _ _ _))
           (Perm3.perm3_swap12 _ _ _))
 
-/--/ So the informal derivation trees we drew above are not too far
+/- So the informal derivation trees we drew above are not too far
     from what's happening formally.  Formally we're using the evidence
     constructors to build _evidence trees_, similar to the finite trees we
     built using the constructors of data types such as Nat, List,
@@ -1021,7 +1021,7 @@ theorem Perm3_ex1 : Perm3 [1, 2, 3] [2, 3, 1] := by
   . apply Perm3.perm3_swap23
   -- /ADMITTED
 
-theorem Perm3_refl : forall (α : Type) (a b c : α ), Perm3 [a, b, c] [a, b, c] := by
+theorem Perm3_refl : ∀ (α : Type) (a b c : α ), Perm3 [a, b, c] [a, b, c] := by
   -- ADMITTED
   intro α a b c
   apply Perm3.perm3_trans (l₂:=[b, a, c])
@@ -1079,9 +1079,9 @@ theorem Perm3_refl : forall (α : Type) (a b c : α ), Perm3 [a, b, c] [a, b, c]
 /- TERSE: We can prove our characterization of evidence for `Ev n`,
     using `cases`. -/
 
-theorem ev_inversion : forall (n : Nat),
+theorem ev_inversion : ∀ (n : Nat),
     Ev n →
-    (n = 0) ∨ exists n', n = n' + 2 ∧ Ev n' := by
+    (n = 0) ∨ ∃ n', n = n' + 2 ∧ Ev n' := by
     intro n H
     cases H
     case ev_0 =>
@@ -1099,9 +1099,9 @@ theorem ev_inversion : forall (n : Nat),
 -- EX1 (le_inversion)
 -- Let's prove a similar inversion lemma for [le].
 namespace LePlayground
-theorem le_inversion : forall (n m : Nat),
+theorem le_inversion : ∀ (n m : Nat),
   Le n m →
-  (n = m) ∨ (exists m', m = m' + 1 ∧ Le n m') := by
+  (n = m) ∨ (∃ m', m = m' + 1 ∧ Le n m') := by
   /- ADMITTED -/
   intros n m E
   cases E
@@ -1131,7 +1131,7 @@ end LePlayground
 
        (D) These tactics are not sufficient to solve the goal. -/
     /- FOLD -/
-    theorem quiz_1_not_ev : forall n, Ev n → n = 1 → true = false := by
+    theorem quiz_1_not_ev : ∀ n, Ev n → n = 1 → true = false := by
       intro n E F
       cases E
       . contradiction
@@ -1229,7 +1229,7 @@ end LePlayground
 /- We can use the inversion lemma that we proved above to help
     structure proofs: -/
 
-theorem ev_succ_succ_ev : forall n, Ev (n + 2) → Ev n := by
+theorem ev_succ_succ_ev : ∀ n, Ev (n + 2) → Ev n := by
   intro n H
   apply ev_inversion at H
   cases H
@@ -1271,7 +1271,7 @@ Abort.-/
     where `n = 0`, does not apply and (2) that the `n'` that appears
     in the `ev_succ_succ` case must be the same as `n`.
 
-    The details of how `inversion` are implemented are beyond the scope
+    The details of how `inversion` is implemented are beyond the scope
     of this course, but suffice to say Lean's metaprogramming capabilities
     are such that almost any sequence of reasoning steps can be implemented
     as a new tactic.
@@ -1280,7 +1280,7 @@ Abort.-/
 /- TERSE: We've provided a handy tactic called `inversion` that does
     the work of our inversion lemma and more besides. -/
 
-theorem ev_succ_succ_ev' : forall n, Ev (n + 2) → Ev n := by
+theorem ev_succ_succ_ev' : ∀ n, Ev (n + 2) → Ev n := by
   intro n h
   inversion h; assumption
 
@@ -1335,7 +1335,7 @@ theorem one_not_even' : ¬ Ev 1 := by
 /- Prove the following result using `inversion`.  (For extra
     practice, you can also prove it using the inversion lemma.) -/
 
-theorem ev_4_ev_n : forall n,
+theorem ev_4_ev_n : ∀ n,
   Ev (n + 4) → Ev n := by
   -- ADMITTED -/
   intros n h
@@ -1366,12 +1366,12 @@ theorem ev5_nonsense : Ev 5 → 2 + 2 = 9 := by
 
     Note that `inversion` also works on equality propositions. -/
 
-theorem inversion_ex1 : forall (n m o : Nat),
+theorem inversion_ex1 : ∀ (n m o : Nat),
   [n, m] = [o, o] → [n] = [m] := by
   intro n m o h
   inversion h; rfl
 
-theorem inversion_ex2 : forall (n : Nat),
+theorem inversion_ex2 : ∀ (n : Nat),
   n + 1 = 0 → 2 + 2 = 5 := by
   intro n h
   inversion h
@@ -1458,7 +1458,7 @@ theorem inversion_ex2 : forall (n : Nat),
 
 /-- warning: declaration uses `sorry` -/
 #guard_msgs in
-example : forall n, Ev n → Even n := by
+example : ∀ n, Ev n → Even n := by
   /- WORKINCLASS -/
 
 /- We could try to proceed by case analysis or induction on `n`.  But
@@ -1475,7 +1475,7 @@ example : forall n, Ev n → Even n := by
   /- h = ev_succ_succ n' h' -/
   case ev_succ_succ n' h' =>
   /- Unfortunately, the second case is harder.  We need to show
-    `exists n₀, n' + 2 = double n₀`, but the only available assumption is
+    `∃ n₀, n' + 2 = double n₀`, but the only available assumption is
     `h'`, which states that `Ev n'` holds.  Since this isn't directly
     useful, it seems that we are stuck and that performing case
     analysis on `h` was a waste of time.
@@ -1487,12 +1487,12 @@ example : forall n, Ev n → Even n := by
     `h'`.  More formally, we could finish our proof if we could show
     that
 [[
-        exists k', n' = double k',
+        ∃ k', n' = double k',
 ]]
     which is the same as the original statement, but with `n'` instead
     of `n`.  Indeed, it is not difficult to convince Lean that this
     intermediate result would suffice. -/
-    have he : (exists k', n' = double k') → (exists n₀, n' + 2 = double n₀) := by
+    have he : (∃ k', n' = double k') → (∃ n₀, n' + 2 = double n₀) := by
       intro ⟨k, hk⟩; exists (k + 1); rw [double_succ, hk]
     apply he
     /- Unfortunately, now we are stuck: we are trying to prove another instance
@@ -1540,7 +1540,7 @@ example : forall n, Ev n → Even n := by
 
 /- Let's try proving that lemma again: -/
 
-theorem ev_Even : forall n, Ev n → Even n := by
+theorem ev_Even : ∀ n, Ev n → Even n := by
   intro n h
   induction h
   /- h = ev_0 -/
@@ -1560,7 +1560,7 @@ theorem ev_Even : forall n, Ev n → Even n := by
 /- The equivalence between the second and third definitions of
     evenness now follows. -/
 
-theorem ev_Even_iff : forall n, Ev n ↔ Even n := by
+theorem ev_Even_iff : ∀ n, Ev n ↔ Even n := by
   intro n; apply Iff.intro
   . intro h; exact ev_Even _ h
   . intro ⟨k, hk⟩; rw [hk]; exact ev_double k
@@ -1574,7 +1574,7 @@ theorem ev_Even_iff : forall n, Ev n ↔ Even n := by
     technique, to help you familiarize yourself with it. -/
 
 /- EX2 (ev_sum) -/
-theorem ev_sum : forall n m, Ev n → Ev m → Ev (n + m) := by
+theorem ev_sum : ∀ n m, Ev n → Ev m → Ev (n + m) := by
   /- ADMITTED -/
   intro n m hn hm
   induction hn
@@ -1586,7 +1586,7 @@ theorem ev_sum : forall n m, Ev n → Ev m → Ev (n + m) := by
 /- [] -/
 
 /- EX3A! (ev_ev__ev) -/
-theorem ev_ev__ev : forall n m, Ev (n + m) → Ev n → Ev m := by
+theorem ev_ev__ev : ∀ n m, Ev (n + m) → Ev n → Ev m := by
   /- Hint: There are two pieces of evidence you could attempt to induct upon
       here. If one doesn't work, try the other. -/
   /- ADMITTED -/
@@ -1604,7 +1604,7 @@ theorem ev_ev__ev : forall n m, Ev (n + m) → Ev n → Ev m := by
     But, you will need a clever `have` and some tedious rewriting.
     Hint: Is `(n+m) + (n+p)` even? -/
 
-theorem ev_plus_plus : forall n m p,
+theorem ev_plus_plus : ∀ n m p,
   Ev (n+m) → Ev (n+p) → Ev (m+p) := by
   /- ADMITTED -/
   intro n m p hnm hnp
@@ -1654,11 +1654,11 @@ end ClosReflTransRemainder
     surprising behavior of unhabitated types, which I don't think have
     been covered (yet?). Maybe they should be?  BCP 25: This one seems good. -/
 
-def isDiagonal {α : Type} (R: α → α → Prop) := forall x y, R x y → x = y
+def isDiagonal {α : Type} (R: α → α → Prop) := ∀ x y, R x y → x = y
 
 /- Now consider the following lemma about diagonal relations: -/
 
-theorem closure_of_diagonal_is_diagonal : forall α (R: α → α → Prop),
+theorem closure_of_diagonal_is_diagonal : ∀ α (R: α → α → Prop),
   isDiagonal R →
   isDiagonal (ClosReflTrans R) := by
 
@@ -1717,7 +1717,7 @@ inductive Ev' : Nat → Prop where
     technique works with constructors of inductively defined
     propositions. -/
 
-theorem ev'_ev : forall n, Ev' n ↔ Ev n := by
+theorem ev'_ev : ∀ n, Ev' n ↔ Ev n := by
  /- ADMITTED -/
   intro n
   apply Iff.intro
@@ -1748,7 +1748,7 @@ inductive Perm3 {α : Type} : List α → List α → Prop where
 
 end Perm3Reminder
 
-theorem Perm3_symm : forall (α : Type) (l₁ l₂ : List α),
+theorem Perm3_symm : ∀ (α : Type) (l₁ l₂ : List α),
   Perm3 l₁ l₂ → Perm3 l₂ l₁ := by
 
   intro α l₁ l₂ h; induction h
@@ -1760,7 +1760,7 @@ theorem Perm3_symm : forall (α : Type) (l₁ l₂ : List α),
 /- EX2 (Perm3_In) -/
 /- If you find yourself dealing with deeply nested `cases` in this proof,
    think back to `Logic` where you learned about the `obtain` tactic -/
-theorem Perm3_In : forall (α : Type) (x : α) (l₁ l₂ : List α),
+theorem Perm3_In : ∀ (α : Type) (x : α) (l₁ l₂ : List α),
     Perm3 l₁ l₂ → In x l₁ → In x l₂ := by
   /- ADMITTED -/
   intros α x l₁ l₂ hPerm hIn
@@ -1786,7 +1786,7 @@ theorem Perm3_In : forall (α : Type) (x : α) (l₁ l₂ : List α),
 /- [] -/
 
 /- EX1? (Perm3_NotIn) -/
-theorem Perm3_NotIn : forall (α : Type) (x : α) (l₁ l₂ : List α),
+theorem Perm3_NotIn : ∀ (α : Type) (x : α) (l₁ l₂ : List α),
     Perm3 l₁ l₂ → ¬In x l₁ → ¬In x l₂ := by
   /- ADMITTED -/
   intros α x l₁ l₂ hPerm hIn hContra
@@ -1860,7 +1860,7 @@ inductive Le : Nat → Nat → Prop where
     moving them to the left of the colons.) -/
 
 /- FULL: Proofs of facts about `≤` using the constructors `Nat.le.refl` and
-    `Nat.le.succ` follow the same patterns as proofs about properties, like
+    `Nat.le.step` follow the same patterns as proofs about properties, like
     [ev] above. We can `apply` the constructors to prove `≤`
     goals (e.g., to show that `3≤3` or `3≤6`), and we can use
     tactics like `inversion` to extract information from `≤`
@@ -1905,7 +1905,7 @@ def lt (n m : Nat) : Prop := Nat.le (n + 1) m
 
 def ge (m n : Nat) : Prop := Nat.le n m
 
-example : forall (m n : Nat), m ≥ n → n ≤ m := by
+example : ∀ (m n : Nat), m ≥ n → n ≤ m := by
   intro m n h
   rw [←ge_iff_le]; assumption
 
@@ -1918,7 +1918,7 @@ end Playground
 /- HIDE: PR: Added the following paragraph to try to help reduce
    random walks over the following exercises. -/
 /- FULL: From the definition of `le`, we can sketch the behaviors of
-    `cases`, `induction`, and `induction` on a hypothesis `h`
+    `cases` and `induction` on a hypothesis `h`
     providing evidence of the form [le e1 e2].  Doing `cases h`
     will generate two cases. In the first case, `e1 = e2`, and it
     will replace instances of `e2` with `e1` in the goal and context.
@@ -1934,7 +1934,7 @@ end Playground
     practice exercises. -/
 
 /- EX3! (le_facts) -/
-theorem le_trans : forall (m n o : Nat), m ≤ n → n ≤ o → m ≤ o := by
+theorem le_trans : ∀ (m n o : Nat), m ≤ n → n ≤ o → m ≤ o := by
   /- ADMITTED -/
   intro n m o h₁  h₂
   induction  h₂
@@ -1943,7 +1943,7 @@ theorem le_trans : forall (m n o : Nat), m ≤ n → n ≤ o → m ≤ o := by
 /- /ADMITTED -/
 /- GRADE_THEOREM 0.5: le_trans -/
 
-theorem zero_le_n : forall n, 0 ≤ n := by
+theorem zero_le_n : ∀ n, 0 ≤ n := by
   /- ADMITTED -/
   intro n; induction n
   case zero => constructor
@@ -1951,7 +1951,7 @@ theorem zero_le_n : forall n, 0 ≤ n := by
   /- /ADMITTED -/
 /- GRADE_THEOREM 0.5: zero_le_n -/
 
-theorem n_le_m__succ_n_le_succ_m : forall n m,
+theorem n_le_m__succ_n_le_succ_m : ∀ n m,
   n ≤ m → n + 1 ≤ m + 1 := by
   /- ADMITTED -/
   intro n m h
@@ -1964,7 +1964,7 @@ theorem n_le_m__succ_n_le_succ_m : forall n m,
 /- /ADMITTED -/
 /- GRADE_THEOREM 0.5: n_le_m__Sn_le_Sm -/
 
-theorem succ_n_le_succ_m__n_le_m : forall n m,
+theorem succ_n_le_succ_m__n_le_m : ∀ n m,
   n + 1 ≤ m + 1 → n ≤ m := by
   /- ADMITTED -/
   intro n m h
@@ -1977,7 +1977,7 @@ theorem succ_n_le_succ_m__n_le_m : forall n m,
 /- /ADMITTED -/
 /- GRADE_THEOREM 1: Sn_le_Sm__n_le_m -/
 
-theorem le_add_l : forall (a b : Nat), a ≤ a + b := by
+theorem le_add_l : ∀ (a b : Nat), a ≤ a + b := by
   /- ADMITTED -/
   intros a b
   induction a
@@ -1990,7 +1990,7 @@ theorem le_add_l : forall (a b : Nat), a ≤ a + b := by
 /- [] -/
 
 /- EX2! (plus_le_facts1) -/
-theorem add_le : forall (n₁ n₂ m : Nat),
+theorem add_le : ∀ (n₁ n₂ m : Nat),
   n₁ + n₂ ≤ m →
   n₁ ≤ m ∧ n₂ ≤ m := by
  /- ADMITTED -/
@@ -2012,7 +2012,7 @@ theorem add_le : forall (n₁ n₂ m : Nat),
 /- /ADMITTED -/
 /- GRADE_THEOREM 1: add_le -/
 
-theorem add_le_cases : forall (n m p q : Nat),
+theorem add_le_cases : ∀ (n m p q : Nat),
   n + m ≤ p + q → n ≤ p ∨ m ≤ q := by
   /- Hint: May be easiest to prove by induction on `n`. -/
 /- ADMITTED -/
@@ -2036,7 +2036,7 @@ theorem add_le_cases : forall (n m p q : Nat),
 /- [] -/
 
 /- EX2! (plus_le_facts2) -/
-theorem add_le_compat_l : forall (n m p : Nat),
+theorem add_le_compat_l : ∀ (n m p : Nat),
   n ≤ m →
   p + n ≤ p + m := by
   /- ADMITTED -/
@@ -2051,7 +2051,7 @@ theorem add_le_compat_l : forall (n m p : Nat),
 /- /ADMITTED -/
 /- GRADE_THEOREM 0.5: add_le_compat_l -/
 
-theorem plus_le_compat_r : forall (n m p : Nat),
+theorem plus_le_compat_r : ∀ (n m p : Nat),
   n ≤ m →
   n + p ≤ m + p := by
   /- ADMITTED -/
@@ -2062,7 +2062,7 @@ theorem plus_le_compat_r : forall (n m p : Nat),
 /- /ADMITTED -/
 /- GRADE_THEOREM 0.5: plus_le_compat_r -/
 
-theorem le_plus_trans : forall (n m p : Nat),
+theorem le_plus_trans : ∀ (n m p : Nat),
   n ≤ m →
   n ≤ m + p := by
   /- ADMITTED -/
@@ -2076,7 +2076,7 @@ theorem le_plus_trans : forall (n m p : Nat),
 /- [] -/
 
 /- EX3? (lt_facts) -/
-theorem lt_ge_cases : forall (n m : Nat),
+theorem lt_ge_cases : ∀ (n m : Nat),
   n < m ∨ n ≥ m := by
   /- ADMITTED -/
   intro n m; induction n generalizing m
@@ -2103,7 +2103,7 @@ theorem lt_ge_cases : forall (n m : Nat),
 /- /ADMITTED -/
 /- GRADE_THEOREM 1.5: lt_ge_cases -/
 
-theorem n_lt_m__n_le_m : forall (n m : Nat),
+theorem n_lt_m__n_le_m : ∀ (n m : Nat),
   n < m →
   n ≤ m := by
   /- ADMITTED -/
@@ -2112,7 +2112,7 @@ theorem n_lt_m__n_le_m : forall (n m : Nat),
 /- /ADMITTED -/
 /- GRADE_THEOREM 0.5: n_lt_m__n_le_m -/
 
-theorem plus_lt : forall (n₁ n₂ m : Nat),
+theorem plus_lt : ∀ (n₁ n₂ m : Nat),
   n₁ + n₂ < m →
   n₁ < m∧ n₂ < m := by
 /- ADMITTED -/
@@ -2131,7 +2131,7 @@ theorem plus_lt : forall (n₁ n₂ m : Nat),
 /- [] -/
 
 /- EX4? (leb_le) -/
-theorem leb_complete : forall (n m : Nat),
+theorem leb_complete : ∀ (n m : Nat),
   n ≤? m = true → n ≤ m := by
   /- ADMITTED -/
   intro n m h; induction n generalizing m
@@ -2147,7 +2147,7 @@ theorem leb_complete : forall (n m : Nat),
 /- /ADMITTED -/
 /- GRADE_THEOREM 2: leb_complete -/
 
-theorem leb_correct : forall n m,
+theorem leb_correct : ∀ n m,
   n ≤ m →
   n ≤? m = true := by
   /- ADMITTED -/
@@ -2171,7 +2171,7 @@ theorem leb_correct : forall n m,
    would be to show that the proofs of completeness and correctness can
    be carried out in a single induction. -/
 
-theorem leb_iff : forall n m,
+theorem leb_iff : ∀ n m,
   n ≤? m = true ↔ n ≤ m := by
   /- ADMITTED -/
   intro n m; apply Iff.intro
@@ -2180,7 +2180,7 @@ theorem leb_iff : forall n m,
 /- /ADMITTED -/
 /- GRADE_THEOREM 1: leb_iff -/
 
-theorem leb_true_trans : forall n m o,
+theorem leb_true_trans : ∀ n m o,
   n ≤? m = true → m ≤? o = true → n ≤? o = true := by
   /- ADMITTED -/
   intros n m o
@@ -2335,40 +2335,27 @@ def fR : Nat → Nat → Nat
   fun x y => x + y
 /- /ADMITDEF -/
 
-def R_equiv_fR : forall m n o, R m n o ↔ fR m n = o := by
+theorem R_equiv_fR : ∀ m n o, R m n o ↔ fR m n = o := by
 /- ADMITTED -/
+  intro m n o
   unfold fR
-  intro m n o; apply Iff.intro
+  apply Iff.intro
   . intro h; induction h
     case c1 => rfl
-    case c2 m' n' o' h ihr =>
-      rw [Nat.succ_add, ihr]
-    case c3 m' n' o' h ihr =>
-      rw [←Nat.add_assoc, ihr]
-    case c4 m' n' o' h ihr =>
-      rw [Nat.succ_add] at ihr
-      injections ihr
-    case c5 m' n' o' h ihr =>
-      rw [Nat.add_comm]; assumption
-  . intro h; induction o generalizing m n
-    case zero =>
-      cases m
-      case zero =>
-        rw [Nat.zero_add] at h
-        subst h
-        constructor
-      case succ => rw [Nat.succ_add] at h; contradiction
-    case succ o' ih =>
-      cases m
-      case zero =>
-        rw [Nat.zero_add] at h
-        subst h; constructor
-        apply ih; rw [Nat.zero_add]
-      case succ m' =>
-        constructor; apply ih
-        rw [Nat.succ_add] at h
-        inversion h; rfl
-
+    case c2 m n o _ ih => rw [Nat.succ_add, ih]
+    case c3 m n o _ ih => rw [Nat.add_succ, ih]
+    case c4 m n o _ ih =>
+      rw [Nat.succ_add, Nat.add_succ] at ih
+      injections
+    case c5 m n o _ ih => rw [Nat.add_comm]; exact ih
+  . intro h; subst h
+    have R0 : ∀ k, R 0 k k := by
+      intro k; induction k
+      case zero => exact .c1
+      case succ k ih => exact .c3 _ _ _ ih
+    induction m
+    case zero => rw [Nat.zero_add]; exact R0 n
+    case succ m ih => rw [Nat.succ_add]; exact .c2 _ _ _ ih
 /- HIDE: And here's a somewhat nicer version using some automation,
    but we haven't covered that yet...
 
@@ -2489,7 +2476,7 @@ inductive subseq : List Nat → List Nat → Prop where
 /- /SOLUTION -/
 
 
-theorem subseq_refl : forall (l : List Nat), subseq l l := by
+theorem subseq_refl : ∀ (l : List Nat), subseq l l := by
   /- ADMITTED -/
   intro l
   induction l
@@ -2498,7 +2485,7 @@ theorem subseq_refl : forall (l : List Nat), subseq l l := by
     constructor; assumption
 /- /ADMITTED -/
 
-theorem subseq_app : forall (l₁ l₂ l₃ : List Nat),
+theorem subseq_app : ∀ (l₁ l₂ l₃ : List Nat),
   subseq l₁ l₂ →
   subseq l₁ (l₂ ++ l₃) := by
   /- ADMITTED -/
@@ -2515,7 +2502,7 @@ theorem subseq_app : forall (l₁ l₂ l₃ : List Nat),
    with `l₁` generalized.  BCP 21: Made it 3 points instead of 2, and
    included a hint. CH'23: Made it 4 points, since there are 5 different
    choices here and the hint doesn't help with that. -/
-theorem subseq_trans : forall (l₁ l₂ l₃ : List Nat),
+theorem subseq_trans : ∀ (l₁ l₂ l₃ : List Nat),
   subseq l₁ l₂ →
   subseq l₂ l₃ →
   subseq l₁ l₃ := by
@@ -2683,7 +2670,7 @@ inductive TotalRelation : Nat → Nat → Prop where
 /- /SOLUTION -/
 
 
-theorem total_relation_is_total : forall n m, TotalRelation n m := by
+theorem total_relation_is_total : ∀ n m, TotalRelation n m := by
   /- ADMITTED -/
   intro _ _; constructor
 /- /ADMITTED -/
@@ -2720,7 +2707,7 @@ inductive EmptyRelation : Nat → Nat → Prop where
   /- SOLUTION -/
 /- /SOLUTION -/
 
-theorem empty_relation_is_empty : forall n m, ¬ EmptyRelation n m := by
+theorem empty_relation_is_empty : ∀ n m, ¬ EmptyRelation n m := by
   /- ADMITTED -/
   intros n m contra; inversion contra
 /- /ADMITTED -/
@@ -2852,16 +2839,16 @@ inductive Merge {α:Type} : List α → List α → List α → Prop where
 /- SOLUTION -/
   | merge_empty :
       Merge [] [] []
-  | merge_left : forall l₁ l₂ l₃ x,
+  | merge_left : ∀ l₁ l₂ l₃ x,
       Merge l₁ l₂ l₃ →
       Merge (x::l₁) l₂ (x::l₃)
-  | merge_right : forall l₁ l₂ l₃ x,
+  | merge_right : ∀ l₁ l₂ l₃ x,
       Merge l₁ l₂ l₃ →
       Merge l₁ (x::l₂) (x::l₃)
 /- /SOLUTION -/
 
 
-theorem merge_filter : forall (α : Type) (test: α→ Bool) (l l₁ l₂ : List α),
+theorem merge_filter : ∀ (α : Type) (test: α→ Bool) (l l₁ l₂ : List α),
   Merge l₁ l₂ l →
   List.all l₁ (fun n => test n) →
   List.all l₂ (fun n => !test n) →
@@ -2916,13 +2903,13 @@ namespace Sol
     so it doesn't conflict. -/
 
 inductive Subseq {α:Type} : List α → List α → Prop where
-  | sub_nil  : forall l, Subseq [] l
-  | sub_take : forall x l₁ l₂, Subseq l₁ l₂ → Subseq (x :: l₁) (x :: l₂)
-  | sub_skip : forall x l₁ l₂, Subseq l₁ l₂ → Subseq l₁ (x :: l₂)
+  | sub_nil  : ∀ l, Subseq [] l
+  | sub_take : ∀ x l₁ l₂, Subseq l₁ l₂ → Subseq (x :: l₁) (x :: l₂)
+  | sub_skip : ∀ x l₁ l₂, Subseq l₁ l₂ → Subseq l₁ (x :: l₂)
 
 
 /- A few lemmas about subseq. -/
-theorem subseq_drop_l : forall (α:Type) (x:α) (l₁ l₂ : List α),
+theorem subseq_drop_l : ∀ (α:Type) (x:α) (l₁ l₂ : List α),
   Subseq (x :: l₁) l₂ → Subseq l₁ l₂ := by
 
   intro α x l₁ l₂ hs; induction l₂ generalizing l₁
@@ -2934,7 +2921,7 @@ theorem subseq_drop_l : forall (α:Type) (x:α) (l₁ l₂ : List α),
     case sub_skip hs =>
       constructor; apply ih; assumption
 
-theorem subseq_drop : forall (α:Type) (x:α) (l₁ l₂ : List α),
+theorem subseq_drop : ∀ (α:Type) (x:α) (l₁ l₂ : List α),
   Subseq (x :: l₁) (x :: l₂) → Subseq l₁ l₂ := by
 
   intro α x l₁ l₂ hs; inversion hs
@@ -2945,7 +2932,7 @@ theorem subseq_drop : forall (α:Type) (x:α) (l₁ l₂ : List α),
     every other list with the property is at most as long as it is. -/
 
 def maximal {α:Type} (lmax : List α) (P : List α → Prop) :=
-  P lmax ∧ forall l', P l' → l'.length ≤ lmax.length
+  P lmax ∧ ∀ l', P l' → l'.length ≤ lmax.length
 
 /- A "good subsequence" for a given list `l` and a `test` is a
     subsequence of `l` all of whose members evaluate to `true` under
@@ -2956,7 +2943,7 @@ def good_subseq {α:Type} (test : α → Bool) (l lsub : List α) :=
 
 /- Good subsequences can be extended with good elements. -/
 
-theorem good_subseq_extend : forall (α:Type) (test : α → Bool)
+theorem good_subseq_extend : ∀ (α:Type) (test : α → Bool)
                                   (l lsub : List α) (x : α),
   good_subseq test l lsub →
   test x →
@@ -2970,7 +2957,7 @@ theorem good_subseq_extend : forall (α:Type) (test : α → Bool)
 
 /- If `lmax` is a maximal good subsequence of `x :: l` and `x` is not good,
     then `lmax` is also a maximal good subsequence of `l`. -/
-theorem maximal_strengthening : forall (α:Type) (x:α)
+theorem maximal_strengthening : ∀ (α:Type) (x:α)
                                      (lmax l : List α)
                                      (test : α → Bool),
   maximal lmax (good_subseq test (x::l)) →
@@ -2995,7 +2982,7 @@ theorem maximal_strengthening : forall (α:Type) (x:α)
 /- Some easy lemmas about filter: its result is a good subsequence of
     the original list. -/
 
-theorem filter_subseq : forall (α:Type) (l : List α) (test : α → Bool),
+theorem filter_subseq : ∀ (α:Type) (l : List α) (test : α → Bool),
   Subseq (List.filter test l) l := by
 
   intros α l test; induction l
@@ -3006,7 +2993,7 @@ theorem filter_subseq : forall (α:Type) (l : List α) (test : α → Bool),
       constructor; assumption
     . dsimp; constructor; assumption
 
-theorem filter_all : forall (α:Type) (l : List α) (test : α → Bool),
+theorem filter_all : ∀ (α:Type) (l : List α) (test : α → Bool),
   List.all (List.filter test l) test := by
 
   intro α l test; induction l
@@ -3022,7 +3009,7 @@ theorem filter_all : forall (α:Type) (l : List α) (test : α → Bool),
     of `l` if and only if `filter test l = lsub` -/
 /- LATER: This could use a lot of cleanup... -/
 
-theorem filter_spec2 : forall (α:Type) (l lsub:List α) (test : α → Bool),
+theorem filter_spec2 : ∀ (α:Type) (l lsub:List α) (test : α → Bool),
   maximal lsub (good_subseq test l) ↔ List.filter test l = lsub := by
 
   intro α l lsub test; apply Iff.intro
@@ -3121,17 +3108,17 @@ end Sol
 
     - Prove (`pal_app_reverse`) that
 [[
-       forall l, pal (l ++ l.reverse).
+       ∀ l, pal (l ++ l.reverse).
 ]]
     - Prove (`pal_reverse` that)
 [[
-       forall l, pal l → l = l.reverse.
+       ∀ l, pal l → l = l.reverse.
 ]]
 
     For extra credit, try proving the same theorems with an alternate
     definition with a _single_ constructor of this type:
 [[
-        forall l, l = l.reverse → pal l
+        ∀ l, l = l.reverse → pal l
 ]]
 -/
 
@@ -3171,8 +3158,8 @@ end Sol
 inductive Pal {α:Type} : List α → Prop where
 /- SOLUTION -/
   | pal_nil : Pal []
-  | pal_one : forall x, Pal [x]
-  | pal_consnoc : forall x l, Pal l → Pal (x::(l++[x]))
+  | pal_one : ∀ x, Pal [x]
+  | pal_consnoc : ∀ x l, Pal l → Pal (x::(l++[x]))
 /- /SOLUTION -/
 
 
@@ -3180,7 +3167,7 @@ inductive Pal {α:Type} : List α → Prop where
    miss, since the theorems don't require it! BCP 25: We could fix
    that by adding some examples, e.g. [], [1], and [1,1]. -/
 
-theorem pal_app_reverse : forall (α:Type) (l : List α),
+theorem pal_app_reverse : ∀ (α:Type) (l : List α),
   Pal (l ++ l.reverse) := by
   /- ADMITTED -/
   intro α l; induction l
@@ -3193,7 +3180,7 @@ theorem pal_app_reverse : forall (α:Type) (l : List α),
 
 /- LATER: Note that we're using some standard library stuff here...
    We should at least explicitly qualify them... -/
-theorem pal_reverse : forall (α:Type) (l: List α) , Pal l → l = l.reverse := by
+theorem pal_reverse : ∀ (α:Type) (l: List α) , Pal l → l = l.reverse := by
 
 
   /- ADMITTED -/
@@ -3214,7 +3201,7 @@ theorem pal_reverse : forall (α:Type) (l: List α) , Pal l → l = l.reverse :=
     to the lack of evidence.  Using your definition of `Pal` from the
     previous exercise, prove that
 [[
-     forall l, l = l.reverse → Pal l.
+     ∀ l, l = l.reverse → Pal l.
 ]]
 -/
 
@@ -3225,7 +3212,7 @@ theorem pal_reverse : forall (α:Type) (l: List α) , Pal l → l = l.reverse :=
     the length_ of `l`.  We make heavy use of destruct and inversion
     to clear away the impossible cases. -/
 
-theorem reverse_pal: forall {α: Type} (n: Nat) (l:List α ),
+theorem reverse_pal: ∀ {α: Type} (n: Nat) (l:List α ),
   l.length / 2 = n → l = l.reverse → Pal l := by
 
   intros α n l hlen hrev
@@ -3383,7 +3370,7 @@ Proof. {
 } Qed. -/
 /- /QUIETSOLUTION -/
 
-theorem palindrome_converse: forall {α: Type} (l: List α),
+theorem palindrome_converse: ∀ {α: Type} (l: List α),
     l = l.reverse → Pal l := by
   /- ADMITTED -/
   intros α l h
@@ -3422,7 +3409,7 @@ end RecallIn
 
 /- SOLUTION -/
 def disjoint {α:Type} (l₁ l₂: List α) :=
-  forall (x:α), In x l₁ → ¬ In x l₂
+  ∀ (x:α), In x l₁ → ¬ In x l₂
 /- /SOLUTION -/
 
 /- Next, use [In] to define an inductive proposition [NoDup α
@@ -3435,7 +3422,7 @@ def disjoint {α:Type} (l₁ l₂: List α) :=
 /- SOLUTION -/
 inductive NoDup {α:Type} : List α → Prop where
   | NoDup_nil : NoDup []
-  | NoDup_cons : forall a l,
+  | NoDup_cons : ∀ a l,
               ¬ In a l →
               NoDup l →
               NoDup (a::l)
@@ -3447,7 +3434,7 @@ inductive NoDup {α:Type} : List α → Prop where
 /- SOLUTION -/
 /- Here are some possible answers: -/
 
-theorem NoDup_append : forall (α:Type) (l₁ l₂: List α),
+theorem NoDup_append : ∀ (α:Type) (l₁ l₂: List α),
   NoDup l₁ → NoDup l₂ → disjoint l₁ l₂ →
   NoDup (l₁ ++ l₂) := by
 
@@ -3469,7 +3456,7 @@ theorem NoDup_append : forall (α:Type) (l₁ l₂: List α),
         apply hdis; rw [In_cons]
         right; assumption
 
-theorem NoDup_disjoint : forall (α:Type) (l₁ l₂: List α),
+theorem NoDup_disjoint : ∀ (α:Type) (l₁ l₂: List α),
   NoDup (l₁++l₂) → disjoint l₁ l₂ := by
 
   intro α l₁ l₂ hdis x hin contra
@@ -3486,7 +3473,7 @@ theorem NoDup_disjoint : forall (α:Type) (l₁ l₂: List α),
 
 /- We can also show the following results about [NoDup] and [++]
    by themselves -/
-theorem NoDup_left : forall (α:Type) (l₁ l₂: List α),
+theorem NoDup_left : ∀ (α:Type) (l₁ l₂: List α),
   NoDup (l₁++l₂) → NoDup l₁ := by
 
   intro α l₁ l₂ hdup
@@ -3500,7 +3487,7 @@ theorem NoDup_left : forall (α:Type) (l₁ l₂: List α),
         rw [List.append_eq, In_app_iff]; left; assumption
       . exact ih _ hdup'
 
-theorem NoDup_right: forall (α:Type) (l₁ l₂: List α),
+theorem NoDup_right: ∀ (α:Type) (l₁ l₂: List α),
   NoDup (l₁++l₂) → NoDup l₂ := by
 
   intro α l₁ l₂ hdup
@@ -3512,7 +3499,7 @@ theorem NoDup_right: forall (α:Type) (l₁ l₂: List α),
 
 /- This theorem combines the various lemmas to give a complete
    characterization -/
-theorem NoDup_disjoint_app : forall {α:Type} (l₁ l₂: List α),
+theorem NoDup_disjoint_app : ∀ {α:Type} (l₁ l₂: List α),
   NoDup (l₁++l₂) ↔
   (NoDup l₁ ∧ NoDup l₂ ∧ disjoint l₁ l₂) := by
 
@@ -3539,9 +3526,9 @@ theorem NoDup_disjoint_app : forall {α:Type} (l₁ l₂: List α),
 
 /- First prove an easy and useful lemma. -/
 
-theorem in_split : forall (α:Type) (x:α) (l:List α),
+theorem in_split : ∀ (α:Type) (x:α) (l:List α),
   In x l →
-  exists l₁ l₂, l = l₁ ++ x :: l₂ := by
+  ∃ l₁ l₂, l = l₁ ++ x :: l₂ := by
   /- ADMITTED -/
   intro α x l hin
   induction l generalizing x
@@ -3559,8 +3546,8 @@ theorem in_split : forall (α:Type) (x:α) (l:List α),
 
 inductive Repeats {α:Type} : List α → Prop where
   /- SOLUTION -/
-  | rep_here : forall a l, In a l → Repeats (a::l)
-  | rep_later : forall a l, Repeats l → Repeats (a::l)
+  | rep_here : ∀ a l, In a l → Repeats (a::l)
+  | rep_later : ∀ a l, Repeats l → Repeats (a::l)
 /- /SOLUTION -/
 
 
@@ -3573,13 +3560,13 @@ inductive Repeats {α:Type} : List α → Prop where
     label -- i.e., list `l₁` must contain repeats.
 
     This proof is much easier if you use the excluded middle
-    to show that `In` is decidable, i.e., `forall x l, (In x l) \/ ~ (In x l)`.
+    to show that `In` is decidable, i.e., `∀ x l, (In x l) \/ ~ (In x l)`.
     Remember the `by_cases` tactic from Logic! -/
 /- HIDE: APT21: Apparently, this is really quite hard; even the strongest
    students couldn't do it this year. -/
 theorem pigeonhole_principle:
-  forall (α:Type) (l₁  l₂:List α),
-  (forall x, In x l₁ → In x l₂) →
+  ∀ (α:Type) (l₁  l₂:List α),
+  (∀ x, In x l₁ → In x l₂) →
   l₂.length < l₁.length →
   Repeats l₁ := by
   /- ADMITTED -/
@@ -3596,7 +3583,7 @@ theorem pigeonhole_principle:
       have h₂ : In x l₂ := by
         apply hin; rw [In_cons]; left; rfl
       have ⟨l₂a, ⟨l₂b, heq⟩⟩ := in_split _ _ _ h₂
-      have hin₂ : forall x' : α, In x' l₁' -> In x' (l₂a ++ l₂b) := by
+      have hin₂ : ∀ x' : α, In x' l₁' -> In x' (l₂a ++ l₂b) := by
         intro x₀ hin₀
         have hneq : x ≠ x₀ := by
           intro heq; subst heq; apply h; assumption

@@ -30,9 +30,7 @@
 import LF.Poly
 import LF.CustomTactics
 
--- Core `add_comm`/`add_succ`/… are `protected`, so a plain `open Nat`
--- doesn't expose them; bring the ones we use in by name so we can write
--- them unprefixed (like the lemmas we prove ourselves, e.g. `double_zero`).
+-- (OA) : added these to use Lean's Nat.
 open Nat (add_comm add_assoc add_zero add_succ mul_one succ_sub_succ)
 
 -- ######################################################
