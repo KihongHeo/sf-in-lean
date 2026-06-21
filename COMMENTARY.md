@@ -1,3 +1,9 @@
+This file is for temporary / ongoing discussions among translators.
+
+Normative conventions — Lean style, comment conventions, the Verso/`to_verso` directive mapping, and the tactic-introduction order — live in
+[STYLEGUIDE.md](STYLEGUIDE.md). This file keeps the *rationale*, the open
+questions, and the per-chapter notes behind those decisions.
+
 # Progress tracker
 
 https://github.com/orgs/plclub/projects/2/views/1
@@ -35,49 +41,6 @@ While Rocq's `simpl` and Lean's `simp` both do this,
 Instead, we explicitly rewrite by equalities such as
 `n + (m + 1) = n + m + 1` or `(h :: t) ++ l = h :: t ++ l`.
 
-## Style guide
-
-* In comments, use Markdown as needed (they will render in VS Code)
-  * Section, subsection, etc. headers begin with `#`, `##`, etc.
-  * Unnumbered lists use `*`, not `-`
-* Prefer `cases h; case ...` and `induction h; case ...`
-  over `cases h with | ...` and `induction h with | ...`
-* Prefer named cases over `.` goal selector
-  when the goal names are meaningful
-* Select cases without indentation or `.` after `cases`:
-  ```lean
-  cases b
-  case true  => ...
-  case false => ...
-  ```
-* Use unnamed examples with `#guard_msgs` where `sorry`s appear:
-  ```lean
-  /-- warning: declaration uses `sorry` -/
-  #guard_msgs in
-  example : ... := sorry
-  ```
-* Follow Mathlib's style guide otherwise:
-  https://leanprover-community.github.io/contribute/style.html
-
-### Comments
-
-#### Line comments
-
-* Instructor notes, e.g. `-- BCP:`
-* Section dividers and headings, i.e. `-- #`
-* Directives, e.g. `-- FULL` and `-- /FULL`
-  * Full list of directives:
-    `FULL`, `TERSE`, `ADMITTED`, `ADMIT_DEF`, `GRADE_THEOREM`, `[]`,
-    `HIDE`, `HIDEFROMADVANCED`, `HIDEFROMHTML`
-
-#### Block comments
-
-* Student-facing prose
-  * May be prefixed by directives, e.g. `/- FULL: ... -/` or `/- TERSE: ... -/`
-* Declaration doc comments `/-- -/` attached to top-level declarations as need
-  (they will appear on hover in VS Code)
-* General doc comments `/-! -/` currently unused
-
 ## Tactics
 
 From FPiL: "The grind tactic is very powerful, customizable, and extensible; due to this power and flexibility,
@@ -87,16 +50,8 @@ This can be overwhelming in the beginning, so this chapter uses only decide and 
 Tactics to consider introducing:
 `rcases`, `show`, `rename_i`, `revert`, `split`, `subst`, `suffices`
 
-### Inventory
-
-* `Basics.lean`: `rfl`, `intro`, `rewrite`, `rw`, `cases`, `dsimp`, `exact`, `contradiction`
-* `Induction.lean`: `induction`, `have`
-* `Arithmetic.lean`: TBA
-* `Lists.lean`: `unfold`, `⟨...⟩`
-* `Poly.lean`: N/A
-* `Tactics.lean`: `apply`, `apply at`, `replace`, `symm`, `calc`, `cases h : ...`,
-  `induction generalizing`, `injection with`, `injections`, `congr`, `assumption`, `let ⟨...⟩ := ...`
-* `Logic.lean`: `constructor`, `obtain`, `left`, `right`, `.left`, `.right`, `.mp`, `.mpr`, `ext`, `rw` by `↔`, `by_cases`
+(The per-chapter tactic-introduction inventory now lives as a table in
+[STYLEGUIDE.md](STYLEGUIDE.md), derived from the current sources.)
 
 ### `rewrite` vs `rw`
 
@@ -172,6 +127,15 @@ DHS: Claude picked a bad definition for `nonzeroes`:
 ```
 which makes many of the later proofs hard to do without the full automation of `simp`. 
 I changed it, but it's worth pointing this out.
+
+KK: The `Baz` "how many elements does this type have?" exercise (the last exercise
+in the chapter) is a *manual* exercise, and that's a poor fit: a student who
+doesn't realize an inductive definition needs a base case will simply fail it and
+only see why in the grader comment — and it's easy to wrongly think you have the
+right answer and move on without thinking. Better to either add a short section
+that explains this directly, or add a hint like the `one_true_baz` / `count_trues`
+scaffold ("try to write a value of type `Baz` for which the lemma holds"). Worth
+reworking for easier grading.
 
 ### `Poly.lean`
 
