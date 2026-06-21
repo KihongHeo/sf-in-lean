@@ -410,6 +410,10 @@ careful reader will notice the contradiction.  Fix the prose (or
 actually use `namespace`).
 :::
 
+:::dev
+Claude: section, open, and notation (local prefix/infixl) are all used in the MyBool block — section MyBool (414), open MyBool (426), the !/&&/|| notations with precedence numbers and (priority := high) (504–506) — but "Namespaces and Sections" doesn't arrive until LF/Basics.lean:828 and notation isn't really explained until LF/Basics.lean:1993. The prose at line 400 even mis-describes section as opening a namespace (already flagged wrong at 405). The precedence-number issue is flagged at 495.
+:::
+
 ```lean
 section MyBool
 ```
@@ -1084,6 +1088,12 @@ as Claude here: Do we really need this?  If so, how / where do we
 explain it?
 :::
 
+:::dev
+BCP: `instance` is undefined.  And a bunch of stuff needs more
+explaining here.
+:::
+
+
 ```lean
 attribute [pp_nodot] Nat.succ
 
@@ -1095,12 +1105,20 @@ def ofNat (x : _root_.Nat) : Nat :=
   match x with
   | .zero => zero
   | .succ b => succ (ofNat b)
+```
 
+```lean
 instance instOfNat {n : _root_.Nat} : OfNat Nat n where
   ofNat := ofNat n
+```
 
+```lean
 theorem zero_eq_0 : zero = 0 := rfl
 ```
+
+:::dev
+Claude: Term-mode rfl (:= rfl with no by) first appears at LF/Basics.lean:1102 (zero_eq_0) and recurs in one_eq_succ_zero etc. and even_zero (1215). The reader has only seen tactic-mode by rfl; the term-vs-tactic distinction is never noted.
+:::
 
 With this definition, 0 is represented by `zero`, 1 by `succ zero`, 2 by `succ
 (succ zero)`, and so on.
@@ -1293,6 +1311,17 @@ theorem add_zero : ∀ n : Nat, n + 0 = n := by
   rfl
 ```
 
+:::dev
+BCP: The flow here is rough
+  - need to explain ∀ in the statement (and `theorem` and `add_zero`)
+  - need to explain "by", "intro n", and "rfl" in the proof
+  - what about `unseal`? if we really need it, it has to be explained!
+  - the comment below will need to change a bit
+  - We should also comment, as soon as it's relevant, on the binder
+    form vs. the ∀ form for introducing variables.  Why do we use
+    the ∀ form here?  Could we switch to the binder form?
+:::
+
 ::::full
 ```lean
 #check add_zero
@@ -1338,7 +1367,7 @@ Let's walk through the example above with this terminology in mind.
 
 ```lean
 theorem add_zero_zero_explained (n : Nat) : n + 0 + 0 = n := by
-  /- Move your cursor (click) here to see the initial proof state in
+  /- Click here to see the initial proof state in
      the InfoView. The context is `n : Nat`. The goal is `n + 0 + 0 =
      n`. -/
   rewrite [add_zero]
@@ -1475,10 +1504,10 @@ theorem two_plus_two_eq_four : (2 + 2 : Nat) = 4 := by
 ::::full
 By default, `rewrite` rewrites left-to-right. To rewrite from right
 to left, use `rewrite [← h]`, where `←` is typed as `\l` or `\<-`.
-
 :::dev
 BCP: We should make this point wherever we rewrite to the left for
-the first time. It's out of place here.
+the first time: it's out of place here.  (Indeed, it seems not to be
+used at all in this file! Where is the first use??)
 :::
 ::::
 
