@@ -319,9 +319,6 @@ We define our own `MyBool` to teach the concept of building from
 scratch; later we'll switch to Lean's built-in `Bool`.
 We use a different name to make explicit that this is not the same
 type as Lean's built-in, but their definitions are equivalent.
-The next command opens a new namespace so that our definitions don't
-clash with ones from the standard library. We'll discuss it in more
-detail below.
 
 :::dev
 BCP: Why call it MyBool instead of just Bool?  (Or, conversely, why call the constructors
@@ -332,6 +329,14 @@ true and false instead of mytrue, myfalse, mynotb, etc.?)
 inductive MyBool : Type where
   | true
   | false
+```
+
+The next command opens a new namespace so that our definitions don't
+clash with ones from the standard library. We'll discuss it in more
+detail below.
+
+```lean
+namespace MyBool
 ```
 
 ::::full
@@ -470,6 +475,9 @@ to Lean's built-in `Bool` type, which has the same structure
 but comes with a lot of useful functions and lemmas.
 ::::
 
+```lean
+end MyBool
+```
 
 :::dev
 RAB: From this point, there are about 450 lines of comments before
