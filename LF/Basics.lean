@@ -1229,17 +1229,17 @@ evaluates. The motivation for this strict discipline is both readability
 and performance; unfolding definitions can have negative effects as libraries scale.
 
 :::dev
-BCP: We start by saying that what we're going to here is not what real lean developments do, but then go on to
-explain why what we're doing in a way that makes it sound like it is (or should be) standard
+BCP: We start by saying that what we're going to here is not what real lean developments do, but then
+explain why what we're doing in a way that makes it sound like it is (or should be) standard. And we
+never say what is the style that we *don't* do (but that standard Lean practice does).
 :::
 
 These two theorems also follow a particular pattern. Let's look again at the
 definition of `add`:
 
-
 ```lean
 namespace AddPlayground
-/- repeating the definition again here for ease of reference
+/- repeating the definition here for ease of reference:
 def add (n : Nat) (m : Nat) : Nat :=
   match m with
   | zero => n
@@ -1259,15 +1259,15 @@ end AddPlayground
 ```
 
 Each of `add_zero` and `add_succ` correspond to one branch of the `match`
-statement defining `add`, and describe how the evaluation of `add` proceeds
+statement defining `add` and describe how the evaluation of `add` proceeds
 in that case. The `add_zero` theorem describes how `add n zero` evaluates,
 while `add_succ` describes (symbolically) how `n + succ m` evaluates.
 Because these theorems describe how to simplify more complex expressions
-involving `add`, we call them `add`'s _simplification lemmas_.
+involving `add`, we call them _simplification lemmas_ for `add`.
 
-These are an instance of a general pattern: each definition
-of operating over enumerated types like `Nat`s or `Bool`s or `Day`s or `Color`s
-will need a simplification lemma for each branch of control flow through
+These are instances of a general pattern: each definition
+ operating over enumerated types like `Nat`, `Bool`, `Day`, or `Color`
+needs a simplification lemma for each branch of control flow through
 the function.
 
 So, for example, we need two simplification lemmas for the definition of `pred`:
@@ -1292,9 +1292,9 @@ seal even
 ```
 
 In the remainder of this textbook, we will pair definitions
-with their simplification lemmas. Then, instead of using `rfl`
+with their simplification lemmas. After proving these lemmas, instead of using `rfl`
 to peek through the definitions, we will prefer rewriting
-by those lemmas, using `@[irreducible]` to enforce this policy,
+by tho lemmas, using `@[irreducible]` to enforce this policy,
 and only `unseal`ing the definition in the proofs of those lemmas themselves.
 ::::
 
@@ -1313,13 +1313,13 @@ theorem four_eq_succ_three : four = succ three := by rfl
 
 We can rewrite with these rules to expand numerals into their definitions,
    which allows us to use our `add` rules.
+Here's an example of how to start a proof this way.
 ::::
 
-Here's an example of how to start a proof this way.
-   Finish the proof using the `add` rules.
+Finish the proof using the `add` rules:
 
 :::dev
-BCP: Should this be marked / formatted as an exercise?
+BCP: Should this be marked / formatted as an exercise or at least a WORKINCLASS?
 :::
 
 ```lean
@@ -1355,8 +1355,7 @@ teach assoc/comm for addition?
 ::::
 
 ::::full
-Now that we know how addition is defined, we can use it to define
-multiplication:
+Now that we know how addition is defined, we can use it to define multiplication:
 ::::
 
 :::slidebreak
@@ -1385,7 +1384,11 @@ theorem mul_succ : ∀ n m : Nat, mul n (succ m) = add (mul n m) n := by
   rfl
 ```
 
-Prove this property. We have given you the first line. Notice how `rewrite`
+:::dev
+BCP: Again, this should be an exercise.
+:::
+
+Prove this property. (We have given you the first line.) Notice how `rewrite`
    can take any number of arguments. You can use this rewrite with all of the
    numeral rules at once, for example.
 
@@ -1555,7 +1558,7 @@ We now begin to make claims about _general_ natural numbers.
 
 We begin by making a universal claim about all numbers `n` and `m` that are
 equal to each other (`n = m`). The arrow symbol is pronounced "implies."
-Type it with `\to` or `\->` or `\r`.
+Enter it with `\to` or `\->` or `\r`.
 
 The `intro` tactic moves the universally quantified variables and the
 hypothesis into the context, giving them names.  The goal is now to prove
