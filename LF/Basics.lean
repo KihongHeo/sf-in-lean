@@ -579,8 +579,9 @@ inductive Color : Type where
 
 An `inductive` definition does two things:
 
-- It introduces a set of new _constructors_. E.g., `.red`,
-  `.primary`, `true`, `false`, `.monday`, etc. are constructors.
+- It introduces a set of new _constructors_. E.g., {name}`RGB.red`,
+  {name}`Color.primary`, {name}`true`, {name}`false`, {name}`Day.monday`,
+  etc. are constructors.
 
 - It groups them into a new named type, like `Bool`, `RGB`, or
   `Color`.
@@ -590,15 +591,15 @@ to zero or more other constructors or constructor expressions,
 obeying the declared number and types of the constructor arguments.
 E.g., these are valid constructor expressions...
 
-- `.red`
-- `true`
-- `.primary .red`
+- {name}`RGB.red`
+- {name}`true`
+- {name}`Color.primary` {name}`RGB.red`
 
 ...but these are not:
 
-- `.red .primary`
-- `true .red`
-- `.primary (.primary .red)`
+- {name}`RGB.red` `Color.primary`
+- {name}`true` {name}`RGB.red`
+- {name}`Color.primary` `(.primary .red)`
 
 :::dev
 BCP: Why do all of the constructors have namespaces except true and false?
@@ -754,7 +755,7 @@ open MyNamespace
 #check myDef -- Bool
 ```
 
-## Constructors with Multiple Arguments
+## Constructors with Multiple Parameters
 
 ```lean
 namespace Playground
@@ -785,7 +786,7 @@ inductive Nibble : Type where
 ```
 
 ::::full
-Note: The `bits` constructor illustrates a feature of multi-argument
+Note: The `bits` constructor illustrates a feature of multi-parameter
 declarations, both for constructors and for functions: Instead
 of writing `(x0 : Bit) (x1 : Bit) ...` we write `(x0 x1 ... : Bit)`
 since all of the variables have the same type. We could have done
@@ -1062,7 +1063,7 @@ seal odd even
 :::
 
 :::terse
-A multi-argument recursive function.
+A multi-parameter recursive function.
 :::
 
 ```lean
@@ -1252,18 +1253,21 @@ change, the interface it exposes to the outside world remains the same.
 The same principle applies to definitions (and proofs about them) in Lean.
 In idiomatic Lean, it is considered poor style to "peek" through
 definitions and rely on `rfl` to implicitly simplify expressions
-that aren't actually equal. If you take a look at the proofs of
+that aren't syntactically identical. If you take a look at the proofs of
 `add_zero` and `add_succ` above, you will notice this is exactly what we did
 when we used the `rfl` tactic.
 
 In this text, to enforce idiomatic style, we mark
-definitions with `@[irreducible]` to prevent this peeking.
+definitions with `@[irreducible]` to prevent this peeking,
+also called *definitional equality abuse* (*defeq abuse*, for short).
 The `unseal` we wrote before the proof of `add_zero` temporarily
-allows this, but only in that proof. We have to
-allow it there, since there is no other way to prove the goal.
-However, except for `add_zero` and `add_succ`, we never need
-to unseal `add` anywhere else. Instead, we can rewrite
-with those theorems anywhere we want to describe how `add` evaluates.
+allows this, but only in that proof. We allow unsealing the definition
+for `add_zero` and `add_succ`, but then expect that from this point on,
+these foundational theorems should provide a characterization of the behavior
+of `add` that makes further unsealing unnecessary. Instead,
+we can rewrite by these theorems anywhere we want to describe how `add`
+evaluates. The motivation for this strict discipline is both readability
+and performance; unfolding definitions can have negative effects as libraries scale.
 
 These two theorems also follow a particular pattern. Let's look again at the
 definition of `add`:
@@ -1528,6 +1532,7 @@ example : 4 ≤? 2 = false := by rfl
 ::::full
 We can also now define `beq`'s simplification lemmas with this new notation,
 one for each of the four cases of control flow through the function.
+::::
 
 ```lean
 unseal beq
@@ -1537,7 +1542,6 @@ theorem succ_zero_beq_false (n : Nat) : ((succ n) == 0) = false := by rfl
 theorem succ_succ_beq (n m : Nat) : ((succ n) == (succ m)) = (n == m) := by rfl
 seal beq
 ```
-::::
 
 ::::full
 We now have two symbols that both look like equality: `=`
@@ -1778,21 +1782,14 @@ negation is involutive (that is, that negation is its own inverse).
 Another example, using booleans:
 :::
 
-:::dev
-DHS: All these `Bool` examples are in the old style, where we simplify
-through `rfl` instead of rewriting by simplification lemmas. Do we want
-to go ahead and change all of this? If we do, we need to also add in
-an explanation of how to find the appropriate rewrite lemmas in the standard library,
-which is probably a new lesson in and of itself.
-:::
-
 ```lean
-theorem notb_involutive : ∀ b : Bool,
-    (!!b) = b := by
+theorem notb_involutive : ∀ b : Bool, (!!b) = b := by
   intro b
   cases b
-  case true => rfl
-  case false => rfl
+  · rewrite [Bool.not_false, Bool.not_true]
+    rfl
+  · rewrite [Bool.not_true, Bool.not_false]
+    rfl
 ```
 
 :::slidebreak
@@ -1809,12 +1806,20 @@ theorem andb_commutative : ∀ b c : Bool,
   cases b
   case true =>
     cases c
-    case true => rfl
-    case false => rfl
+    case true =>
+      rewrite [Bool.and_self]
+      rfl
+    case false =>
+      rewrite [Bool.and_false, Bool.and_true]
+      rfl
   case false =>
     cases c
-    case true => rfl
-    case false => rfl
+    case true =>
+      rewrite [Bool.and_true, Bool.and_false]
+      rfl
+    case false =>
+      rewrite [Bool.and_self]
+      rfl
 
 theorem andb3_exchange : ∀ b c d : Bool,
     ((b && c) && d) = ((b && d) && c) := by
@@ -1824,22 +1829,38 @@ theorem andb3_exchange : ∀ b c d : Bool,
     cases c
     case true =>
       cases d
-      case false => rfl
-      case true => rfl
+      case false =>
+        rewrite [Bool.and_true, Bool.and_self]
+        rfl
+      case true =>
+        rewrite [Bool.and_true]
+        rfl
     case false =>
       cases d
-      case false => rfl
-      case true => rfl
+      case false =>
+        rewrite [Bool.and_self]
+        rfl
+      case true =>
+        rewrite [Bool.and_self, Bool.and_true]
+        rfl
   case true =>
     cases c
     case true =>
       cases d
-      case false => rfl
-      case true => rfl
+      case false =>
+        rewrite [Bool.and_self, Bool.and_false, Bool.and_true]
+        rfl
+      case true =>
+        rewrite [Bool.and_self]
+        rfl
     case false =>
       cases d
-      case false => rfl
-      case true => rfl
+      case false =>
+        rewrite [Bool.and_false]
+        rfl
+      case true =>
+        rewrite [Bool.and_false, Bool.and_true, Bool.and_self]
+        rfl
 ```
 
 As you can see, proofs by cases can become very verbose.
@@ -1937,7 +1958,7 @@ def add' (n : Nat) (m : Nat) : Nat :=
 ```
 
 When Lean checks this definition, it verifies that the recursion
-terminates.  Specifically, it checks that one of the arguments
+terminates.  Specifically, it checks that one of the parameters
 is _structurally decreasing_.  This implies that all calls to
 `add'` will eventually terminate.
 
