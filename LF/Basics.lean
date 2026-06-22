@@ -981,6 +981,8 @@ This is just syntactic sugar, and the two forms are interchangeable.
 BCP: Can we be more explicit about the machinery?
 DHS: I propose we just cut this entirely? If we are working
 with our own handrolled definition, it's okay not to have notation IMO.
+BCP: Yes.  Or indeed just forget about numerals entirely until the Nat
+chapter.
 :::
 
 :::dev
@@ -1131,6 +1133,9 @@ def add (n : Nat) (m : Nat) : Nat :=
 --- Don't worry about this for now
 instance instAdd : Add Nat where add := add
 ```
+:::dev
+Can we be a little more explicit / less mysterious in the comment
+:::
 
 :::dev
 BCP STOPPED HERE
@@ -1582,7 +1587,7 @@ example : 4 ≤? 2 = false := by rfl
 ```
 
 ::::full
-We can also now define `beq`'s simplification lemmas with this new notation,
+We can also now define the simplification lemmas for `beq` with this new notation,
 one for each of the four cases of control flow through the function.
 
 ```lean
