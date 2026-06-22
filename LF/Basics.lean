@@ -959,7 +959,7 @@ a tuple type. As an example, consider representing the four bits in
 a nibble (half a byte). We first define a datatype `Bit` that
 resembles `Bool` (using the constructors `b1` and `b0` for the two
 possible bit values) and then define the datatype `Nibble`, which is
-essentially a tuple of four bits.
+a tuple of four bits.
 ::::
 
 :::terse
