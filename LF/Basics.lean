@@ -167,10 +167,12 @@ as the need arises.)
 
 You may notice that we qualified all the constructors before using them,
 writing `Day.monday` instead of just `monday`, for example. You may
-wonder if this is necessary. Lean doesn't allow patterns like `monday`, to avoid
-name shadowing, because being explicit about names is _especially_
-important to avoid confusion and headaches when writing proofs.
-If we wish to be a bit more concise, we can use a syntax with just a `.`,
+wonder if this is necessary.
+
+Lean places all constructors into a "namespace" associated with their type,
+and requires uses of those constructors to be prefixed with their namespace.
+We will see in a little bit how to enter a namespace and avoid this requirement,
+but for now, if we wish to be a bit more concise, we can use a syntax with just a `.`,
 like `.monday`, that lets us know we're qualifying a name
 without having to type too much. A more concise (but equivalent) definition
 of `nextWorkingDay` is given below.
@@ -196,6 +198,7 @@ being explicit is very important, but then we say that the shorter syntax
 is fine.  I feel like this is an instance where trying not to overwhelm readers
 with too much detail is actually leading to more confusion.  Maybe we should
 just explain what's going on.
+DHS: How's this?
 :::
 ::::
 
@@ -681,7 +684,6 @@ result.
 
 ## Namespaces and Sections
 
-
 ::::full
 Lean provides a _namespace system_ to aid in organizing large
 developments. If we enclose a collection of declarations in
@@ -739,6 +741,24 @@ def RGB.myOtherBlue : RGB := myBlue
 ```
 
 #check myBlue -- unknown identifier
+
+::::full
+When we do this, definitions inside that namespace are available without
+qualification. So, for example, we could write the definition of `nextWorkingDay''`
+earlier inside the `Day` namespace like so:
+::::
+
+```lean
+def Day.nextWorkingDay'' (d : Day) : Day :=
+  match d with
+  | monday    => tuesday
+  | tuesday   => wednesday
+  | wednesday => thursday
+  | thursday  => friday
+  | friday    => monday
+  | saturday  => monday
+  | sunday    => monday
+```
 
 ::::full
 We can also use `open` to bring the definitions of a namespace into
@@ -887,89 +907,28 @@ inductive Nat : Type where
   | succ (n : Nat)
 ```
 
-:::dev
-TODO (Claude): The instructor advice at the top says to work
-directly in this .lean file, but the "hidden" scaffolding (this
-attribute, the OfNat instance, `unseal`, `@[irreducible]`,
-the BEq instance) is fully visible to anyone reading
-the source, and far beyond a beginner's reach.
-BCP: Same question
-as Claude here: Do we really need this?  If so, how / where do we
-explain it?
-:::
+Naturally, Lean has its own definition of natural numbers, which
+with some powerful built-in features for reasoning and
+notation. As we are just beginning to reason about natural numbers,
+we use our own definition here and introduce the Lean one in a later chapter.
+
+We'll define some shorthands for numbers, `open`ing the `Nat` namespace
+so we don't need to use `.` notation everywhere.
 
 ```lean
-attribute [pp_nodot] Nat.succ
-
 namespace Nat
-open Nat
 
-@[reducible]
-def ofNat (x : _root_.Nat) : Nat :=
-  match x with
-  | .zero => zero
-  | .succ b => succ (ofNat b)
-
-instance instOfNat {n : _root_.Nat} : OfNat Nat n where
-  ofNat := ofNat n
-
-theorem zero_eq_0 : zero = 0 := rfl
+def one   : Nat := succ zero
+def two   : Nat := succ one
+def three : Nat := succ two
+def four  : Nat := succ three
 ```
-
-With this definition, 0 is represented by `zero`, 1 by `succ zero`, 2 by `succ
-(succ zero)`, and so on.
-
-We use some machinery in the background to allow us to write `0`, `1`, `2`,
-etc. instead of `zero`, `succ zero`, etc., for our custom definition of `Nat`.
-This is just syntactic sugar, and the two forms are interchangeable.
-
-:::dev
-BCP: Can we be more explicit about the machinery?
-DHS: I propose we just cut this entirely? If we are working
-with our own handrolled definition, it's okay not to have notation IMO.
-:::
-
-:::dev
-BCP: What are these RULES comments for?
-RULES
-:::
-
-```lean
-theorem one_eq_succ_zero : 1 = succ 0 := rfl
--- RULES
-theorem two_eq_succ_one : 2 = succ 1 := rfl
--- RULES
-theorem three_eq_succ_two : 3 = succ 2 := rfl
--- RULES
-theorem four_eq_succ_three : 4 = succ 3 := rfl
-
-example : succ (succ (succ (succ zero))) = 4 := by rfl
-```
-
-Naturally, Lean has its own definition of natural numbers.
-
-:::dev
-BCP: We already said that, no?
-:::
-
-```lean
-  #check Nat
-  /- ==> NatPlayground.Nat : Type -/ /- ← this is our `Nat`... -/
-  #check _root_.Nat
-  /- ==> _root_.Nat : Type -/ /- ← ...this is Lean's `Nat`. -/
-```
-
-Lean's `Nat` comes with some powerful built-in features for reasoning and
-notation.
-
-As we are just beginning to reason about natural numbers, we use our own
-definition here and introduce the Lean one in a later chapter.
 
 We can also write functions on `Nat`.
 
 ```lean
 @[irreducible]
-def pred (n : Nat) : Nat :=
+def Nat.pred (n : Nat) : Nat :=
   match n with
   | zero => zero
   | succ n' => n'
@@ -981,7 +940,7 @@ def minustwo (n : Nat) : Nat :=
   | succ (zero) => zero
   | succ (succ n') => n'
 
-#eval minustwo 4
+#eval minustwo four
 ```
 
 ::::full
@@ -1006,7 +965,7 @@ BCP: Missing transition
 
 ::::full
 ```lean
-#check Nat.succ  -- Nat → Nat
+#check succ  -- Nat → Nat
 #check Nat.pred  -- Nat → Nat
 #check minustwo  -- Nat → Nat
 ```
@@ -1038,8 +997,8 @@ def even (n : Nat) : Bool :=
   | succ (succ n') => even n'
 
 unseal even
-example : even 1 = false  := by rfl
-example : even 4 = true := by rfl
+example : even one = false  := by rfl
+example : even four = true := by rfl
 seal even
 ```
 
@@ -1055,8 +1014,8 @@ def odd (n : Nat) : Bool :=
   not (even n)
 
 unseal odd even
-example : odd 1 = true  := by rfl
-example : odd 4 = false := by rfl
+example : odd one = true  := by rfl
+example : odd four = false := by rfl
 seal odd even
 ```
 
@@ -1073,9 +1032,6 @@ def add (n : Nat) (m : Nat) : Nat :=
   match m with
   | zero => n
   | succ m' => succ (add n m')
-
---- We'll explain what this means in a few chapters
-instance instAdd : Add Nat where add := add
 ```
 
 :::dev
@@ -1095,7 +1051,7 @@ behavior.
 
 Here is a simple rule about `add`:
 
-- `n + 0 = n`
+- `add n zero = n`
 
 In Lean, this rule looks like this:
 ::::
@@ -1107,7 +1063,7 @@ beginning of the proof?  Can we comment on this?
 
 ```lean
 unseal add in
-theorem add_zero : ∀ n : Nat, n + 0 = n := by
+theorem add_zero : ∀ n : Nat, add n zero = n := by
   intro n
   rfl
 ```
@@ -1126,7 +1082,7 @@ We can then use the `add_zero` rule to carry out a simple proof
 about natural numbers!
 
 ```lean
-theorem add_zero_zero (n : Nat) : n + 0 + 0 = n := by
+theorem add_zero_zero (n : Nat) : add (add n zero) zero = n := by
   rewrite [add_zero]
   rewrite [add_zero]
   rfl
@@ -1156,15 +1112,14 @@ _close_ (solve) the current goal which finishes its proof.
 Let's walk through the example above with this terminology in mind.
 
 ```lean
-theorem add_zero_zero_explained (n : Nat) : n + 0 + 0 = n := by
+theorem add_zero_zero_explained (n : Nat) : add (add n zero) zero = n := by
   /- Move your cursor (click) here to see the initial proof state in
-     the InfoView. The context is `n : Nat`. The goal is `n + 0 + 0 =
-     n`. -/
+     the InfoView. The context is `n : Nat`. The goal is `add (add n zero) zero = n`. -/
   rewrite [add_zero]
   /- Now click here to see the new proof state that results from the tactic.
-     Notice how `n + 0 + 0` changes to `n + 0` in the goal. -/
+     Notice how `add (add n zero) zero` changes to `add n zero` in the goal. -/
   rewrite [add_zero]
-  /- Again the goal changes, from `n + 0` to `n`. Now the proof state
+  /- Again the goal changes, from `add n zero` to `n`. Now the proof state
      is an equality with both sides equal, so it can be closed by the
      tactic `rfl`. -/
   rfl
@@ -1172,7 +1127,7 @@ theorem add_zero_zero_explained (n : Nat) : n + 0 + 0 = n := by
 
 /-! Here's a simple proof for you to try. -/
 
-theorem add_zero_zero_zero (n : Nat) : n + 0 + 0 + 0 = n := by
+theorem add_zero_zero_zero (n : Nat) : add (add (add n zero) zero) zero = n := by
   solution!
     rewrite [add_zero]
     rewrite [add_zero]
@@ -1186,8 +1141,8 @@ theorem add_zero_zero_zero (n : Nat) : n + 0 + 0 + 0 = n := by
 ::::full
   As we saw above, the tactic that tells Lean to rewrite (part of) a goal or
   hypothesis based on a rule is called `rewrite`. Given the rule `add_zero`,
-  which states that `n + 0` is equal to `n` for any `n`, we can replace any `n
-  + 0` in our proof with `n` via `rewrite [add_zero]`.
+  which states that `add n zero` is equal to `n` for any `n`, we can replace
+  any `add n zero` in our proof with `n` via `rewrite [add_zero]`.
 
   The `rewrite` tactic takes its argument(s) in square brackets.
 ::::
@@ -1214,7 +1169,7 @@ Here it is in Lean:
 
 ```lean
 unseal add in
-theorem add_succ : ∀ n m : Nat, n + succ m = succ (n + m) := by
+theorem add_succ : ∀ n m : Nat, add n (succ m) = succ (add n m) := by
   intro n m
   rfl
 ```
@@ -1222,7 +1177,7 @@ theorem add_succ : ∀ n m : Nat, n + succ m = succ (n + m) := by
 And here it is in a proof:
 
 ```lean
-theorem add_succ_zero (n : Nat) : n + succ 0 = succ (n + 0 + 0) := by
+theorem add_one (n : Nat) : add n (succ zero) = succ (add (add n zero) zero) := by
   rewrite [add_succ]
   rewrite [add_zero]  /- notice how this handles an addition on both sides -/
   rewrite [add_zero]
@@ -1283,12 +1238,12 @@ def add (n : Nat) (m : Nat) : Nat :=
   | succ m' => succ (add n m') -/
 
 unseal add in
-theorem add_zero : forall (n : Nat), n + 0 = n := by
+theorem add_zero : forall (n : Nat), add n zero = n := by
   intro n
   rfl
 
 unseal add in
-theorem add_succ : forall (n m : Nat), n + succ m = succ (n + m) := by
+theorem add_succ : forall (n m : Nat), add n (succ m) = succ (add n m) := by
   intro n m
   rfl
 
@@ -1297,7 +1252,7 @@ end AddPlayground
 
 Each of `add_zero` and `add_succ` correspond to one branch of the `match`
 statement defining `add`, and describe how the evaluation of `add` proceeds
-in that case. The `add_zero` theorem describes how `n + 0` evaluates,
+in that case. The `add_zero` theorem describes how `add n zero` evaluates,
 while `add_succ` describes (symbolically) how `n + succ m` evaluates.
 Because these theorems describe how to simplify more complex expressions
 involving `add`, we call them `add`'s _simplification lemmas_.
@@ -1310,11 +1265,11 @@ the function.
 So, for example, we need two simplification lemmas for the definition of `pred`:
 
 ```lean
-unseal pred in
-theorem pred_zero : pred 0 = 0 := by rfl
+unseal Nat.pred in
+theorem pred_zero : Nat.pred zero = zero := by rfl
 
-unseal pred in
-theorem pred_succ n : pred (succ n) = n := by rfl
+unseal Nat.pred in
+theorem pred_succ n : Nat.pred (succ n) = n := by rfl
 ```
 
 Similarly, for each of the three branches of the definition of `even`,
@@ -1338,19 +1293,14 @@ and only `unseal`ing the definition in the proofs of those lemmas themselves.
 ## Working with Numerals
 
 ::::full
-   We know from above that `1` is just `succ 0`, `2` is `succ 1`, and so on.
-   We have rules for these equalities, as well:
-
-:::dev
-BCP: We have them because we stated them above, but maybe the
-reader wasn't sure why we did that.  I'm a little confused what
-point we're making just here.
-:::
+   We know from our definitions above that `one` is just `succ zero`,
+   `two` is `succ one`, and so on. We can write rules for these equalities, as well:
 
 ```lean
-#check one_eq_succ_zero /- ==> one_eq_succ_zero : 1 = succ 0 -/
-#check two_eq_succ_one /- ==> two_eq_succ_one : 2 = succ 1 -/
-#check three_eq_succ_two /- ==> three_eq_succ_two : 3 = succ 2 -/
+theorem one_eq_succ_zero : one = succ zero := by rfl
+theorem two_eq_succ_one : two = succ one := by rfl
+theorem three_eq_succ_two : three = succ two := by rfl
+theorem four_eq_succ_three : four = succ three := by rfl
 ```
 
 We can rewrite with these rules to expand numerals into their definitions,
@@ -1365,7 +1315,7 @@ BCP: Should this be marked / formatted as an exercise?
 :::
 
 ```lean
-theorem one_plus_one_eq_two : (1 + 1 : Nat) = 2 := by
+theorem one_plus_one_eq_two : (add one one : Nat) = two := by
   rewrite [one_eq_succ_zero]
   solution!
     rewrite [add_succ]
@@ -1373,10 +1323,10 @@ theorem one_plus_one_eq_two : (1 + 1 : Nat) = 2 := by
     rfl
 ```
 
-Try the same for `2 + 2 = 4`.
+Try the same for `add two two = four`.
 
 ```lean
-theorem two_plus_two_eq_four : (2 + 2 : Nat) = 4 := by
+theorem two_plus_two_eq_four : (add two two : Nat) = four := by
   solution!
     rewrite [four_eq_succ_three, three_eq_succ_two,
              two_eq_succ_one, one_eq_succ_zero]
@@ -1391,6 +1341,8 @@ to left, use `rewrite [← h]`, where `←` is typed as `\l` or `\<-`.
 :::dev
 BCP: We should make this point wherever we rewrite to the left for
 the first time. It's out of place here.
+DHS: Agree. Idr where this happens, though. Probably somewhere around when we
+teach assoc/comm for addition?
 :::
 ::::
 
@@ -1408,8 +1360,6 @@ def mul (n m : Nat) : Nat :=
   match m with
   | zero => zero
   | succ m' => add (mul n m') n
-
-instance instMul : Mul Nat where mul := mul
 ```
 
 Multiplication, like any function we will prove properties about,
@@ -1417,12 +1367,12 @@ Multiplication, like any function we will prove properties about,
 
 ```lean
 unseal mul in
-theorem mul_zero : ∀ n : Nat, n * 0 = 0 := by
+theorem mul_zero : ∀ n : Nat, mul n zero = zero := by
   intro n
   rfl
 
 unseal mul add in
-theorem mul_succ : ∀ n m : Nat, n * succ m = n * m + n := by
+theorem mul_succ : ∀ n m : Nat, mul n (succ m) = add (mul n m) n := by
   intro n m
   rfl
 ```
@@ -1437,13 +1387,12 @@ Prove this property. We have given you the first line. Notice how `rewrite`
    with multiple rules.
 
 ```lean
-theorem test_mult1 : (3 * 3 : Nat) = 9 := by
-  rewrite [three_eq_succ_two, two_eq_succ_one, one_eq_succ_zero]
+theorem test_mult1 : (mul two two : Nat) = four := by
+  rewrite [two_eq_succ_one, one_eq_succ_zero]
   solution!
-    rewrite [mul_succ, mul_succ, mul_succ, mul_zero]
-    rewrite [add_succ, add_succ, add_succ, add_zero]
-    rewrite [add_succ, add_succ, add_succ, add_zero]
-    rewrite [add_succ, add_succ, add_succ, add_zero]
+    rewrite [mul_succ, mul_succ, mul_zero]
+    rewrite [add_succ, add_succ, add_zero]
+    rewrite [add_succ, add_succ, add_zero]
     rfl
 ```
 
@@ -1499,17 +1448,18 @@ theorem zero_leb (n : Nat) : leb zero n = true := by rfl
 theorem succ_leb_zero (n : Nat) : leb (succ n) zero = false := by rfl
 theorem succ_leb_succ (n m : Nat) : leb (succ n) (succ m) = leb n m := by rfl
 
-example : leb 2 2 = true  := by rfl
-example : leb 2 4 = true  := by rfl
-example : leb 4 2 = false := by rfl
+example : leb two two = true  := by rfl
+example : leb two four = true  := by rfl
+example : leb four two = false := by rfl
 seal leb
 ```
 
 :::slidebreak
 :::
 
-We'll be using these (especially `beq`) a lot, so let's give
-them infix notations. Don't worry too much about how these are defined.
+We'll be using `beq` a lot, so let's give it an infix notation.
+Don't worry too much about how this is defined, we will return to it
+in more detail later.
 
 :::dev
 JC: Lean's stdlib has `==` notation for `beq`,
@@ -1520,14 +1470,16 @@ but not for `Nat.ble`...
 BCP: Readers may wonder what "instance" is...
 :::
 
+:::dev
+DHS: I removed the other notation in this chapter, but IMO the
+lemmas and proofs below become hideously ugly to the point of unreadability
+without the `==` shorthand. I think in this instance introducing the notation
+is worth it.
+:::
+
 ```lean
 instance : BEq Nat where
   beq := beq
-
-infix:65 "≤?" => leb
-
-unseal leb in
-example : 4 ≤? 2 = false := by rfl
 ```
 
 ::::full
@@ -1538,8 +1490,8 @@ one for each of the four cases of control flow through the function.
 ```lean
 unseal beq
 theorem zero_zero_beq_true : (0 == 0) = true := by rfl
-theorem zero_succ_beq_false (n : Nat) : (0 == (succ n)) = false := by rfl
-theorem succ_zero_beq_false (n : Nat) : ((succ n) == 0) = false := by rfl
+theorem zero_succ_beq_false (n : Nat) : (zero == (succ n)) = false := by rfl
+theorem succ_zero_beq_false (n : Nat) : ((succ n) == zero) = false := by rfl
 theorem succ_succ_beq (n m : Nat) : ((succ n) == (succ m)) = (n == m) := by rfl
 seal beq
 ```
@@ -1561,12 +1513,10 @@ Define a less-than function in terms of `leb`.
 def ltb (n m : Nat) : Bool
   := solution!(leb (succ n) m)
 
-infix:65 "<?" => ltb
-
 unseal ltb leb
-example : 2 <? 2 = false := solution!(by rfl)
-example : 2 <? 4 = true  := solution!(by rfl)
-example : 4 <? 2 = false := solution!(by rfl)
+example : ltb two two = false := solution!(by rfl)
+example : ltb two four = true  := solution!(by rfl)
+example : ltb four two = false := solution!(by rfl)
 seal ltb leb
 ```
 
@@ -1601,7 +1551,7 @@ Type it with `\to` or `\->` or `\r`.
 
 The `intro` tactic moves the universally quantified variables and the
 hypothesis into the context, giving them names.  The goal is now to prove
-`n + n = m + m` under the assumption `h : n = m`.
+`add n n = add m m` under the assumption `h : n = m`.
 
 The tactic that tells Lean to perform replacement is one we have seen
 before: `rewrite`. It can take a hypothesis from the context as an argument,
@@ -1609,7 +1559,7 @@ just like it can take a previously proved theorem.  In this case, we want to
 rewrite with the hypothesis `h`, which says that `n` and `m` are equal, so
 that we can replace `n` with `m` in the goal.
 
-After the rewrite, the goal is `m + m = m + m`, which can be closed by
+After the rewrite, the goal is `add m m = add m m`, which can be closed by
 `rfl`.
 ::::
 
@@ -1621,7 +1571,7 @@ ugly. Are they standard, or can we make a better convention?
 ```lean
 theorem add_id_example : ∀ n m : Nat,
     n = m →
-    n + n = m + m := by
+    add n n = add m m := by
   intro n m
   intro h
   rewrite [h]
@@ -1637,7 +1587,7 @@ Remove `sorry` and fill in the proof.
 
 ```lean
 theorem add_id_exercise : ∀ n m o : Nat,
-    n = m → m = o → n + m = m + o := by
+    n = m → m = o → add n m = add m o := by
   solution!
     intro n m o h1 h2
     rewrite [h1, h2]
@@ -1698,7 +1648,7 @@ instead of a hypothesis from the context.
 
 ```lean
 theorem add_mul_zero : ∀ p q : Nat,
-    (p * 0) + (q * 0) = 0 := by
+   add (mul p zero) (mul q zero) = zero := by
   intro p q
   rewrite [mul_zero, mul_zero, add_zero]
   rfl
@@ -1733,7 +1683,7 @@ BCP: Yes, and there's already a part of a note about this someplace.  Merge with
 /-- warning: declaration uses `sorry` -/
 #guard_msgs(warning) in
 example : ∀ n : Nat,
-    (succ n == 0) = false := by
+    (succ n == zero) = false := by
   intro n
   /-
     We can't rewrite by any lemmas here because `n` is unknown!
@@ -1752,7 +1702,7 @@ We can use `cases` to perform case analysis:
 
 ```lean
 theorem add_one_neb_zero : ∀ n : Nat,
-    (succ n == 0) = false := by
+    (succ n == zero) = false := by
   intro n
   cases n
   case zero =>
@@ -1905,7 +1855,7 @@ GRADE_THEOREM 2: orb_false_true
 ::::exercise (rating := 1) (name := "zero_nbeq_add_1")
 ```lean
 theorem zero_neb_add_one : ∀ n : Nat,
-  (0 == Nat.succ n) = false := by
+  (zero == Nat.succ n) = false := by
   solution!
     intro n; cases n
     case zero => rewrite [zero_succ_beq_false]; rfl
@@ -1987,10 +1937,6 @@ This fails because Lean can't see that `n - 1` is structurally smaller.
 :::
 ::::
 
-```lean
-end Nat
-```
-
 ## Binary Numerals
 
 ::::exercise (rating := 3) (name := "binary")
@@ -2035,9 +1981,9 @@ def incr (m : Bin) : Bin
 @[irreducible]
 def binToNat (m : Bin) : Nat
   := solution!(match m with
-  | .z => 0
-  | .b0 m' => binToNat m' * 2
-  | .b1 m' => binToNat m' * 2 + 1)
+  | .z => zero
+  | .b0 m' => mul (binToNat m') two
+  | .b1 m' => add (mul (binToNat m') two) one)
 
 unseal incr
 example : incr (.b1 .z) = .b0 (.b1 .z) := solution!(by rfl)
@@ -2050,18 +1996,18 @@ theorem incr_b1 m : incr (.b1 m) = .b0 (incr m) := solution!(by rfl)
 seal incr
 
 unseal binToNat
-theorem binToNat_z : binToNat .z = 0 := solution!(by rfl)
-theorem binToNat_b0 m : binToNat (.b0 m) = binToNat m * 2 := solution!(by rfl)
-theorem binToNat_b1 m : binToNat (.b1 m) = binToNat m * 2 + 1 := solution!(by rfl)
+theorem binToNat_z : binToNat .z = zero := solution!(by rfl)
+theorem binToNat_b0 m : binToNat (.b0 m) = mul (binToNat m) two := solution!(by rfl)
+theorem binToNat_b1 m : binToNat (.b1 m) = add (mul (binToNat m) two) one := solution!(by rfl)
 seal binToNat
 ```
 
 ```lean
 unseal Nat.mul Nat.add incr binToNat
-example : binToNat (.b0 (.b1 .z)) = 2 := solution!(by rfl)
-example : binToNat (incr (.b1 .z)) = 1 + binToNat (.b1 .z) := solution!(by rfl)
-example : binToNat (incr (incr (.b1 .z))) = 2 + binToNat (.b1 .z) := solution!(by rfl)
-example : binToNat (.b0 (.b0 (.b0 (.b1 .z)))) = 8 := solution!(by rfl)
+example : binToNat (.b0 (.b1 .z)) = two := solution!(by rfl)
+example : binToNat (incr (.b1 .z)) = add one (binToNat (.b1 .z)) := solution!(by rfl)
+example : binToNat (incr (incr (.b1 .z))) = add two (binToNat (.b1 .z)) := solution!(by rfl)
+example : binToNat (.b0 (.b0 (.b1 .z))) = four := solution!(by rfl)
 seal Nat.mul Nat.add incr binToNat
 ```
 
@@ -2107,7 +2053,7 @@ TODO: Give more intro to these two theorems on booleans.
 :::
 
 ```lean
-end NatPlayground
+end Nat
 ```
 
 # More Exercises
