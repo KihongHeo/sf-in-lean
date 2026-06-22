@@ -1073,7 +1073,7 @@ def add (n : Nat) (m : Nat) : Nat :=
   | zero => n
   | succ m' => succ (add n m')
 
---- Don't worry about this for now
+--- We'll explain what this means in a few chapters
 instance instAdd : Add Nat where add := add
 ```
 
@@ -1272,22 +1272,22 @@ and performance; unfolding definitions can have negative effects as libraries sc
 These two theorems also follow a particular pattern. Let's look again at the
 definition of `add`:
 
+
 ```lean
 namespace AddPlayground
-
-@[irreducible]
-def add' (n : Nat) (m : Nat) : Nat :=
+/- repeating the definition again here for ease of reference
+def add (n : Nat) (m : Nat) : Nat :=
   match m with
   | zero => n
-  | succ m' => succ (add n m')
+  | succ m' => succ (add n m') -/
 
 unseal add in
-theorem add_zero' : forall (n : Nat), n + 0 = n := by
+theorem add_zero : forall (n : Nat), n + 0 = n := by
   intro n
   rfl
 
 unseal add in
-theorem add_succ' : forall (n m : Nat), n + succ m = succ (n + m) := by
+theorem add_succ : forall (n m : Nat), n + succ m = succ (n + m) := by
   intro n m
   rfl
 
@@ -1717,7 +1717,7 @@ Sometimes simple calculation and rewriting are not enough...
 
 :::instructors
 We use `#guard_msgs` in a number of places in the SFL
-source files to help deter bitrot, and you are encouraged to add
+source files to help deter bit-rot, and you are encouraged to add
 your own instances.  It doesn't need to be explained to students
 because it gets stripped out when verso files are translated to
 .lean and .html.
@@ -1968,15 +1968,6 @@ in Lean will terminate on all inputs.  However, because Lean's
 termination analysis is not always able to figure things out
 automatically, it is sometimes necessary to provide hints or
 write functions in slightly different ways.
-
-Lean also supports more flexible termination proofs using
-`termination_by` and `decreasing_by` clauses, as well as `partial`
-functions that are not required to terminate.
-
-:::dev
-BCP: That last paragraph will be opaque to many readers.
-DHS: Let's just drop it, IMO
-:::
 ::::
 
 ::::exercise (rating := 2) (name := "decreasing")
