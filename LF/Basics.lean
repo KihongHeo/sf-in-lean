@@ -339,7 +339,8 @@ type as Lean's built-in, but their definitions are equivalent.
 
 :::dev
 BCP: Why call it MyBool instead of just Bool?  (Or, conversely, why call the constructors
-true and false instead of mytrue, myfalse, mynotb, etc.?)
+true and false instead of mytrue, myfalse, mynotb, etc.?
+Maybe this is a place to talk about how inductive types create namespaces?)
 :::
 
 ```lean
@@ -802,12 +803,13 @@ a tuple type. As an example, consider representing the four bits in
 a nibble (half a byte). We first define a datatype `Bit` that
 resembles `Bool` (using the constructors `b1` and `b0` for the two
 possible bit values) and then define the datatype `Nibble`, which is
-essentially a tuple of four bits.
+a tuple of four bits.
 ::::
 
 :::dev
 DHS: Some discussion remains around Nibble vs. Nybble.
-From the GitHub thread, we had MWH linking https://en.wikipedia.org/wiki/Nibble_(magazine),
+From the GitHub thread, we had MWH linking
+`https://en.wikipedia.org/wiki/Nibble_(magazine)`,
 but BCP indicated that he saw the Nibble spelling more commonly.
 :::
 
@@ -1084,6 +1086,17 @@ theorem add_zero : ∀ n : Nat, add n zero = n := by
   rfl
 ```
 
+:::dev
+BCP: The flow here is rough
+  - need to explain ∀ in the statement (and `theorem` and `add_zero`)
+  - need to explain "by", "intro n", and "rfl" in the proof
+  - what about `unseal`? if we really need it, it has to be explained!
+  - the comment below will need to change a bit
+  - We should also comment, as soon as it's relevant, on the binder
+    form vs. the ∀ form for introducing variables.  Why do we use
+    the ∀ form here?  Could we switch to the binder form?
+:::
+
 ::::full
 ```lean
 #check add_zero
@@ -1313,9 +1326,15 @@ and only `unseal`ing the definition in the proofs of those lemmas themselves.
 
 ## Working with Numerals
 
-::::full
-   We know from our definitions above that `one` is just `succ zero`,
-   `two` is `succ one`, and so on. We can write rules for these equalities, as well:
+:::dev
+BCP: The following lemmas are also needed by the TERSE version,
+so I am un-fulling them for now.
+But indeed the whole discussion here needs both TERSE and FULL versions.
+Or probably some of it should turn into an exercise?
+:::
+
+We know from our definitions above that `one` is just `succ zero`,
+`two` is `succ one`, and so on. We can write rules for these equalities too:
 
 ```lean
 theorem one_eq_succ_zero : one = succ zero := by rfl
@@ -1327,8 +1346,6 @@ theorem four_eq_succ_three : four = succ three := by rfl
 We can rewrite with these rules to expand numerals into their definitions,
    which allows us to use our `add` rules.
 Here's an example of how to start a proof this way.
-::::
-
 Finish the proof using the `add` rules:
 
 :::dev
@@ -1358,7 +1375,6 @@ theorem two_plus_two_eq_four : (add two two : Nat) = four := by
 ::::full
 By default, `rewrite` rewrites left-to-right. To rewrite from right
 to left, use `rewrite [← h]`, where `←` is typed as `\l` or `\<-`.
-
 :::dev
 BCP: We should make this point wherever we rewrite to the left for
 the first time. It's out of place here.
@@ -1510,11 +1526,6 @@ instance : BEq Nat where
 We can also now define the simplification lemmas for `beq` with this new notation,
 one for each of the four cases of control flow through the function.
 ::::
-
-:::dev
-BCP: The following lemmas are also needed by the TERSE version, so I guess someone has broken out of the `full` block to make them.
-visible.  But the whole discussion here needs a TERSE version too, not just these lemmas!
-:::
 
 ```lean
 unseal beq
