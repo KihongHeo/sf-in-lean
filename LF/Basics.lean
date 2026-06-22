@@ -1326,9 +1326,15 @@ and only `unseal`ing the definition in the proofs of those lemmas themselves.
 
 ## Working with Numerals
 
-::::full
-   We know from our definitions above that `one` is just `succ zero`,
-   `two` is `succ one`, and so on. We can write rules for these equalities, as well:
+:::dev
+BCP: The following lemmas are also needed by the TERSE version,
+so I am un-fulling them for now.
+But indeed the whole discussion here needs both TERSE and FULL versions.
+Or probably some of it should turn into an exercise?
+:::
+
+We know from our definitions above that `one` is just `succ zero`,
+`two` is `succ one`, and so on. We can write rules for these equalities too:
 
 ```lean
 theorem one_eq_succ_zero : one = succ zero := by rfl
@@ -1340,8 +1346,6 @@ theorem four_eq_succ_three : four = succ three := by rfl
 We can rewrite with these rules to expand numerals into their definitions,
    which allows us to use our `add` rules.
 Here's an example of how to start a proof this way.
-::::
-
 Finish the proof using the `add` rules:
 
 :::dev
@@ -1522,11 +1526,6 @@ instance : BEq Nat where
 We can also now define the simplification lemmas for `beq` with this new notation,
 one for each of the four cases of control flow through the function.
 ::::
-
-:::dev
-BCP: The following lemmas are also needed by the TERSE version, so I guess someone has broken out of the `full` block to make them.
-visible.  But the whole discussion here needs a TERSE version too, not just these lemmas!
-:::
 
 ```lean
 unseal beq
