@@ -95,17 +95,56 @@ partial def inlineToText : Verso.Doc.Inline Manual → String
 def inlinesToText (inls : Array (Verso.Doc.Inline Manual)) : String :=
   String.join (inls.toList.map inlineToText)
 
-/--
-Strip leading whitespace from the continuation lines of a soft-wrapped
-paragraph. Verso keeps the source's continuation-line indentation inside the
-paragraph's inline text, which would otherwise compound with the indentation
-we add when rendering list items. -/
-private def stripSoftBreakIndent (s : String) : String :=
-  String.intercalate "\n" ((s.splitOn "\n").map (·.trimAsciiStart.toString))
+/-- Right margin used when filling prose paragraphs in the generated `.lean`
+files. -/
+def proseFillWidth : Nat := 60
 
-/-- Pretty-print a paragraph's inlines, normalising soft-wrap indentation. -/
+/--
+Split `s` into whitespace-separated words, keeping each `` `code span` `` intact
+as a single token even when it contains spaces (so wrapping never splits one
+across a line break). -/
+private def tokenizeKeepingCodeSpans (s : String) : Array String := Id.run do
+  let mut words : Array String := #[]
+  let mut cur : String := ""
+  let mut inCode := false
+  for c in s.toList do
+    if inCode then
+      cur := cur.push c
+      if c == '`' then inCode := false
+    else if c == '`' then
+      cur := cur.push c
+      inCode := true
+    else if c == ' ' || c == '\n' || c == '\t' then
+      if !cur.isEmpty then
+        words := words.push cur
+        cur := ""
+    else
+      cur := cur.push c
+  if !cur.isEmpty then words := words.push cur
+  return words
+
+/--
+Fill (word-wrap) `text` to at most `width` columns. The source's soft-wrap
+newlines and continuation-line indentation are discarded and the words are
+reflowed; a `` `code span` `` is never split across lines, and a single word
+longer than `width` is left to overflow rather than being broken. -/
+def fillText (width : Nat) (text : String) : String := Id.run do
+  let mut lines : Array String := #[]
+  let mut cur : String := ""
+  for w in tokenizeKeepingCodeSpans text do
+    if cur.isEmpty then
+      cur := w
+    else if cur.length + 1 + w.length ≤ width then
+      cur := cur ++ " " ++ w
+    else
+      lines := lines.push cur
+      cur := w
+  if !cur.isEmpty then lines := lines.push cur
+  return String.intercalate "\n" lines.toList
+
+/-- Pretty-print a paragraph's inlines, reflowing them to `proseFillWidth`. -/
 def paraToText (inls : Array (Verso.Doc.Inline Manual)) : String :=
-  stripSoftBreakIndent (inlinesToText inls)
+  fillText proseFillWidth (inlinesToText inls)
 
 /--
 Render a Verso block to a Markdown-like string for inclusion in a `/-! … -/`
