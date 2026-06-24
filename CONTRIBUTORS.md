@@ -391,3 +391,13 @@ Related notation introduced alongside tactics: anonymous constructor `⟨…⟩`
 **Automation** chapter; `grind`, `aesop`, and `try` are deferred to a later
 volume. The `RegExp` development moves out of `IndProp` into that Automation
 chapter.
+
+## AI policy
+
+SFL contributors may use AI tools to help create, validate,
+and maintain content in this repo.  AI-generated content, 
+especially public-facing content such as words and proofs 
+in book chapters, should be carefully vetted.
+
+Instructions for Claude live in a separate file `CLAUDE.md` (which
+also asks Claude to pay attention to the conventions in this file).
