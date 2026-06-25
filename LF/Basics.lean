@@ -75,7 +75,9 @@ programs.
 ## Enumerated Types
 
 :::terse
-In Lean, we can build practically everything from first principles...
+In Lean, we can
+build practically
+everything from first principles...
 :::
 
 ::::full
@@ -929,8 +931,8 @@ inductive Nat : Type where
   | succ (n : Nat)
 ```
 
-Naturally, Lean has its own definition of natural numbers, which
-with some powerful built-in features for reasoning and
+Naturally, Lean has its own definition of natural numbers,
+with some slightly fancy features for reasoning and
 notation. As we are just beginning to reason about natural numbers,
 we use our own definition here and introduce the Lean one in a later chapter.
 
@@ -1777,9 +1779,11 @@ Another example, using booleans:
 theorem notb_involutive : ∀ b : Bool, (!!b) = b := by
   intro b
   cases b
-  · rewrite [Bool.not_false, Bool.not_true]
+  case false =>
+    rewrite [Bool.not_false, Bool.not_true]
     rfl
-  · rewrite [Bool.not_true, Bool.not_false]
+  case true =>
+    rewrite [Bool.not_true, Bool.not_false]
     rfl
 ```
 

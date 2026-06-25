@@ -95,30 +95,78 @@ partial def inlineToText : Verso.Doc.Inline Manual → String
 def inlinesToText (inls : Array (Verso.Doc.Inline Manual)) : String :=
   String.join (inls.toList.map inlineToText)
 
-/--
-Strip leading whitespace from the continuation lines of a soft-wrapped
-paragraph. Verso keeps the source's continuation-line indentation inside the
-paragraph's inline text, which would otherwise compound with the indentation
-we add when rendering list items. -/
-private def stripSoftBreakIndent (s : String) : String :=
-  String.intercalate "\n" ((s.splitOn "\n").map (·.trimAsciiStart.toString))
+/-- Right margin used when filling prose paragraphs in the terse build's
+generated `.lean` files. -/
+def terseFillWidth : Nat := 60
 
-/-- Pretty-print a paragraph's inlines, normalising soft-wrap indentation. -/
-def paraToText (inls : Array (Verso.Doc.Inline Manual)) : String :=
-  stripSoftBreakIndent (inlinesToText inls)
+/-- Right margin used when filling prose paragraphs in the student and
+solutions builds' generated `.lean` files. -/
+def proseFillWidth : Nat := 75
+
+/-- The prose fill width for a build variant (`"terse"`, `"student"`, or
+`"solutions"`). -/
+def fillWidthFor (variant : String) : Nat :=
+  if variant == "terse" then terseFillWidth else proseFillWidth
+
+/--
+Split `s` into whitespace-separated words, keeping each `` `code span` `` intact
+as a single token even when it contains spaces (so wrapping never splits one
+across a line break). -/
+private def tokenizeKeepingCodeSpans (s : String) : Array String := Id.run do
+  let mut words : Array String := #[]
+  let mut cur : String := ""
+  let mut inCode := false
+  for c in s.toList do
+    if inCode then
+      cur := cur.push c
+      if c == '`' then inCode := false
+    else if c == '`' then
+      cur := cur.push c
+      inCode := true
+    else if c == ' ' || c == '\n' || c == '\t' then
+      if !cur.isEmpty then
+        words := words.push cur
+        cur := ""
+    else
+      cur := cur.push c
+  if !cur.isEmpty then words := words.push cur
+  return words
+
+/--
+Fill (word-wrap) `text` to at most `width` columns. The source's soft-wrap
+newlines and continuation-line indentation are discarded and the words are
+reflowed; a `` `code span` `` is never split across lines, and a single word
+longer than `width` is left to overflow rather than being broken. -/
+def fillText (width : Nat) (text : String) : String := Id.run do
+  let mut lines : Array String := #[]
+  let mut cur : String := ""
+  for w in tokenizeKeepingCodeSpans text do
+    if cur.isEmpty then
+      cur := w
+    else if cur.length + 1 + w.length ≤ width then
+      cur := cur ++ " " ++ w
+    else
+      lines := lines.push cur
+      cur := w
+  if !cur.isEmpty then lines := lines.push cur
+  return String.intercalate "\n" lines.toList
+
+/-- Pretty-print a paragraph's inlines, reflowing them to `width` columns. -/
+def paraToText (width : Nat) (inls : Array (Verso.Doc.Inline Manual)) : String :=
+  fillText width (inlinesToText inls)
 
 /--
 Render a Verso block to a Markdown-like string for inclusion in a `/-! … -/`
-comment.  List items are prefixed with `- ` / `N. `; continuation lines are
-indented to align under the item text. -/
-private partial def blockToText : Verso.Doc.Block Manual → String
-  | .para inlines => paraToText inlines
+comment, filling prose to `width` columns.  List items are prefixed with `- ` /
+`N. `; continuation lines are indented to align under the item text. -/
+private partial def blockToText (width : Nat) : Verso.Doc.Block Manual → String
+  | .para inlines => paraToText width inlines
   | .code s => "`" ++ s.trimAscii.toString ++ "`"
   | .concat bs | .blockquote bs =>
-    String.intercalate "\n\n" (bs.toList.map blockToText)
+    String.intercalate "\n\n" (bs.toList.map (blockToText width))
   | .ul lis =>
     let items := lis.toList.map fun li =>
-      let body := String.intercalate "\n\n" (li.contents.toList.map blockToText)
+      let body := String.intercalate "\n\n" (li.contents.toList.map (blockToText width))
       "- " ++ body.replace "\n" "\n  "
     -- Blank lines between items only when some item is itself multi-line.
     let sep := if items.any (·.contains '\n') then "\n\n" else "\n"
@@ -127,25 +175,25 @@ private partial def blockToText : Verso.Doc.Block Manual → String
     let items := lis.toList.mapIdx fun i li =>
       let pfx := s!"{start + i}. "
       let indent := String.ofList (List.replicate pfx.length ' ')
-      let body := String.intercalate "\n\n" (li.contents.toList.map blockToText)
+      let body := String.intercalate "\n\n" (li.contents.toList.map (blockToText width))
       pfx ++ body.replace "\n" s!"\n{indent}"
     let sep := if items.any (·.contains '\n') then "\n\n" else "\n"
     String.intercalate sep items
   | .dl dis =>
     String.intercalate "\n" (dis.toList.map fun di =>
       inlinesToText di.term ++ "\n:   " ++
-      String.intercalate "\n    " (di.desc.toList.map blockToText))
-  | .other _ bs => String.intercalate "\n\n" (bs.toList.map blockToText)
+      String.intercalate "\n    " (di.desc.toList.map (blockToText width)))
+  | .other _ bs => String.intercalate "\n\n" (bs.toList.map (blockToText width))
 
 /-! ## Lake project scaffold templates -/
 
 /-- Contents of the generated project's `lakefile.toml`. -/
-private def lakefileTemplate : String :=
-  "name = \"plf-extracted\"\n" ++
+private def lakefileTemplate (vol : String) : String :=
+  "name = \"" ++ vol.toLower ++ "-extracted\"\n" ++
   "version = \"0.1.0\"\n" ++
-  "defaultTargets = [\"LF\"]\n\n" ++
+  "defaultTargets = [\"" ++ vol ++ "\"]\n\n" ++
   "[[lean_lib]]\n" ++
-  "name = \"LF\"\n"
+  "name = \"" ++ vol ++ "\"\n"
 
 /-! ## ExtraStep walker -/
 
@@ -161,15 +209,14 @@ private def appendTeacherStudent
   let (t, st) := buf.getD file ("", "")
   buf.insert file (t ++ teacher, st ++ student)
 
-/-- Wrap a string in `/-! … -/` module-doc comment form, normalising trailing whitespace. -/
--- To extend the inline treatment to multi-line blocks, replace the branch with
--- just `"/-! " ++ t ++ " -/\n\n"` (the else branch below) for all cases.
--- That puts the first content line on the `/-!` line and the last on the `-/` line.
+/-- Render a string as a block of `--` line comments, one per line (blank lines
+stay completely blank), normalising trailing whitespace. -/
 private def asModuleDoc (s : String) : String :=
   let t := s.trimAscii.toString
-  -- if t.contains '\n' then "/-!\n" ++ t ++ "\n-/\n\n"
-  -- else
-  "/-! " ++ t ++ " -/\n\n"
+  let commented := String.intercalate "\n"
+    ((t.splitOn "\n").map fun line =>
+      if line.all (·.isWhitespace) then "" else "-- " ++ line)
+  commented ++ "\n\n"
 
 /-- Merge adjacent `/-! … -/` blocks into one, separating their contents with a blank line. -/
 private def mergeAdjacentModuleDocs (s : String) : String :=
@@ -495,19 +542,19 @@ mutual
 Walk a list of blocks, batching consecutive `.para`, `.ul`, and `.ol` blocks
 into a single `/-! … -/` comment instead of emitting one per block, so a list
 stays in the same comment as its lead-in paragraph. -/
-partial def walkBlocks (file : String) (bs : Array (Verso.Doc.Block Manual))
+partial def walkBlocks (width : Nat) (file : String) (bs : Array (Verso.Doc.Block Manual))
     (buf : SaveBuffers) : SaveBuffers := Id.run do
   let mut buf := buf
   let mut pending : Array String := #[]
   for b in bs do
     match b with
-    | .para inls => pending := pending.push (paraToText inls)
-    | .ul _ | .ol _ _ => pending := pending.push (blockToText b)
+    | .para inls => pending := pending.push (paraToText width inls)
+    | .ul _ | .ol _ _ => pending := pending.push (blockToText width b)
     | _ =>
       if !pending.isEmpty then
         buf := appendBoth buf file (asModuleDoc (String.intercalate "\n\n" pending.toList))
         pending := #[]
-      buf := walkBlock file b buf
+      buf := walkBlock width file b buf
   if !pending.isEmpty then
     buf := appendBoth buf file (asModuleDoc (String.intercalate "\n\n" pending.toList))
   return buf
@@ -515,7 +562,7 @@ partial def walkBlocks (file : String) (bs : Array (Verso.Doc.Block Manual))
 /--
 Walk a single block, accumulating teacher and student content into `buf` for
 `file`. The bulk of the saver's logic lives here. -/
-partial def walkBlock (file : String) (b : Verso.Doc.Block Manual)
+partial def walkBlock (width : Nat) (file : String) (b : Verso.Doc.Block Manual)
     (buf : SaveBuffers) : SaveBuffers := Id.run do
   match b with
   | .other which contents =>
@@ -540,7 +587,7 @@ partial def walkBlock (file : String) (b : Verso.Doc.Block Manual)
         let stars := String.ofList (List.replicate rating '⭐')
         let header := s!"### Exercise ({rating} star{if rating == 1 then "" else "s"}): {exName} {stars}"
         let mut buf := appendBoth buf file (asModuleDoc header)
-        buf := walkBlocks file contents buf
+        buf := walkBlocks width file contents buf
         return buf
       return buf
     if name == ``Block.bnf then
@@ -559,33 +606,33 @@ partial def walkBlock (file : String) (b : Verso.Doc.Block Manual)
         | .str s => s
         | _ => ""
       let mut buf := appendBoth buf file (asModuleDoc s!"_Details:_ {summary}")
-      buf := walkBlocks file contents buf
+      buf := walkBlocks width file contents buf
       return buf
     if name == ``Block.terse then
       -- Terse content kept in the tree only in terse builds (full builds replace
       -- with concat #[] during traverse). Recurse into children.
-      return walkBlocks file contents buf
+      return walkBlocks width file contents buf
     if name == ``Block.full then
       -- Full content kept in the tree only in full builds. Recurse into children.
-      return walkBlocks file contents buf
+      return walkBlocks width file contents buf
     if name == ``Block.slidebreak then
       -- Slide-break marker: emit nothing in all generated .lean files.
       return buf
     -- Unknown extension block: recurse into children as a best-effort.
     -- NB: :::dev / :::instructor blocks carry no children (their bodies are
     -- dropped at elaboration), so this recursion is a no-op for them.
-    walkBlocks file contents buf
-  | .para inls => return appendBoth buf file (asModuleDoc (paraToText inls))
+    walkBlocks width file contents buf
+  | .para inls => return appendBoth buf file (asModuleDoc (paraToText width inls))
   | .code s => return appendBoth buf file (asModuleDoc s.trimAscii.toString)
-  | .concat bs | .blockquote bs => walkBlocks file bs buf
+  | .concat bs | .blockquote bs => walkBlocks width file bs buf
   | .ul _ | .ol _ _ =>
     -- Normally batched with adjacent paragraphs in `walkBlocks`; this case is
     -- only reached for a list arriving outside that batching.
-    return appendBoth buf file (asModuleDoc (blockToText b))
+    return appendBoth buf file (asModuleDoc (blockToText width b))
   | .dl dis =>
     let mut buf := buf
     for di in dis do
-      buf := walkBlocks file di.desc buf
+      buf := walkBlocks width file di.desc buf
     return buf
 
 end
@@ -599,49 +646,50 @@ private def chapterFileBase (p : Part Manual) : String :=
   (meta?.bind (·.file)).getD titleStr.sluggify.toString
 
 /-- Generated Lean file path for a chapter Part. -/
-private def chapterPath (p : Part Manual) : String :=
-  "LF/" ++ chapterFileBase p ++ ".lean"
+private def chapterPath (vol : String) (p : Part Manual) : String :=
+  vol ++ "/" ++ chapterFileBase p ++ ".lean"
 
 /-- Generated Lean module name for a chapter Part. Uses the raw `file :=`
 identifier when it is a plain alphanumeric/underscore name; falls back to
 French-quote brackets for slugs that contain hyphens or other punctuation. -/
-private def chapterModule (p : Part Manual) : String :=
+private def chapterModule (vol : String) (p : Part Manual) : String :=
   let base := chapterFileBase p
-  if base.all (fun c => c.isAlphanum || c == '_') then "LF." ++ base
-  else "LF.«" ++ base ++ "»"
+  if base.all (fun c => c.isAlphanum || c == '_') then vol ++ "." ++ base
+  else vol ++ ".«" ++ base ++ "»"
 
 /--
 Walk a section (a Part at depth ≥ 1, inside a chapter). The section's title is
 emitted as a `#`-prefixed module-doc heading whose level equals `depth`; all
 content goes into the chapter's `file`. -/
-partial def walkSection (depth : Nat) (file : String) (part : Part Manual)
+partial def walkSection (width : Nat) (depth : Nat) (file : String) (part : Part Manual)
     (buf : SaveBuffers) : SaveBuffers := Id.run do
   let .mk titleInlines _ _ intro subParts := part
   let mut buf := buf
   let hashes := String.ofList (List.replicate depth '#')
   let titleText := inlinesToText titleInlines
   buf := appendBoth buf file (asModuleDoc s!"{hashes} {titleText}")
-  buf := walkBlocks file intro buf
+  buf := walkBlocks width file intro buf
   for p in subParts do
-    buf := walkSection (depth + 1) file p buf
+    buf := walkSection width (depth + 1) file p buf
   return buf
 
 /--
 The root of the walker. Each top-level sub-Part of the root document is
 treated as a chapter and written to its own file (using the `file :=` metadata
-key each chapter sets in its `%%%` block). The root file (`LF.lean`) gets one
+key each chapter sets in its `%%%` block). The root file (`{vol}.lean`) gets one
 `import` line per chapter. -/
-def walkOuter (rootFile : String) (text : Part Manual) (buf : SaveBuffers) :
+def walkOuter (width : Nat) (vol : String) (text : Part Manual) (buf : SaveBuffers) :
     SaveBuffers := Id.run do
+  let rootFile := vol ++ ".lean"
   let .mk _ _ _ _ subParts := text
   let mut buf := buf
   for p in subParts do
-    buf := appendBoth buf rootFile s!"import {chapterModule p}\n"
+    buf := appendBoth buf rootFile s!"import {chapterModule vol p}\n"
   for p in subParts do
-    let chapterFile := chapterPath p
+    let chapterFile := chapterPath vol p
     -- BCP: Maybe this is not needed?
     -- buf := appendBoth buf chapterFile "import Lean\n\nopen Lean\n\n"
-    buf := walkSection 1 chapterFile p buf
+    buf := walkSection width 1 chapterFile p buf
   return buf
 
 /--
@@ -649,18 +697,18 @@ Write a complete generated Lake project at `dest`: the per-file buffer
 contents under `dest/`, plus `lakefile.toml`, `lean-toolchain`, and a `LF.lean`
 that imports `LF.STLC`. -/
 private def writeProject (dest : System.FilePath) (toolchain : String)
-    (kind : String) (files : Array (String × String)) : IO Unit := do
+    (vol kind : String) (files : Array (String × String)) : IO Unit := do
   IO.FS.createDirAll dest
-  -- Clear the LF/ source tree so chapter files that have since been renamed
+  -- Clear the volume source tree so chapter files that have since been renamed
   -- or removed don't linger as stale orphans. Other artifacts (`.lake`,
   -- `lakefile.toml`, `lean-toolchain`, `README.md`) are left alone.
-  let chapterRoot := dest / "LF"
+  let chapterRoot := dest / vol
   if ← chapterRoot.pathExists then
     IO.FS.removeDirAll chapterRoot
-  IO.FS.writeFile (dest / "lakefile.toml") lakefileTemplate
+  IO.FS.writeFile (dest / "lakefile.toml") (lakefileTemplate vol)
   IO.FS.writeFile (dest / "lean-toolchain") toolchain
   IO.FS.writeFile (dest / "README.md")
-    s!"# LF — {kind} version\n\nGenerated from the Verso source.\n"
+    s!"# {vol} — {kind} version\n\nGenerated from the Verso source.\n"
   for (relPath, body) in files do
     let target := dest / relPath
     target.parent.forM IO.FS.createDirAll
@@ -686,30 +734,31 @@ private def buildProject (dest : System.FilePath) (kind : String) :
 
 /--
 Shared implementation. Writes the extracted Lean project for one variant of
-the book to `_out/<variant>/lean/`, next to that variant's `html-multi/`
-(which `manualMain` writes via `cfg.destination := "_out/<variant>"`).
+one volume to `_out/<vol>/<variant>/lean/`, next to that variant's `html-multi/`
+(which `manualMain` writes via `cfg.destination := "_out/<vol>/<variant>"`).
+`vol` is the uppercase module prefix (e.g. `"LF"`, `"HL"`, `"TS"`).
 `isTeacher` selects the solution-filled or student form of the code. -/
-private def emitSavedImpl (variant : String) (isTeacher : Bool) :
+private def emitSavedImpl (vol variant : String) (isTeacher : Bool) :
     Mode → Config → TraverseState → Part Manual → BuildLogT IO Unit :=
   fun _mode _cfg _state text => do
-    let buf : SaveBuffers := walkOuter "LF.lean" text ({} : SaveBuffers)
+    let buf : SaveBuffers := walkOuter (fillWidthFor variant) vol text ({} : SaveBuffers)
     let toolchain ← (IO.FS.readFile "lean-toolchain").toBaseIO >>= fun
       | .ok s => pure s
       | .error _ => pure "leanprover/lean4:v4.30.0-rc2\n"
     let files : Array (String × String) :=
       buf.fold (init := #[]) fun acc file (teacher, student) =>
         acc.push (file, mergeAdjacentModuleDocs (if isTeacher then teacher else student))
-    let dest := System.FilePath.mk "_out" / variant / "lean"
-    writeProject dest toolchain variant files
+    let dest := System.FilePath.mk "_out" / vol.toLower / variant / "lean"
+    writeProject dest toolchain vol variant files
     buildProject dest variant
 
-/-- `ExtraStep` for the student build: `_out/student/lean/`, solutions elided. -/
-def emitSavedStudent := emitSavedImpl "student" false
+/-- `ExtraStep` for the student build: solutions elided. -/
+def emitSavedStudent (vol : String) := emitSavedImpl vol "student" false
 
-/-- `ExtraStep` for the solutions build: `_out/solutions/lean/`, solutions shown. -/
-def emitSavedSolutions := emitSavedImpl "solutions" true
+/-- `ExtraStep` for the solutions build: solutions shown. -/
+def emitSavedSolutions (vol : String) := emitSavedImpl vol "solutions" true
 
-/-- `ExtraStep` for the terse build: `_out/terse/lean/`, solutions elided. -/
-def emitSavedTerse := emitSavedImpl "terse" false
+/-- `ExtraStep` for the terse build: solutions elided. -/
+def emitSavedTerse (vol : String) := emitSavedImpl vol "terse" false
 
 end SFLMeta
